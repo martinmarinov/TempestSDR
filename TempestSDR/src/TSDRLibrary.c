@@ -2,16 +2,16 @@
  ============================================================================
  Name        : TSDRLibrary.c
  Author      : Martin Marinov
- Version     :
- Copyright   : Your copyright notice
- Description : Hello World in C, Ansi-style
+ Description : This is the TempestSDR library. More information will follow.
  ============================================================================
  */
 
+#include "include/TSDRLibrary.h"
+#include "TSDRAvailableSources.h"
 #include <stdio.h>
 #include <stdlib.h>
 
-int main(void) {
-	puts("!!!Hello World!!!"); /* prints !!!Hello World!!! */
-	return EXIT_SUCCESS;
+void test(void) {
+	sources.id = 123;
+	printf("Dobre! Number is %d", sources.id);
 }
