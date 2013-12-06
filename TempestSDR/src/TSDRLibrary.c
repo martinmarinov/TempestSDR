@@ -7,11 +7,17 @@
  */
 
 #include "include/TSDRLibrary.h"
-#include "TSDRAvailableSources.h"
 #include <stdio.h>
 #include <stdlib.h>
+#include "TSDRPluginLoader.h"
 
 void test(void) {
-	sources.id = 123;
-	printf("Dobre! Number is %d", sources.id);
+	pluginsource_t plugin;
+
+	if (tsdrplug_load(&plugin, "abc.dll"))
+		printf(plugin.tsdrplugin_getName());
+	else
+		printf("Error!");
+
+	tsdrplug_close(&plugin);
 }

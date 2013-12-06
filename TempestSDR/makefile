@@ -1,3 +1,9 @@
+OBJS = TSDRLibrary.o TSDRPluginLoader.o
+DEPS = include/TSDRLibrary.h TSDRPluginLoader.h
+
+_OBJS = $(patsubst %,bin/obj/%,$(OBJS))
+_DEPS = $(patsubst %,src/%,$(DEPS))
+
 ifeq ($(OS),Windows_NT)
     EXT = .dll
 else
@@ -10,13 +16,16 @@ endif
 all : bin/TSDRLibrary$(EXT)
 
 # $@ matches the target, $< matches the first dependancy
-bin/TSDRLibrary$(EXT) : bin/TSDRLibrary.o
-	gcc -Wl,--add-stdcall-alias -shared -o $@ $<
+bin/TSDRLibrary$(EXT) : $(_OBJS)
+	gcc -Wl,--add-stdcall-alias -shared -o $@ $(_OBJS)
 
 # $@ matches the target, $< matches the first dependancy
-bin/TSDRLibrary.o : src/TSDRLibrary.c src/include/TSDRLibrary.h
+bin/obj/%.o : src/%.c $(_DEPS)
 	mkdir -p bin
+	mkdir -p bin/obj
 	gcc $(foreach d, $(INC), -I$d) -c $< -o $@
 	
+.PHONY: clean
+
 clean :
-	rm -f bin/*.o bin/TSDRLibrary$(EXT)
+	rm -f bin/obj/*.o bin/TSDRLibrary$(EXT)
