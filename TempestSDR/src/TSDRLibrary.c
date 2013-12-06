@@ -14,10 +14,13 @@
 void test(void) {
 	pluginsource_t plugin;
 
-	if (tsdrplug_load(&plugin, "abc.dll"))
-		printf(plugin.tsdrplugin_getName());
-	else
-		printf("Error!");
+	char name[40] = "Not working :( ";
+
+	if (tsdrplug_load(&plugin, "TSDRPlugin_RawFile.dll")) {
+		plugin.tsdrplugin_getName(name);
+		printf("%s\n",name);
+	} else
+		printf("Error!\n");
 
 	tsdrplug_close(&plugin);
 }

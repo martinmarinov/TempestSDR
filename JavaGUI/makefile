@@ -1,14 +1,68 @@
+# USER CONFIGURATION STARTS HERE
+
+# Define the plugins that you like to compile with the library. They need to be in a folder
+# in the parent directory with the exact same name as the plugin names. The library files
+# produced need to have the name of the plugin folder and need to be in the bin directory.
+# The default plugin file will make sure this is compatible.
+PLUGINS=TSDRPlugin_RawFile
+
+# USER CONFIGURATION ENDS HERE
+
+# Define a recursive wildcard function
+rwildcard=$(foreach d,$(wildcard $1*),$(call rwildcard,$d/,$2) $(filter $(subst *,%,$2),$d))
+
+# Discover all the java sources
+JAVAFILES:=$(call rwildcard,src/,*.java)
+
+# Create the class dependencies
+CLASSFILES:=$(patsubst %,bin/%,$(addsuffix .class,$(basename $(foreach jfile,$(JAVAFILES), $(subst src/,,$(jfile)) ))))
+
+# Detect shared library extension based on OS
+ifeq ($(OS),Windows_NT)
+	EXT = .dll
+else
+	UNAME_S := $(shell uname -s)
+	ifeq ($(UNAME_S),Linux)
+		EXT = .so
+	endif
+endif
+
+# Build the file names of the plugin files
+PLUGINS_FILES=$(addsuffix $(EXT),$(PLUGINS))
+
+# Build the directory names of the plugins
+PLUGINS_DIRS=$(addprefix ../,$(addsuffix /,$(PLUGINS)))
+
+# When compiling from command line with all
+# make sure we compile both jni and java files
 all : jnilib java
 
-java :
-	rwildcard=$(foreach d,$(wildcard $1*),$(call rwildcard,$d/,$2) $(filter $(subst *,%,$2),$d))
-	javafiles=$(call rwildcard,/src/,*.java)
-	
-jnilib :
-	@$(MAKE) -C jni/ all
+# The compilation of the java classes from command line
+# depends on the class files (we want to produce them)
+java : $(CLASSFILES)
 
-cleanjni:
+# For each class file, invoke javac with the source file which is constructed
+# from the name of the class file
+%.class : $(JAVAFILES)
+	mkdir -p bin # Create the bin directory if it doesn't exist (if you downloaded it from github)
+	javac $(patsubst %,src/%, $(subst bin/,,$(@:.class=.java))) -d bin/ -cp src/
+
+# Invoke the makefile for the jni stuff
+jnilib : plugins
+	@$(MAKE) -C jni/ all JAVA_HOME=$(JAVA_HOME)
+
+# Recompile each plugin and copy its shared library over to the java directory
+plugins : 
+	$(foreach pdir, $(PLUGINS_DIRS), $(MAKE) -C $(pdir) all; cp -f $(pdir)/bin/*$(EXT) .;)
+
+# Clean the jni stuff
+cleanjni: cleanplugins
 	@$(MAKE) -C jni/ clean
-	
+
+# Clean the plugin libraries
+cleanplugins:
+	$(foreach pfile, $(PLUGINS_FILES), rm -rf $(pfile);)	
+
+# Clean the java classes as well
 clean : cleanjni
 	rm -rf bin/
