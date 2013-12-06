@@ -6,37 +6,64 @@ DEPS = include/TSDRLibrary.h TSDRPluginLoader.h
 
 # USER CONFIGURATION ENDS HERE
 
-# The obj files reside in the bin/obj directory
-_OBJS = $(patsubst %,bin/obj/%,$(OBJS))
-
-# The header files are relative to the source directory
-_DEPS = $(patsubst %,src/%,$(DEPS))
-
 # Detect library extension based on OS
 ifeq ($(OS),Windows_NT)
-    EXT = .dll
+	EXT=.dll
+	OSNAME = WINDOWS
+	ifeq ($(PROCESSOR_ARCHITECTURE),AMD64)
+		ARCHNAME = X64
+	endif
+	ifeq ($(PROCESSOR_ARCHITECTURE),x86)
+		ARCHNAME = X86
+	endif
 else
-    UNAME_S := $(shell uname -s)
-    ifeq ($(UNAME_S),Linux)
-        EXT = .so
-    endif
+	UNAME_S := $(shell uname -s)
+	ifeq ($(UNAME_S),Linux)
+		EXT=.so
+		OSNAME = LINUX
+	endif
+	ifeq ($(UNAME_S),Darwin)
+		EXT=.a
+		OSNAME = OSX
+	endif
+	UNAME_P := $(shell uname -p)
+	ifeq ($(UNAME_P),x86_64)
+		ARCHNAME = X64
+	endif
+	ifneq ($(filter %86,$(UNAME_P)),)
+		ARCHNAME = X86
+	endif
+	ifneq ($(filter arm%,$(UNAME_P)),)
+		ARCHNAME = ARM
+	endif
 endif
 
+# If you need a different directory structure. Don't change that unless you really want to.
+SOURCEFOLDER=src
+OUTPUTFOLDER=bin/$(OSNAME)/$(ARCHNAME)
+OBJFOLDER=obj
+
+# The obj files reside in the bin/obj directory
+_OBJS = $(patsubst %,$(OBJFOLDER)/%,$(OBJS))
+
+# The header files are relative to the source directory
+_DEPS = $(patsubst %,$(SOURCEFOLDER)/%,$(DEPS))
+
 # Build library
-all : bin/TSDRLibrary$(EXT)
+all : $(OUTPUTFOLDER)/TSDRLibrary$(EXT)
 
 # Link
-bin/TSDRLibrary$(EXT) : $(_OBJS)
+$(OUTPUTFOLDER)/TSDRLibrary$(EXT) : $(_OBJS)
 	gcc -Wl,--add-stdcall-alias -shared -o $@ $(_OBJS)
 
 # Create folders if needed and compile
-bin/obj/%.o : src/%.c $(_DEPS)
-	mkdir -p bin
-	mkdir -p bin/obj
+$(OBJFOLDER)/%.o : src/%.c $(_DEPS)
+	mkdir -p $(OUTPUTFOLDER)
+	mkdir -p $(OBJFOLDER)
 	gcc $(foreach d, $(INC), -I$d) -c $< -o $@
 	
 .PHONY: clean
 
 # Clean artifacts
 clean :
-	rm -f bin/obj/*.o bin/TSDRLibrary$(EXT)
+	rm -f $(OBJFOLDER)/*.o $(OUTPUTFOLDER)/*.*

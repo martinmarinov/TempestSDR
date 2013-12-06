@@ -8,26 +8,55 @@ INC = "$(JAVA_HOME)/include" "$(JAVA_HOME)/include/win32"
 
 # Detect library extension depending on OS
 ifeq ($(OS),Windows_NT)
-    EXT = .dll
+	EXT=.dll
+	OSNAME = WINDOWS
+	ifeq ($(PROCESSOR_ARCHITECTURE),AMD64)
+		ARCHNAME = X64
+	endif
+	ifeq ($(PROCESSOR_ARCHITECTURE),x86)
+		ARCHNAME = X86
+	endif
 else
-    UNAME_S := $(shell uname -s)
-    ifeq ($(UNAME_S),Linux)
-        EXT = .so
-    endif
+	UNAME_S := $(shell uname -s)
+	ifeq ($(UNAME_S),Linux)
+		EXT=.so
+		OSNAME = LINUX
+	endif
+	ifeq ($(UNAME_S),Darwin)
+		EXT=.a
+		OSNAME = OSX
+	endif
+	UNAME_P := $(shell uname -p)
+	ifeq ($(UNAME_P),x86_64)
+		ARCHNAME = X64
+	endif
+	ifneq ($(filter %86,$(UNAME_P)),)
+		ARCHNAME = X86
+	endif
+	ifneq ($(filter arm%,$(UNAME_P)),)
+		ARCHNAME = ARM
+	endif
 endif
 
+# The folder that will contain the libraries
+OUTPUTFOLDER=../lib/$(OSNAME)/$(ARCHNAME)
+
 # We want to build the library
-all : ../TSDRLibraryNDK$(EXT)
+all : $(OUTPUTFOLDER)/TSDRLibraryNDK$(EXT)
 	
 # Linking
-../TSDRLibraryNDK$(EXT) : TSDRLibraryNDK.o rebuildtempestsdr
-	gcc -L../../TempestSDR/bin/ -lTSDRLibrary -Wl,--add-stdcall-alias -shared -o $@ $<
+$(OUTPUTFOLDER)/TSDRLibraryNDK$(EXT) : TSDRLibraryNDK.o rebuildtempestsdr $(OUTPUTFOLDER)
+	gcc -L../../TempestSDR/bin/$(OSNAME)/$(ARCHNAME)/ -lTSDRLibrary -Wl,--add-stdcall-alias -shared -o $@ $<
+
+# Create output dir
+$(OUTPUTFOLDER) :	
+	mkdir -p $(OUTPUTFOLDER)
 
 # Rebuild the main library so that we have the most up-to-date version
 # The main library is assumed to be two levels below this jni folder
-rebuildtempestsdr :
-	@$(MAKE) -C ../../TempestSDR bin/TSDRLibrary$(EXT)
-	@cp -f ../../TempestSDR/bin/TSDRLibrary$(EXT) ../TSDRLibrary$(EXT)
+rebuildtempestsdr : $(OUTPUTFOLDER)
+	@$(MAKE) -C ../../TempestSDR all
+	@cp -f ../../TempestSDR/bin/$(OSNAME)/$(ARCHNAME)/TSDRLibrary$(EXT) $(OUTPUTFOLDER)/TSDRLibrary$(EXT)
 
 # Compile the sources to obj files
 TSDRLibraryNDK.o : TSDRLibraryNDK.c TSDRLibraryNDK.h include/TSDRLibrary.h

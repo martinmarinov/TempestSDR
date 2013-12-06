@@ -11,24 +11,46 @@ DEPS=TSDRPlugin.h
 # Where the TSDRPlugin.h of the TempestSDR library resides (so it will be copied over)
 HEADLOCATION=../TempestSDR/src/include/
 
+# Discover the library extension for each OS
+ifeq ($(OS),Windows_NT)
+	EXT=.dll
+	OSNAME = WINDOWS
+	ifeq ($(PROCESSOR_ARCHITECTURE),AMD64)
+		ARCHNAME = X64
+	endif
+	ifeq ($(PROCESSOR_ARCHITECTURE),x86)
+		ARCHNAME = X86
+	endif
+else
+	UNAME_S := $(shell uname -s)
+	ifeq ($(UNAME_S),Linux)
+		EXT=.so
+		OSNAME = LINUX
+	endif
+	ifeq ($(UNAME_S),Darwin)
+		EXT=.a
+		OSNAME = OSX
+	endif
+	UNAME_P := $(shell uname -p)
+	ifeq ($(UNAME_P),x86_64)
+		ARCHNAME = X64
+	endif
+	ifneq ($(filter %86,$(UNAME_P)),)
+		ARCHNAME = X86
+	endif
+	ifneq ($(filter arm%,$(UNAME_P)),)
+		ARCHNAME = ARM
+	endif
+endif
+
 # If you need a different directory structure. Don't change that unless you really want to.
 SOURCEFOLDER=src
-OUTPUTFOLDER=bin
-OBJFOLDER=bin/obj
+OUTPUTFOLDER=bin/$(OSNAME)/$(ARCHNAME)
+OBJFOLDER=obj
 
 # Calculate the path to dependencies
 _OBJS = $(patsubst %,$(OBJFOLDER)/%,$(OBJS))
 _DEPS = $(patsubst %,$(SOURCEFOLDER)/%,$(DEPS))
-
-# Discover the library extension for each OS
-ifeq ($(OS),Windows_NT)
-	EXT = .dll
-else
-	UNAME_S := $(shell uname -s)
-	ifeq ($(UNAME_S),Linux)
-		EXT = .so
-	endif
-endif
 
 # Generate the library
 all : $(OUTPUTFOLDER)/$(PLUGNAME)$(EXT)
@@ -51,4 +73,4 @@ $(OBJFOLDER)/%.o : $(SOURCEFOLDER)/%.c $(_DEPS)
 
 # Clean artifacts
 clean :
-	rm -f $(OBJFOLDER)/*.o $(OUTPUTFOLDER)/$(PLUGNAME)$(EXT)
+	rm -f $(OBJFOLDER)/*.o $(OUTPUTFOLDER)/*.*

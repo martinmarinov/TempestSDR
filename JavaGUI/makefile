@@ -19,13 +19,38 @@ CLASSFILES:=$(patsubst %,bin/%,$(addsuffix .class,$(basename $(foreach jfile,$(J
 
 # Detect shared library extension based on OS
 ifeq ($(OS),Windows_NT)
-	EXT = .dll
+	EXT=.dll
+	OSNAME = WINDOWS
+	ifeq ($(PROCESSOR_ARCHITECTURE),AMD64)
+		ARCHNAME = X64
+	endif
+	ifeq ($(PROCESSOR_ARCHITECTURE),x86)
+		ARCHNAME = X86
+	endif
 else
 	UNAME_S := $(shell uname -s)
 	ifeq ($(UNAME_S),Linux)
-		EXT = .so
+		EXT=.so
+		OSNAME = LINUX
+	endif
+	ifeq ($(UNAME_S),Darwin)
+		EXT=.a
+		OSNAME = OSX
+	endif
+	UNAME_P := $(shell uname -p)
+	ifeq ($(UNAME_P),x86_64)
+		ARCHNAME = X64
+	endif
+	ifneq ($(filter %86,$(UNAME_P)),)
+		ARCHNAME = X86
+	endif
+	ifneq ($(filter arm%,$(UNAME_P)),)
+		ARCHNAME = ARM
 	endif
 endif
+
+# The folder that will contain the libraries
+OUTPUTFOLDER=lib/$(OSNAME)/$(ARCHNAME)
 
 # Build the file names of the plugin files
 PLUGINS_FILES=$(addsuffix $(EXT),$(PLUGINS))
@@ -35,7 +60,11 @@ PLUGINS_DIRS=$(addprefix ../,$(addsuffix /,$(PLUGINS)))
 
 # When compiling from command line with all
 # make sure we compile both jni and java files
-all : jnilib java
+all : jnilib jar
+
+# Package compiled files into a runnable jar
+jar : java
+	jar cvfe JTempestSDR.jar martin.tempest.Main lib -C bin .
 
 # The compilation of the java classes from command line
 # depends on the class files (we want to produce them)
@@ -52,9 +81,13 @@ jnilib : plugins
 	@$(MAKE) -C jni/ all JAVA_HOME=$(JAVA_HOME)
 
 # Recompile each plugin and copy its shared library over to the java directory
-plugins : 
-	$(foreach pdir, $(PLUGINS_DIRS), $(MAKE) -C $(pdir) all; cp -f $(pdir)/bin/*$(EXT) .;)
+plugins : $(OUTPUTFOLDER)
+	$(foreach pdir, $(PLUGINS_DIRS), $(MAKE) -C $(pdir) all; cp -f $(pdir)/bin/$(OSNAME)/$(ARCHNAME)/*$(EXT) $(OUTPUTFOLDER)/;)
 
+# Create output dir
+$(OUTPUTFOLDER) :	
+	mkdir -p $(OUTPUTFOLDER)
+	
 # Clean the jni stuff
 cleanjni: cleanplugins
 	@$(MAKE) -C jni/ clean
@@ -65,4 +98,4 @@ cleanplugins:
 
 # Clean the java classes as well
 clean : cleanjni
-	rm -rf bin/
+	rm -rf bin/ JTempestSDR.jar
