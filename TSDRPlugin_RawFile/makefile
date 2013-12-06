@@ -4,7 +4,7 @@ PLUGNAME=TSDRPlugin_RawFile
 
 # Dependencies
 OBJS=$(PLUGNAME).o
-DEPS=TSDRPlugin.h
+DEPS=TSDRPlugin.h TSDRCodes.h
 
 # END OF CONFIGURATION IF STANDARD DIR STRUCTURE IS USED
 
@@ -57,7 +57,8 @@ all : $(OUTPUTFOLDER)/$(PLUGNAME)$(EXT)
 
 # Copy over a fresh version of the TSDRPlugin.h
 copyoverheaderfile:
-	@cp -f $(HEADLOCATION)/TSDRPlugin.h $(SOURCEFOLDER)/TSDRPlugin.h
+	@cp -f $(HEADLOCATION)/TSDRPlugin.h $(SOURCEFOLDER)/
+	@cp -f $(HEADLOCATION)/TSDRCodes.h $(SOURCEFOLDER)/
 
 # Link
 $(OUTPUTFOLDER)/$(PLUGNAME)$(EXT): copyoverheaderfile $(_OBJS)

@@ -2,7 +2,7 @@
 OBJS = TSDRLibrary.o TSDRPluginLoader.o
 
 # Define all of the dependencies here
-DEPS = include/TSDRLibrary.h TSDRPluginLoader.h
+DEPS = include/TSDRLibrary.h TSDRPluginLoader.h include/TSDRPlugin.h
 
 # USER CONFIGURATION ENDS HERE
 

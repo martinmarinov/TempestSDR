@@ -59,11 +59,11 @@ rebuildtempestsdr : $(OUTPUTFOLDER)
 	@cp -f ../../TempestSDR/bin/$(OSNAME)/$(ARCHNAME)/TSDRLibrary$(EXT) $(OUTPUTFOLDER)/TSDRLibrary$(EXT)
 
 # Compile the sources to obj files
-TSDRLibraryNDK.o : TSDRLibraryNDK.c TSDRLibraryNDK.h include/TSDRLibrary.h
+TSDRLibraryNDK.o : TSDRLibraryNDK.c TSDRLibraryNDK.h include/TSDRLibrary.h include/TSDRCodes.h
 	gcc $(foreach d, $(INC), -I$d) -c $< -o $@
 
 # Copy over a fresh set of library headers
-include/TSDRLibrary.h : ../../TempestSDR/src/include/TSDRLibrary.h
+include/%.h : ../../TempestSDR/src/include/%.h
 	mkdir -p include
 	@cp -f $< $@
 

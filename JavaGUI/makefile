@@ -81,12 +81,9 @@ jnilib : plugins
 	@$(MAKE) -C jni/ all JAVA_HOME=$(JAVA_HOME)
 
 # Recompile each plugin and copy its shared library over to the java directory
-plugins : $(OUTPUTFOLDER)
-	$(foreach pdir, $(PLUGINS_DIRS), $(MAKE) -C $(pdir) all; cp -f $(pdir)/bin/$(OSNAME)/$(ARCHNAME)/*$(EXT) $(OUTPUTFOLDER)/;)
-
-# Create output dir
-$(OUTPUTFOLDER) :	
+plugins :
 	mkdir -p $(OUTPUTFOLDER)
+	$(foreach pdir, $(PLUGINS_DIRS), $(MAKE) -C $(pdir) all; cp -f $(pdir)/bin/$(OSNAME)/$(ARCHNAME)/*$(EXT) $(OUTPUTFOLDER)/;)
 	
 # Clean the jni stuff
 cleanjni: cleanplugins

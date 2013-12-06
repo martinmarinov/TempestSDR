@@ -1,4 +1,6 @@
 #include "TSDRPluginLoader.h"
+#include "include/TSDRLibrary.h"
+#include "include/TSDRCodes.h"
 
 // A platform independent dynamic library loader
 
@@ -13,6 +15,7 @@ void *tsdrplug_getfunction(pluginsource_t * plugin, char *functname)
 
 int tsdrplug_load(pluginsource_t * plugin, char *dlname)
 {
+
     #if WINHEAD // Microsoft compiler
         plugin->fd = (void*)LoadLibrary(dlname);
     #else
@@ -20,13 +23,17 @@ int tsdrplug_load(pluginsource_t * plugin, char *dlname)
     #endif
 
     if (plugin->fd == 0)
-    	return 0;
+    	return TSDR_ERR_PLUGIN;
 
-    plugin->tsdrplugin_getName = tsdrplug_getfunction(plugin, "tsdrplugin_getName");
-    if (plugin->tsdrplugin_getName == 0)
-    	return 0;
+    if ((plugin->tsdrplugin_getName = tsdrplug_getfunction(plugin, "tsdrplugin_getName")) == 0) return TSDR_ERR_PLUGIN;
+    if ((plugin->tsdrplugin_init = tsdrplug_getfunction(plugin, "tsdrplugin_init")) == 0) return TSDR_ERR_PLUGIN;
+    if ((plugin->tsdrplugin_setsamplerate = tsdrplug_getfunction(plugin, "tsdrplugin_setsamplerate")) == 0) return TSDR_ERR_PLUGIN;
+    if ((plugin->tsdrplugin_setbasefreq = tsdrplug_getfunction(plugin, "tsdrplugin_setbasefreq")) == 0) return TSDR_ERR_PLUGIN;
+    if ((plugin->tsdrplugin_stop = tsdrplug_getfunction(plugin, "tsdrplugin_stop")) == 0) return TSDR_ERR_PLUGIN;
+    if ((plugin->tsdrplugin_setgain = tsdrplug_getfunction(plugin, "tsdrplugin_setgain")) == 0) return TSDR_ERR_PLUGIN;
+    if ((plugin->tsdrplugin_readasync = tsdrplug_getfunction(plugin, "tsdrplugin_readasync")) == 0) return TSDR_ERR_PLUGIN;
 
-    return 1;
+    return TSDR_OK;
 }
 
 
