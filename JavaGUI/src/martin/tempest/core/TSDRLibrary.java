@@ -1,11 +1,14 @@
 package martin.tempest.core;
 
+import java.awt.image.BufferedImage;
+import java.awt.image.DataBufferInt;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.LinkedList;
 
 import martin.tempest.core.exceptions.TSDRException;
 import martin.tempest.core.exceptions.TSDRLibraryNotCompatible;
@@ -20,8 +23,13 @@ public class TSDRLibrary {
 	
 	private static TSDRSource[] PLUGINS = new TSDRSource[] {new TSDRSource("TSDRPlugin_RawFile")};
 	
+	// TODO! STATIC?!?!?!?!?!?!??!
+	private BufferedImage bimage;
+	private int[] pixels;
+	
 	// If the binaries weren't loaded, this will go off
 	private static TSDRLibraryNotCompatible m_e = null;
+	private final LinkedList<FrameReadyCallback> callbacks = new LinkedList<FrameReadyCallback>();
 	
 	/**
 	 * Extracts a library to a temporary path and prays for the OS to delete it after the app closes.
@@ -128,7 +136,6 @@ public class TSDRLibrary {
 	public native void start() throws TSDRException;
 	public native void stop() throws TSDRException;
 	public native void setGain(float gain) throws TSDRException;
-	public native void readAsync() throws TSDRException;
 	public native void unloadPlugin() throws TSDRException;
 	
 	public void loadSource(final TSDRSource plugin) throws TSDRException {
@@ -137,6 +144,45 @@ public class TSDRLibrary {
 	
 	public static TSDRSource[] getAllSources() {
 		return PLUGINS;
+	}
+	
+	public boolean registerFrameReadyCallback(final FrameReadyCallback callback) {
+		return callbacks.add(callback);
+	}
+	
+	public boolean unregisterFrameReadyCallback(final FrameReadyCallback callback) {
+		return callbacks.remove(callback);
+	}
+	
+	@Override
+	protected void finalize() throws Throwable {
+		unloadPlugin();
+	}
+	
+	public interface FrameReadyCallback {
+		void onFrameReady(final TSDRLibrary lib, final BufferedImage frame);
+	}
+	
+	/**
+	 * The native code should call this method to initialize or resize the buffer array before accessing it
+	 * @param x the width of the frame
+	 * @param y the height of the frame
+	 */
+	private void fixSize(final int x, final int y) {
+		if (bimage == null || bimage.getWidth() != x || bimage.getHeight() != y) {
+			bimage = new BufferedImage(x, y, BufferedImage.TYPE_INT_RGB);
+			pixels = ((DataBufferInt) bimage.getRaster().getDataBuffer()).getData();
+		}
+	}
+	
+	/**
+	 * The native code should invoke this method when it has written data to the buffer variable.
+	 * This method writes the result into the bitmap
+	 */
+	private void notifyCallbacks() {
+		assert(bimage != null && pixels != null);
+		
+		for (final FrameReadyCallback callback : callbacks) callback.onFrameReady(this, bimage);
 	}
 	
 }

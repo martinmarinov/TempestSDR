@@ -28,6 +28,6 @@ int tsdrplugin_setgain(float gain) {
 	return TSDR_NOT_IMPLEMENTED;
 }
 
-int tsdrplugin_readasync(tsdrplugin_readasync_function cb, uint32_t buf_num, uint32_t buf_len) {
+int tsdrplugin_readasync(tsdrplugin_readasync_function cb, void *ctx, uint32_t buf_num, uint32_t buf_len) {
 	return TSDR_NOT_IMPLEMENTED;
 }

@@ -3,6 +3,7 @@
 #include "TSDRLibraryNDK.h"
 #include "include\TSDRLibrary.h"
 #include "include\TSDRCodes.h"
+#include <stdint.h>
 #include <string.h>
 
 tsdr_lib_t tsdr;
@@ -56,33 +57,65 @@ JNIEXPORT void JNICALL Java_martin_tempest_core_TSDRLibrary_nativeLoadPlugin (JN
 }
 
 JNIEXPORT void JNICALL Java_martin_tempest_core_TSDRLibrary_pluginParams (JNIEnv * env, jobject obj, jstring params) {
-	error(env, TSDR_NOT_IMPLEMENTED, "%s not implemented", "pluginParams");
+	const char *nparams = (*env)->GetStringUTFChars(env, params, 0);
+	THROW(tsdr_pluginparams(&tsdr, nparams));
+	(*env)->ReleaseStringUTFChars(env, params, nparams);
 }
 
 JNIEXPORT void JNICALL Java_martin_tempest_core_TSDRLibrary_setSampleRate (JNIEnv * env, jobject obj, jlong rate) {
-	error(env, TSDR_NOT_IMPLEMENTED, "%s not implemented", "setSampleRate");
+	THROW(tsdr_setsamplerate(&tsdr, (uint32_t) rate));
 }
 
 JNIEXPORT void JNICALL Java_martin_tempest_core_TSDRLibrary_setBaseFreq (JNIEnv * env, jobject obj, jlong freq) {
-	error(env, TSDR_NOT_IMPLEMENTED, "%s not implemented", "setBaseFreq");
+	THROW(tsdr_setbasefreq(&tsdr, (uint32_t) freq));
+}
+
+void read_async(float *buf, uint32_t len, void *ctx) {
+
 }
 
 JNIEXPORT void JNICALL Java_martin_tempest_core_TSDRLibrary_start (JNIEnv * env, jobject obj) {
-	error(env, TSDR_NOT_IMPLEMENTED, "%s not implemented", "start");
+
+	const int width = 800;
+	const int height = 600;
+
+	jclass cls = (*env)->GetObjectClass(env, obj);
+
+	// fixSize(200, 200);
+	jmethodID fixSize = (*env)->GetMethodID(env, cls, "fixSize", "(II)V");
+	(*env)->CallVoidMethod(env, obj, fixSize, width, height);
+
+	printf("Get buf\n");
+	jintArray pixels_obj = (*env)->GetObjectField(env, obj, (*env)->GetFieldID(env, cls, "pixels", "[I"));
+	jint * pixels = (*env)->GetIntArrayElements(env,pixels_obj,0);
+
+	int i;
+	const int size = width * height;
+	for (i = 0; i < size; i++) {
+		const int x = i % width;
+		const int y = i / width;
+
+		const float rat = y / (float) height;
+		const int col = (x > (width / 2)) ? (rat * 255.0f) : (255.0f - rat * 255.0f);
+		pixels[i] = col | (col << 8) | (col << 16);
+	}
+
+	// release elements
+	(*env)->ReleaseIntArrayElements(env,pixels_obj,pixels,NULL);
+
+	// notifyCallbacks();
+	jmethodID notifyCallbacks = (*env)->GetMethodID(env, cls, "notifyCallbacks", "()V");
+	(*env)->CallVoidMethod(env, obj, notifyCallbacks);
 }
 
 JNIEXPORT void JNICALL Java_martin_tempest_core_TSDRLibrary_stop (JNIEnv * env, jobject obj) {
-	error(env, TSDR_NOT_IMPLEMENTED, "%s not implemented", "stop");
+	THROW(tsdr_stop(&tsdr));
 }
 
 JNIEXPORT void JNICALL Java_martin_tempest_core_TSDRLibrary_setGain (JNIEnv * env, jobject obj, jfloat gain) {
-	error(env, TSDR_NOT_IMPLEMENTED, "%s not implemented", "setGain");
-}
-
-JNIEXPORT void JNICALL Java_martin_tempest_core_TSDRLibrary_readAsync (JNIEnv * env, jobject obj) {
-	error(env, TSDR_NOT_IMPLEMENTED, "%s not implemented", "readAsync");
+	THROW(tsdr_setgain(&tsdr, (float) gain));
 }
 
 JNIEXPORT void JNICALL Java_martin_tempest_core_TSDRLibrary_unloadPlugin (JNIEnv * env, jobject obj) {
-	error(env, TSDR_NOT_IMPLEMENTED, "%s not implemented", "unloadPlugin");
+	THROW(tsdr_unloadplugin(&tsdr));
 }

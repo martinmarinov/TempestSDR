@@ -22,7 +22,7 @@
 	#define WINHEAD (0)
 #endif
 
-	typedef void(*tsdrplugin_readasync_function)(unsigned char *buf, uint32_t len, void *ctx);
+	typedef void(*tsdrplugin_readasync_function)(float *buf, uint32_t len, void *ctx);
 
 	struct pluginsource {
 		void * fd;
@@ -32,7 +32,7 @@
 		int (*tsdrplugin_setbasefreq)(uint32_t);
 		int (*tsdrplugin_stop)(void);
 		int (*tsdrplugin_setgain)(float);
-		int (*tsdrplugin_readasync)(tsdrplugin_readasync_function, uint32_t, uint32_t);
+		int (*tsdrplugin_readasync)(tsdrplugin_readasync_function, void *ctx, uint32_t, uint32_t);
 	} typedef pluginsource_t;
 
 	int tsdrplug_load(pluginsource_t * plugin, char * dlname);

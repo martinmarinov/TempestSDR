@@ -87,6 +87,7 @@ plugins :
 	
 # Clean the jni stuff
 cleanjni: cleanplugins
+	rm -rf *.log
 	@$(MAKE) -C jni/ clean
 
 # Clean the plugin libraries
