@@ -125,9 +125,10 @@ public class TSDRLibrary {
 		} 
 	}
 	
-	public TSDRLibrary() throws TSDRLibraryNotCompatible {
+	public TSDRLibrary(int width, int height) throws TSDRException {
 		if (m_e != null) throw m_e;
 		init();
+		setResolution(width, height);
 	}
 
 	private native void init();
@@ -139,6 +140,9 @@ public class TSDRLibrary {
 	public native void stop() throws TSDRException;
 	public native void setGain(float gain) throws TSDRException;
 	public native void unloadPlugin() throws TSDRException;
+	public native void setResolution(int width, int height) throws TSDRException;
+	public native void setVfreq(float freq) throws TSDRException;
+	public native void setHfreq(float freq) throws TSDRException;
 	
 	public void loadSource(final TSDRSource plugin) throws TSDRException {
 		nativeLoadPlugin(extractLibrary(plugin.libname).getAbsolutePath());
