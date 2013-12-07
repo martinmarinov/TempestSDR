@@ -5,10 +5,18 @@
 #include "include\TSDRCodes.h"
 #include <stdint.h>
 #include <string.h>
+#include <stdlib.h>
 
 tsdr_lib_t tsdr;
 
 #define THROW(x) error(env, x, "")
+
+struct java_context {
+		jobject obj;
+	} typedef java_context_t;
+
+static JavaVM *jvm;
+static int javaversion;
 
 void error_translate (int exception_code, char * exceptionclass) {
 	switch (exception_code) {
@@ -33,7 +41,6 @@ void error(JNIEnv * env, int exception_code, const char *inmsg, ...)
 	char exceptionclass[256];
 	error_translate(exception_code, exceptionclass);
 
-	JavaVM* jvm;
 	char msg[256];
 
 	va_list argptr;
@@ -48,6 +55,11 @@ void error(JNIEnv * env, int exception_code, const char *inmsg, ...)
     }
     /* free the local ref */
     (*env)->DeleteLocalRef(env, cls);
+}
+
+JNIEXPORT void JNICALL Java_martin_tempest_core_TSDRLibrary_init (JNIEnv * env, jobject obj) {
+	(*env)->GetJavaVM(env, &jvm);
+	javaversion = (*env)->GetVersion(env);
 }
 
 JNIEXPORT void JNICALL Java_martin_tempest_core_TSDRLibrary_nativeLoadPlugin (JNIEnv * env, jobject obj, jstring  path) {
@@ -71,22 +83,22 @@ JNIEXPORT void JNICALL Java_martin_tempest_core_TSDRLibrary_setBaseFreq (JNIEnv 
 }
 
 void read_async(float *buf, uint32_t len, void *ctx) {
+	java_context_t * context = (java_context_t *) ctx;
+	JNIEnv *env;
 
-}
-
-JNIEXPORT void JNICALL Java_martin_tempest_core_TSDRLibrary_start (JNIEnv * env, jobject obj) {
+	if ((*jvm)->GetEnv(jvm, (void **)&env, javaversion) == JNI_EDETACHED)
+		(*jvm)->AttachCurrentThread(jvm, (void **) &env, 0);
 
 	const int width = 800;
 	const int height = 600;
 
-	jclass cls = (*env)->GetObjectClass(env, obj);
+	jclass cls = (*env)->GetObjectClass(env, context->obj);
 
 	// fixSize(200, 200);
 	jmethodID fixSize = (*env)->GetMethodID(env, cls, "fixSize", "(II)V");
-	(*env)->CallVoidMethod(env, obj, fixSize, width, height);
+	(*env)->CallVoidMethod(env, context->obj, fixSize, width, height);
 
-	printf("Get buf\n");
-	jintArray pixels_obj = (*env)->GetObjectField(env, obj, (*env)->GetFieldID(env, cls, "pixels", "[I"));
+	jintArray pixels_obj = (*env)->GetObjectField(env, context->obj, (*env)->GetFieldID(env, cls, "pixels", "[I"));
 	jint * pixels = (*env)->GetIntArrayElements(env,pixels_obj,0);
 
 	int i;
@@ -96,16 +108,27 @@ JNIEXPORT void JNICALL Java_martin_tempest_core_TSDRLibrary_start (JNIEnv * env,
 		const int y = i / width;
 
 		const float rat = y / (float) height;
-		const int col = (x > (width / 2)) ? (rat * 255.0f) : (255.0f - rat * 255.0f);
+		const int col = (int) (buf[i] * 255.0f);
 		pixels[i] = col | (col << 8) | (col << 16);
 	}
 
 	// release elements
-	(*env)->ReleaseIntArrayElements(env,pixels_obj,pixels,NULL);
+	(*env)->ReleaseIntArrayElements(env,pixels_obj,pixels,0);
 
 	// notifyCallbacks();
 	jmethodID notifyCallbacks = (*env)->GetMethodID(env, cls, "notifyCallbacks", "()V");
-	(*env)->CallVoidMethod(env, obj, notifyCallbacks);
+	(*env)->CallVoidMethod(env, context->obj, notifyCallbacks);
+}
+
+JNIEXPORT void JNICALL Java_martin_tempest_core_TSDRLibrary_start (JNIEnv * env, jobject obj) {
+	java_context_t * context = (java_context_t *) malloc(sizeof(java_context_t));
+	context->obj = (*env)->NewGlobalRef(env, obj);
+	(*env)->DeleteLocalRef(env, obj);
+
+	tsdr_readasync(&tsdr, read_async, (void *) context, 800, 600);
+
+	(*env)->DeleteGlobalRef(env, context->obj);
+	free(context);
 }
 
 JNIEXPORT void JNICALL Java_martin_tempest_core_TSDRLibrary_stop (JNIEnv * env, jobject obj) {

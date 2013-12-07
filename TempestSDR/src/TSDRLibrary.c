@@ -48,6 +48,26 @@ int tsdr_setgain(tsdr_lib_t * tsdr, float gain) {
 }
 
 int tsdr_readasync(tsdr_lib_t * tsdr, tsdr_readasync_function cb, void *ctx, uint32_t buf_num, uint32_t buf_len) {
-	pluginsource_t * plugin = (pluginsource_t *)(&tsdr->plugin);
-	return plugin->tsdrplugin_readasync((tsdrplugin_readasync_function) cb, ctx, buf_num, buf_len);
+	const int width = 800;
+	const int height = 600;
+	const int size = width * height;
+
+	float * buffer = (float *) malloc(sizeof(float) * size);
+
+	int i;
+	for (i = 0; i < size; i++) {
+		const int x = i % width;
+		const int y = i / width;
+
+		const float rat = y / (float) height;
+		buffer[i] = rat;
+	}
+
+	cb(buffer, size, ctx);
+
+	free(buffer);
+	return TSDR_OK;
+
+	//pluginsource_t * plugin = (pluginsource_t *)(&tsdr->plugin);
+	//return plugin->tsdrplugin_readasync((tsdrplugin_readasync_function) cb, ctx, buf_num, buf_len);
 }

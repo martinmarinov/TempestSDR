@@ -1,0 +1,253 @@
+#
+# A fatal error has been detected by the Java Runtime Environment:
+#
+#  EXCEPTION_ACCESS_VIOLATION (0xc0000005) at pc=0x68c01688, pid=6192, tid=6184
+#
+# JRE version: Java(TM) SE Runtime Environment (7.0_45-b18) (build 1.7.0_45-b18)
+# Java VM: Java HotSpot(TM) Client VM (24.45-b08 mixed mode, sharing windows-x86 )
+# Problematic frame:
+# C  [TSDRLibraryNDK.dll+0x1688]
+#
+# Failed to write core dump. Minidumps are not enabled by default on client versions of Windows
+#
+# If you would like to submit a bug report, please visit:
+#   http://bugreport.sun.com/bugreport/crash.jsp
+# The crash happened outside the Java Virtual Machine in native code.
+# See problematic frame for where to report the bug.
+#
+
+---------------  T H R E A D  ---------------
+
+Current thread (0x0279c000):  JavaThread "main" [_thread_in_native, id=6184, stack(0x00a30000,0x00a80000)]
+
+siginfo: ExceptionCode=0xc0000005, reading address 0x00000000
+
+Registers:
+EAX=0x00000000, EBX=0x34a94ee8, ECX=0x0279c000, EDX=0x77f43394
+ESP=0x00a7fb50, EBP=0x00a7fbb8, ESI=0x34a94ee0, EDI=0x0279c000
+EIP=0x68c01688, EFLAGS=0x00010297
+
+Top of Stack: (sp=0x00a7fb50)
+0x00a7fb50:   77f94f30 00a7fb70 00000000 008e8618
+0x00a7fb60:   0279c000 00000004 00000004 00000000
+0x00a7fb70:   00000000 00000003 008e0260 776abcdc
+0x00a7fb80:   00000000 00000010 00000000 00a7fbc0
+0x00a7fb90:   77c81713 0279c000 00a7fbb8 00000258
+0x00a7fba0:   00000320 00a7fc80 008e1760 0279c000
+0x00a7fbb0:   34a94ee8 34a94ee8 00a7fbf8 659013c8
+0x00a7fbc0:   04ccb020 00075300 008e1760 9dfb1f91 
+
+Instructions: (pc=0x68c01688)
+0x68c01668:   ff d1 83 ec 0c 8b 45 f0 8b 00 8b 00 89 45 ec c7
+0x68c01678:   45 e8 20 03 00 00 c7 45 e4 58 02 00 00 8b 45 b8
+0x68c01688:   8b 00 8b 48 7c 8b 45 b8 8b 55 ec 89 54 24 04 89
+0x68c01698:   04 24 ff d1 83 ec 08 89 45 e0 8b 45 b8 8b 00 8b 
+
+
+Register to memory mapping:
+
+EAX=0x00000000 is an unknown value
+EBX=0x34a94ee8 is an oop
+{method} 
+ - klass: {other class}
+ECX=0x0279c000 is a thread
+EDX=0x77f43394 is an unknown value
+ESP=0x00a7fb50 is pointing into the stack for thread: 0x0279c000
+EBP=0x00a7fbb8 is pointing into the stack for thread: 0x0279c000
+ESI=0x34a94ee0 is pointing into object: 0x34a94eb0
+{constMethod} 
+ - klass: {other class}
+ - constants:       0x34a93e48 constant pool [336] for 'martin/tempest/core/TSDRLibrary' cache=0x34a96800
+EDI=0x0279c000 is a thread
+
+
+Stack: [0x00a30000,0x00a80000],  sp=0x00a7fb50,  free space=318k
+Native frames: (J=compiled Java code, j=interpreted, Vv=VM code, C=native code)
+C  [TSDRLibraryNDK.dll+0x1688]
+C  [TSDRLibrary.dll+0x13c8]
+C  [TSDRLibraryNDK.dll+0x193a]
+j  martin.tempest.core.TSDRLibrary.start()V+0
+j  martin.tempest.Main.<init>()V+28
+j  martin.tempest.Main.main([Ljava/lang/String;)V+3
+v  ~StubRoutines::call_stub
+V  [jvm.dll+0x13f1fa]
+V  [jvm.dll+0x202aee]
+V  [jvm.dll+0x13f27d]
+V  [jvm.dll+0xc9945]
+V  [jvm.dll+0xd45e7]
+C  [javaw.exe+0x2070]
+C  [javaw.exe+0xa5b1]
+C  [javaw.exe+0xa63b]
+C  [KERNEL32.DLL+0x1495d]
+C  [ntdll.dll+0x498ee]
+C  [ntdll.dll+0x498c4]
+
+Java frames: (J=compiled Java code, j=interpreted, Vv=VM code)
+j  martin.tempest.core.TSDRLibrary.start()V+0
+j  martin.tempest.Main.<init>()V+28
+j  martin.tempest.Main.main([Ljava/lang/String;)V+3
+v  ~StubRoutines::call_stub
+
+---------------  P R O C E S S  ---------------
+
+Java Threads: ( => current thread )
+  0x024bbc00 JavaThread "Service Thread" daemon [_thread_blocked, id=3176, stack(0x049e0000,0x04a30000)]
+  0x024b1800 JavaThread "C1 CompilerThread0" daemon [_thread_blocked, id=6080, stack(0x04950000,0x049a0000)]
+  0x024af400 JavaThread "Attach Listener" daemon [_thread_blocked, id=1900, stack(0x048c0000,0x04910000)]
+  0x024ae400 JavaThread "Signal Dispatcher" daemon [_thread_blocked, id=4140, stack(0x04830000,0x04880000)]
+  0x02440c00 JavaThread "Finalizer" daemon [_thread_blocked, id=3912, stack(0x047a0000,0x047f0000)]
+  0x0243f400 JavaThread "Reference Handler" daemon [_thread_blocked, id=1216, stack(0x02700000,0x02750000)]
+=>0x0279c000 JavaThread "main" [_thread_in_native, id=6184, stack(0x00a30000,0x00a80000)]
+
+Other Threads:
+  0x0243dc00 VMThread [stack: 0x02670000,0x026c0000] [id=5464]
+  0x024c7c00 WatcherThread [stack: 0x04a70000,0x04ac0000] [id=6240]
+
+VM state:not at safepoint (normal execution)
+
+VM Mutex/Monitor currently owned by a thread: None
+
+Heap
+ def new generation   total 4928K, used 603K [0x24a70000, 0x24fc0000, 0x29fc0000)
+  eden space 4416K,  13% used [0x24a70000, 0x24b06f68, 0x24ec0000)
+  from space 512K,   0% used [0x24ec0000, 0x24ec0000, 0x24f40000)
+  to   space 512K,   0% used [0x24f40000, 0x24f40000, 0x24fc0000)
+ tenured generation   total 10944K, used 0K [0x29fc0000, 0x2aa70000, 0x34a70000)
+   the space 10944K,   0% used [0x29fc0000, 0x29fc0000, 0x29fc0200, 0x2aa70000)
+ compacting perm gen  total 12288K, used 160K [0x34a70000, 0x35670000, 0x38a70000)
+   the space 12288K,   1% used [0x34a70000, 0x34a98318, 0x34a98400, 0x35670000)
+    ro space 10240K,  41% used [0x38a70000, 0x38ea1a78, 0x38ea1c00, 0x39470000)
+    rw space 12288K,  52% used [0x39470000, 0x39ab62c0, 0x39ab6400, 0x3a070000)
+
+Card table byte_map: [0x025c0000,0x02670000] byte_map_base: 0x0249ac80
+
+Polling page: 0x00a80000
+
+Code Cache  [0x027a0000, 0x02840000, 0x047a0000)
+ total_blobs=152 nmethods=22 adapters=68 free_code_cache=32154Kb largest_free_block=32926400
+
+Compilation events (10 events):
+Event: 0.053 Thread 0x024b1800   17   !         java.io.BufferedReader::readLine (304 bytes)
+Event: 0.055 Thread 0x024b1800 nmethod 17 0x028354c8 code [0x028356b0, 0x02836644]
+Event: 0.055 Thread 0x024b1800   18             sun.nio.cs.SingleByte$Decoder::decodeArrayLoop (154 bytes)
+Event: 0.056 Thread 0x024b1800 nmethod 18 0x02837388 code [0x02837600, 0x02837edc]
+Event: 0.056 Thread 0x024b1800   20             java.lang.AbstractStringBuilder::append (29 bytes)
+Event: 0.056 Thread 0x024b1800 nmethod 20 0x02838e48 code [0x02838f50, 0x0283903c]
+Event: 0.070 Thread 0x024b1800   21             java.lang.String::length (6 bytes)
+Event: 0.070 Thread 0x024b1800 nmethod 21 0x02839148 code [0x02839240, 0x028392d0]
+Event: 0.071 Thread 0x024b1800   22             java.io.Win32FileSystem::isSlash (18 bytes)
+Event: 0.072 Thread 0x024b1800 nmethod 22 0x02839348 code [0x02839440, 0x028394f0]
+
+GC Heap History (0 events):
+No events
+
+Deoptimization events (0 events):
+No events
+
+Internal exceptions (10 events):
+Event: 0.042 Thread 0x0279c000 Threw 0x24ab0380 at C:\re\jdk7u45\229\hotspot\src\share\vm\prims\jvm.cpp:1244
+Event: 0.044 Thread 0x0279c000 Threw 0x24ab43e0 at C:\re\jdk7u45\229\hotspot\src\share\vm\prims\jvm.cpp:1244
+Event: 0.046 Thread 0x0279c000 Threw 0x24ab6830 at C:\re\jdk7u45\229\hotspot\src\share\vm\prims\jvm.cpp:1244
+Event: 0.047 Thread 0x0279c000 Threw 0x24abb310 at C:\re\jdk7u45\229\hotspot\src\share\vm\prims\jvm.cpp:1244
+Event: 0.048 Thread 0x0279c000 Threw 0x24abcc98 at C:\re\jdk7u45\229\hotspot\src\share\vm\prims\jvm.cpp:1244
+Event: 0.048 Thread 0x0279c000 Threw 0x24abe868 at C:\re\jdk7u45\229\hotspot\src\share\vm\prims\jvm.cpp:1244
+Event: 0.056 Thread 0x0279c000 Threw 0x24ad5928 at C:\re\jdk7u45\229\hotspot\src\share\vm\prims\jvm.cpp:1244
+Event: 0.056 Thread 0x0279c000 Threw 0x24ad5a40 at C:\re\jdk7u45\229\hotspot\src\share\vm\prims\jvm.cpp:1244
+Event: 0.057 Thread 0x0279c000 Threw 0x24ad92b0 at C:\re\jdk7u45\229\hotspot\src\share\vm\prims\jvm.cpp:1244
+Event: 0.057 Thread 0x0279c000 Threw 0x24ad93c8 at C:\re\jdk7u45\229\hotspot\src\share\vm\prims\jvm.cpp:1244
+
+Events (10 events):
+Event: 0.049 loading class 0x3a07a9a8
+Event: 0.049 loading class 0x3a07a9a8 done
+Event: 0.050 loading class 0x3a0a9990
+Event: 0.050 loading class 0x3a0a9990 done
+Event: 0.050 loading class 0x0244df30
+Event: 0.050 loading class 0x0244df30 done
+Event: 0.057 loading class 0x3a0becb8
+Event: 0.057 loading class 0x3a0becb8 done
+Event: 0.104 loading class 0x3a1161c8
+Event: 0.104 loading class 0x3a1161c8 done
+
+
+Dynamic libraries:
+0x00b00000 - 0x00b2f000 	C:\Program Files (x86)\Java\jre7\bin\javaw.exe
+0x77670000 - 0x777d8000 	C:\WINDOWS\SYSTEM32\ntdll.dll
+0x77460000 - 0x775a0000 	C:\WINDOWS\SYSTEM32\KERNEL32.DLL
+0x76820000 - 0x768ef000 	C:\WINDOWS\SYSTEM32\KERNELBASE.dll
+0x6fe20000 - 0x6feba000 	C:\WINDOWS\system32\apphelp.dll
+0x72bf0000 - 0x72e42000 	C:\WINDOWS\AppPatch\AcGenral.DLL
+0x768f0000 - 0x769ae000 	C:\WINDOWS\SYSTEM32\msvcrt.dll
+0x75430000 - 0x7546e000 	C:\WINDOWS\SYSTEM32\sechost.dll
+0x750a0000 - 0x750bd000 	C:\WINDOWS\SYSTEM32\SspiCli.dll
+0x773c0000 - 0x77401000 	C:\WINDOWS\SYSTEM32\SHLWAPI.dll
+0x705e0000 - 0x706bc000 	C:\WINDOWS\SYSTEM32\UxTheme.dll
+0x771d0000 - 0x7731f000 	C:\WINDOWS\SYSTEM32\USER32.dll
+0x769b0000 - 0x76ab8000 	C:\WINDOWS\SYSTEM32\GDI32.dll
+0x732d0000 - 0x732f0000 	C:\WINDOWS\SYSTEM32\WINMM.dll
+0x737a0000 - 0x737b2000 	C:\WINDOWS\SYSTEM32\samcli.dll
+0x76c40000 - 0x76d4b000 	C:\WINDOWS\SYSTEM32\ole32.dll
+0x76de0000 - 0x76e67000 	C:\WINDOWS\SYSTEM32\OLEAUT32.dll
+0x73780000 - 0x73795000 	C:\WINDOWS\SYSTEM32\MSACM32.dll
+0x70cc0000 - 0x70cc8000 	C:\WINDOWS\SYSTEM32\VERSION.dll
+0x75670000 - 0x76813000 	C:\WINDOWS\SYSTEM32\SHELL32.dll
+0x73640000 - 0x73659000 	C:\WINDOWS\SYSTEM32\USERENV.dll
+0x709f0000 - 0x70a09000 	C:\WINDOWS\SYSTEM32\dwmapi.dll
+0x71390000 - 0x714b4000 	C:\WINDOWS\SYSTEM32\urlmon.dll
+0x755f0000 - 0x75667000 	C:\WINDOWS\SYSTEM32\ADVAPI32.dll
+0x735c0000 - 0x7361e000 	C:\WINDOWS\SYSTEM32\WINSPOOL.DRV
+0x70a80000 - 0x70a94000 	C:\WINDOWS\SYSTEM32\MPR.dll
+0x75170000 - 0x75221000 	C:\WINDOWS\SYSTEM32\RPCRT4.dll
+0x75090000 - 0x75099000 	C:\WINDOWS\SYSTEM32\CRYPTBASE.dll
+0x75230000 - 0x7537e000 	C:\WINDOWS\SYSTEM32\combase.dll
+0x732b0000 - 0x732d0000 	C:\WINDOWS\SYSTEM32\WINMMBASE.dll
+0x73580000 - 0x7358e000 	C:\WINDOWS\SYSTEM32\profapi.dll
+0x71170000 - 0x71385000 	C:\WINDOWS\SYSTEM32\iertutil.dll
+0x70fa0000 - 0x71164000 	C:\WINDOWS\SYSTEM32\WININET.dll
+0x75030000 - 0x75081000 	C:\WINDOWS\SYSTEM32\bcryptPrimitives.dll
+0x754b0000 - 0x754ea000 	C:\WINDOWS\SYSTEM32\cfgmgr32.dll
+0x73420000 - 0x7343f000 	C:\WINDOWS\SYSTEM32\DEVOBJ.dll
+0x734f0000 - 0x73567000 	C:\WINDOWS\SYSTEM32\SHCORE.DLL
+0x76c10000 - 0x76c35000 	C:\WINDOWS\system32\IMM32.DLL
+0x754f0000 - 0x755e7000 	C:\WINDOWS\SYSTEM32\MSCTF.dll
+0x6f690000 - 0x6f875000 	C:\WINDOWS\WinSxS\x86_microsoft.windows.common-controls_6595b64144ccf1df_6.0.9600.16384_none_a9f4965301334e09\COMCTL32.dll
+0x50ca0000 - 0x50d5f000 	C:\Program Files (x86)\Java\jre7\bin\msvcr100.dll
+0x77c80000 - 0x78000000 	C:\Program Files (x86)\Java\jre7\bin\client\jvm.dll
+0x73590000 - 0x73598000 	C:\WINDOWS\SYSTEM32\WSOCK32.dll
+0x75390000 - 0x75396000 	C:\WINDOWS\SYSTEM32\PSAPI.DLL
+0x750c0000 - 0x7510d000 	C:\WINDOWS\SYSTEM32\WS2_32.dll
+0x773b0000 - 0x773b7000 	C:\WINDOWS\SYSTEM32\NSI.dll
+0x69e80000 - 0x69e8c000 	C:\Program Files (x86)\Java\jre7\bin\verify.dll
+0x60170000 - 0x60190000 	C:\Program Files (x86)\Java\jre7\bin\java.dll
+0x5b3b0000 - 0x5b3c3000 	C:\Program Files (x86)\Java\jre7\bin\zip.dll
+0x65900000 - 0x65914000 	C:\Users\Martin\AppData\Local\Temp\TSDRLibrary.dll
+0x68c00000 - 0x68c15000 	C:\Users\Martin\AppData\Local\Temp\TSDRLibraryNDK.dll
+0x67000000 - 0x67014000 	C:\Users\Martin\AppData\Local\Temp\TSDRPlugin_RawFile.dll
+0x6f440000 - 0x6f588000 	C:\WINDOWS\SYSTEM32\dbghelp.dll
+
+VM Arguments:
+jvm_args: -Dfile.encoding=Cp1251 
+java_command: martin.tempest.Main
+Launcher Type: SUN_STANDARD
+
+Environment Variables:
+CLASSPATH=.;C:\Program Files (x86)\Java\jre7\lib\ext\QTJava.zip
+PATH=C:\PROGRAM FILES (X86)\NVIDIA CORPORATION\PHYSX\COMMON;C:\PROGRAM FILES\BROADCOM\BROADCOM 802.11 NETWORK ADAPTER;C:\PROGRAM FILES (X86)\INTEL\ICLS CLIENT\;C:\PROGRAM FILES\INTEL\ICLS CLIENT\;C:\WINDOWS\SYSTEM32;C:\WINDOWS;C:\WINDOWS\SYSTEM32\WBEM;C:\WINDOWS\SYSTEM32\WINDOWSPOWERSHELL\V1.0\;C:\PROGRAM FILES\INTEL\INTEL(R) MANAGEMENT ENGINE COMPONENTS\DAL;C:\PROGRAM FILES\INTEL\INTEL(R) MANAGEMENT ENGINE COMPONENTS\IPT;C:\PROGRAM FILES (X86)\INTEL\INTEL(R) MANAGEMENT ENGINE COMPONENTS\DAL;C:\PROGRAM FILES (X86)\INTEL\INTEL(R) MANAGEMENT ENGINE COMPONENTS\IPT;C:\PROGRAM FILES (X86)\INTEL\OPENCL SDK\2.0\BIN\X86;C:\PROGRAM FILES (X86)\INTEL\OPENCL SDK\2.0\BIN\X64;C:\PROGRAM FILES\SONY\VAIO IMPROVEMENT;C:\PROGRAM FILES (X86)\SONY\VAIO BIOS DATA TRANSFER UTILITY\;C:\PROGRAM FILES (X86)\SONY\VAIO STARTUP SETTING TOOL;C:\Program Files\WIDCOMM\Bluetooth Software\;C:\Program Files\WIDCOMM\Bluetooth Software\syswow64;C:\Program Files (x86)\MiKTeX 2.9\miktex\bin\;C:\Program Files (x86)\QuickTime\QTSystem\;C:\Program Files\MATLAB\R2013a\runtime\win64;C:\Program Files\MATLAB\R2013a\bin;C:\Program Files (x86)\Windows Kits\8.1\Windows Performance Toolkit\;C:\Program Files\Microsoft SQL Server\110\Tools\Binn\;C:\Program Files (x86)\Nmap;C:\MinGW\bin;C:\MinGW\msys\1.0\bin;C:\Program Files (x86)\Java\jdk1.7.0_45\bin
+USERNAME=Martin
+OS=Windows_NT
+PROCESSOR_IDENTIFIER=Intel64 Family 6 Model 58 Stepping 9, GenuineIntel
+
+
+
+---------------  S Y S T E M  ---------------
+
+OS: Windows 8 , 64 bit Build 9200 
+
+CPU:total 4 (2 cores per cpu, 2 threads per core) family 6 model 58 stepping 9, cmov, cx8, fxsr, mmx, sse, sse2, sse3, ssse3, sse4.1, sse4.2, popcnt, avx, aes, erms, ht, tsc, tscinvbit, tscinv
+
+Memory: 4k page, physical 8264496k(5223220k free), swap 9575216k(5729936k free)
+
+vm_info: Java HotSpot(TM) Client VM (24.45-b08) for windows-x86 JRE (1.7.0_45-b18), built on Oct  8 2013 06:02:43 by "java_re" with unknown MS VC++:1600
+
+time: Sat Dec 07 16:09:33 2013
+elapsed time: 0 seconds
+

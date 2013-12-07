@@ -127,8 +127,10 @@ public class TSDRLibrary {
 	
 	public TSDRLibrary() throws TSDRLibraryNotCompatible {
 		if (m_e != null) throw m_e;
+		init();
 	}
 
+	private native void init();
 	private native void nativeLoadPlugin(String filepath) throws TSDRException;
 	public native void pluginParams(String params) throws TSDRException;
 	public native void setSampleRate(long rate) throws TSDRException;
