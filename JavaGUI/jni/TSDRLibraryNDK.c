@@ -31,6 +31,9 @@ void error_translate (int exception_code, char * exceptionclass) {
 		case TSDR_WRONG_WIDTHHEIGHT:
 			strcpy(exceptionclass, "martin/tempest/core/exceptions/TSDRWrongWidthHeightException");
 			return;
+		case TSDR_ALREADY_RUNNING:
+			strcpy(exceptionclass, "martin/tempest/core/exceptions/TSDRAlreadyRunningException");
+			return;
 		default:
 			strcpy(exceptionclass, "java/lang/Exception");
 			return;
@@ -117,7 +120,7 @@ void read_async(float *buf, int width, int height, void *ctx) {
 	(*env)->CallVoidMethod(env, context->obj, notifyCallbacks);
 }
 
-JNIEXPORT void JNICALL Java_martin_tempest_core_TSDRLibrary_start (JNIEnv * env, jobject obj) {
+JNIEXPORT void JNICALL Java_martin_tempest_core_TSDRLibrary_nativeStart (JNIEnv * env, jobject obj) {
 
 	java_context_t * context = (java_context_t *) malloc(sizeof(java_context_t));
 	context->obj = (*env)->NewGlobalRef(env, obj);

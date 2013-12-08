@@ -36,13 +36,22 @@ public class Main implements TSDRLibrary.FrameReadyCallback {
 		TSDRLibrary sdrlib = new TSDRLibrary(WIDTH, HEIGHT);
 		sdrlib.loadSource(TSDRLibrary.getAllSources()[0]);
 		sdrlib.registerFrameReadyCallback(this);
-		sdrlib.start();
-
+		sdrlib.startAsync();
 	}
 
 	@Override
 	public void onFrameReady(TSDRLibrary lib, BufferedImage frame) {
 		viz.drawImage(frame);
+	}
+
+	@Override
+	public void onException(TSDRLibrary lib, Exception e) {
+		e.printStackTrace();
+	}
+
+	@Override
+	public void onClosed(TSDRLibrary lib) {
+		System.out.println("Closed");
 	}
 
 }

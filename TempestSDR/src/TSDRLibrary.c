@@ -15,6 +15,7 @@
 #define MAX_ARR_SIZE (4000*4000)
 
 int tsdr_loadplugin(tsdr_lib_t * tsdr, char * filepath) {
+	tsdr->running = 0;
 	tsdr->plugin = malloc(sizeof(pluginsource_t));
 	pluginsource_t * plugin = (pluginsource_t *)(tsdr->plugin);
 	return tsdrplug_load(plugin, filepath);
@@ -44,6 +45,7 @@ int tsdr_unloadplugin(tsdr_lib_t * tsdr) {
 
 int tsdr_stop(tsdr_lib_t * tsdr) {
 	pluginsource_t * plugin = (pluginsource_t *)(tsdr->plugin);
+	tsdr->running = 0;
 	return plugin->tsdrplugin_stop();
 }
 
@@ -53,6 +55,10 @@ int tsdr_setgain(tsdr_lib_t * tsdr, float gain) {
 }
 
 int tsdr_readasync(tsdr_lib_t * tsdr, tsdr_readasync_function cb, void *ctx) {
+	if (tsdr->running)
+		return TSDR_ALREADY_RUNNING;
+	tsdr->running = 1;
+
 	const int width = tsdr->width;
 	const int height = tsdr->height;
 	const int size = width * height;
@@ -62,16 +68,20 @@ int tsdr_readasync(tsdr_lib_t * tsdr, tsdr_readasync_function cb, void *ctx) {
 
 	float * buffer = (float *) malloc(sizeof(float) * size);
 
-	int i;
-	for (i = 0; i < size; i++) {
-		const int x = i % width;
-		const int y = i / width;
+	uint32_t frames = 0;
+	while (tsdr->running) {
+		frames++;
+		int i;
+		for (i = 0; i < size; i++) {
+			const int x = i % width;
+			const int y = ((i / width) + frames) % height;
 
-		const float rat = (x > width/2) ? (y / (float) height) : (1.0f - y / (float) height);
-		buffer[i] = rat;
+			const float rat = (x > width/2) ? (y / (float) height) : (1.0f - y / (float) height);
+			buffer[i] = rat;
+		}
+
+		cb(buffer, width, height, ctx);
 	}
-
-	cb(buffer, width, height, ctx);
 
 	free(buffer);
 	return TSDR_OK;

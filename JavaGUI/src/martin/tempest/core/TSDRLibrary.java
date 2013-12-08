@@ -136,7 +136,7 @@ public class TSDRLibrary {
 	public native void pluginParams(String params) throws TSDRException;
 	public native void setSampleRate(long rate) throws TSDRException;
 	public native void setBaseFreq(long freq) throws TSDRException;
-	public native void start() throws TSDRException;
+	private native void nativeStart() throws TSDRException;
 	public native void stop() throws TSDRException;
 	public native void setGain(float gain) throws TSDRException;
 	public native void unloadPlugin() throws TSDRException;
@@ -146,6 +146,19 @@ public class TSDRLibrary {
 	
 	public void loadSource(final TSDRSource plugin) throws TSDRException {
 		nativeLoadPlugin(extractLibrary(plugin.libname).getAbsolutePath());
+	}
+	
+	public void startAsync() {
+		new Thread() {
+			public void run() {
+				try {
+					nativeStart();
+				} catch (TSDRException e) {
+					for (final FrameReadyCallback callback : callbacks) callback.onException(TSDRLibrary.this, e);
+				}
+				for (final FrameReadyCallback callback : callbacks) callback.onClosed(TSDRLibrary.this);
+			};
+		}.start();
 	}
 	
 	public static TSDRSource[] getAllSources() {
@@ -167,6 +180,8 @@ public class TSDRLibrary {
 	
 	public interface FrameReadyCallback {
 		void onFrameReady(final TSDRLibrary lib, final BufferedImage frame);
+		void onException(final TSDRLibrary lib, final Exception e);
+		void onClosed(final TSDRLibrary lib);
 	}
 	
 	/**
