@@ -48,6 +48,9 @@ SOURCEFOLDER=src
 OUTPUTFOLDER=bin/$(OSNAME)/$(ARCHNAME)
 OBJFOLDER=obj
 
+# Flags
+CPPFLAGS=-O3
+
 # Calculate the path to dependencies
 _OBJS = $(patsubst %,$(OBJFOLDER)/%,$(OBJS))
 _DEPS = $(patsubst %,$(SOURCEFOLDER)/%,$(DEPS))
@@ -68,7 +71,7 @@ $(OUTPUTFOLDER)/$(PLUGNAME)$(EXT): copyoverheaderfile $(_OBJS)
 $(OBJFOLDER)/%.o : $(SOURCEFOLDER)/%.c $(_DEPS)
 	mkdir -p $(OUTPUTFOLDER)
 	mkdir -p $(OBJFOLDER)
-	gcc $(foreach d, $(INC), -I$d) -c $< -o $@
+	gcc $(foreach d, $(INC), -I$d) $(CFLAGS) -c $< -o $@
 
 .PHONY: clean
 

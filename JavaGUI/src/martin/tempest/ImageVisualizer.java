@@ -13,7 +13,7 @@ import javax.swing.JPanel;
 public class ImageVisualizer extends JPanel {
 
 	private static final long serialVersionUID = -6754436015453195809L;
-	private static final int COUNT_TO_AVG = 5;
+	private static final int COUNT_TO_AVG = 50;
 	
 	private BufferedImage todraw = null;
 

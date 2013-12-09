@@ -13,6 +13,12 @@ tsdr_lib_t tsdr_instance;
 
 struct java_context {
 		jobject obj;
+		jclass cls;
+		jfieldID fid_pixels;
+		jfieldID fid_width;
+		jfieldID fid_height;
+		jmethodID fixSize;
+		jmethodID notifyCallbacks;
 	} typedef java_context_t;
 
 static JavaVM *jvm;
@@ -95,13 +101,15 @@ void read_async(float *buf, int width, int height, void *ctx) {
 	if ((*jvm)->GetEnv(jvm, (void **)&env, javaversion) == JNI_EDETACHED)
 		(*jvm)->AttachCurrentThread(jvm, (void **) &env, 0);
 
-	jclass cls = (*env)->GetObjectClass(env, context->obj);
+	jint i_width = (*env)->GetIntField(env, context->obj, context->fid_width);
+	jint i_height = (*env)->GetIntField(env, context->obj, context->fid_height);
 
-	// fixSize(200, 200);
-	jmethodID fixSize = (*env)->GetMethodID(env, cls, "fixSize", "(II)V");
-	(*env)->CallVoidMethod(env, context->obj, fixSize, width, height);
+	if (i_width != width || i_height != height) {
+		// fixSize(200, 200);
+		(*env)->CallVoidMethod(env, context->obj, context->fixSize, width, height);
+	}
 
-	jintArray pixels_obj = (*env)->GetObjectField(env, context->obj, (*env)->GetFieldID(env, cls, "pixels", "[I"));
+	jintArray pixels_obj = (*env)->GetObjectField(env, context->obj, context->fid_pixels);
 	jint * pixels = (*env)->GetIntArrayElements(env,pixels_obj,0);
 	jint * data = pixels;
 
@@ -116,19 +124,26 @@ void read_async(float *buf, int width, int height, void *ctx) {
 	(*env)->ReleaseIntArrayElements(env,pixels_obj,pixels,0);
 
 	// notifyCallbacks();
-	jmethodID notifyCallbacks = (*env)->GetMethodID(env, cls, "notifyCallbacks", "()V");
-	(*env)->CallVoidMethod(env, context->obj, notifyCallbacks);
+	(*env)->CallVoidMethod(env, context->obj, context->notifyCallbacks);
 }
 
 JNIEXPORT void JNICALL Java_martin_tempest_core_TSDRLibrary_nativeStart (JNIEnv * env, jobject obj) {
 
 	java_context_t * context = (java_context_t *) malloc(sizeof(java_context_t));
+
 	context->obj = (*env)->NewGlobalRef(env, obj);
 	(*env)->DeleteLocalRef(env, obj);
+	context->cls = (jclass) (*env)->NewGlobalRef(env, (*env)->GetObjectClass(env, context->obj));
+	context->fid_pixels = (*env)->GetFieldID(env, context->cls, "pixels", "[I");
+	context->fid_width = (*env)->GetFieldID(env, context->cls, "width", "I");
+	context->fid_height = (*env)->GetFieldID(env, context->cls, "height", "I");
+	context->fixSize = (*env)->GetMethodID(env, context->cls, "fixSize", "(II)V");
+	context->notifyCallbacks = (*env)->GetMethodID(env, context->cls, "notifyCallbacks", "()V");
 
 	THROW(tsdr_readasync(&tsdr_instance, read_async, (void *) context));
 
 	(*env)->DeleteGlobalRef(env, context->obj);
+	(*env)->DeleteGlobalRef(env, context->cls);
 	free(context);
 }
 

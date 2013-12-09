@@ -8,7 +8,8 @@ import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.LinkedList;
+import java.util.ArrayList;
+import java.util.List;
 
 import martin.tempest.core.exceptions.TSDRException;
 import martin.tempest.core.exceptions.TSDRLibraryNotCompatible;
@@ -23,13 +24,15 @@ public class TSDRLibrary {
 	
 	private static TSDRSource[] PLUGINS = new TSDRSource[] {new TSDRSource("TSDRPlugin_RawFile")};
 	
-	// TODO! STATIC?!?!?!?!?!?!??!
 	private BufferedImage bimage;
 	private int[] pixels;
 	
+	private int width;
+	private int height;
+	
 	// If the binaries weren't loaded, this will go off
 	private static TSDRLibraryNotCompatible m_e = null;
-	private final LinkedList<FrameReadyCallback> callbacks = new LinkedList<FrameReadyCallback>();
+	private final List<FrameReadyCallback> callbacks = new ArrayList<FrameReadyCallback>();
 	
 	/**
 	 * Extracts a library to a temporary path and prays for the OS to delete it after the app closes.
@@ -193,6 +196,8 @@ public class TSDRLibrary {
 		if (bimage == null || bimage.getWidth() != x || bimage.getHeight() != y) {
 			bimage = new BufferedImage(x, y, BufferedImage.TYPE_INT_RGB);
 			pixels = ((DataBufferInt) bimage.getRaster().getDataBuffer()).getData();
+			width = x;
+			height = y;
 		}
 	}
 	

@@ -3,6 +3,9 @@ ifndef JAVA_HOME
 $(warning JAVA_HOME should be set so it points to your jdk installation dir)
 endif
 
+# Flags
+CPPFLAGS=-O3
+
 # Headers
 INC = "$(JAVA_HOME)/include" "$(JAVA_HOME)/include/win32"
 
@@ -60,7 +63,7 @@ rebuildtempestsdr : $(OUTPUTFOLDER)
 
 # Compile the sources to obj files
 TSDRLibraryNDK.o : TSDRLibraryNDK.c TSDRLibraryNDK.h include/TSDRLibrary.h include/TSDRCodes.h
-	gcc $(foreach d, $(INC), -I$d) -c $< -o $@
+	gcc $(foreach d, $(INC), -I$d) $(CFLAGS) -c $< -o $@
 
 # Copy over a fresh set of library headers
 include/%.h : ../../TempestSDR/src/include/%.h

@@ -43,6 +43,9 @@ SOURCEFOLDER=src
 OUTPUTFOLDER=bin/$(OSNAME)/$(ARCHNAME)
 OBJFOLDER=obj
 
+# Flags
+CPPFLAGS=-O3
+
 # The obj files reside in the bin/obj directory
 _OBJS = $(patsubst %,$(OBJFOLDER)/%,$(OBJS))
 
@@ -60,7 +63,7 @@ $(OUTPUTFOLDER)/TSDRLibrary$(EXT) : $(_OBJS)
 $(OBJFOLDER)/%.o : src/%.c $(_DEPS)
 	mkdir -p $(OUTPUTFOLDER)
 	mkdir -p $(OBJFOLDER)
-	gcc $(foreach d, $(INC), -I$d) -c $< -o $@
+	gcc $(foreach d, $(INC), -I$d) $(CFLAGS) -c $< -o $@
 	
 .PHONY: clean
 
