@@ -3,8 +3,8 @@
 PLUGNAME=TSDRPlugin_RawFile
 
 # Dependencies
-OBJS=$(PLUGNAME).o
-DEPS=TSDRPlugin.h TSDRCodes.h
+OBJS=$(PLUGNAME).o timer.o
+DEPS=TSDRPlugin.h TSDRCodes.h timer.h osdetect.h
 
 # END OF CONFIGURATION IF STANDARD DIR STRUCTURE IS USED
 

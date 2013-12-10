@@ -6,6 +6,12 @@ endif
 # Flags
 CPPFLAGS=-O3
 
+# Define all of the C files here
+OBJS = TSDRLibraryNDK.o
+
+# Define all of the dependencies here
+DEPS = TSDRLibraryNDK.h include/TSDRLibrary.h include/TSDRCodes.h
+
 # Headers
 INC = "$(JAVA_HOME)/include" "$(JAVA_HOME)/include/win32"
 
@@ -44,31 +50,33 @@ endif
 # The folder that will contain the libraries
 OUTPUTFOLDER=../lib/$(OSNAME)/$(ARCHNAME)
 
+# The folder that will contain the object files
+OBJFOLDER=obj
+
+# The obj files reside in the bin/obj directory
+_OBJS = $(patsubst %,$(OBJFOLDER)/%,$(OBJS))
+
 # We want to build the library
-all : $(OUTPUTFOLDER)/TSDRLibraryNDK$(EXT)
+all : rebuildtempestsdr library
 	
 # Linking
-$(OUTPUTFOLDER)/TSDRLibraryNDK$(EXT) : TSDRLibraryNDK.o rebuildtempestsdr $(OUTPUTFOLDER)
-	gcc -L../../TempestSDR/bin/$(OSNAME)/$(ARCHNAME)/ -lTSDRLibrary -Wl,--add-stdcall-alias -shared -o $@ $<
-
-# Create output dir
-$(OUTPUTFOLDER) :	
-	mkdir -p $(OUTPUTFOLDER)
+library : $(_OBJS)
+	gcc -L../../TempestSDR/bin/$(OSNAME)/$(ARCHNAME)/ -lTSDRLibrary -Wl,--add-stdcall-alias -shared -o $(OUTPUTFOLDER)/TSDRLibraryNDK$(EXT) $<
 
 # Rebuild the main library so that we have the most up-to-date version
 # The main library is assumed to be two levels below this jni folder
-rebuildtempestsdr : $(OUTPUTFOLDER)
+rebuildtempestsdr :
 	@$(MAKE) -C ../../TempestSDR all
 	@cp -f ../../TempestSDR/bin/$(OSNAME)/$(ARCHNAME)/TSDRLibrary$(EXT) $(OUTPUTFOLDER)/TSDRLibrary$(EXT)
+	mkdir -p include
+	@cp -f ../../TempestSDR/src/include/TSDRCodes.h include/
+	@cp -f ../../TempestSDR/src/include/TSDRLibrary.h include/
+	mkdir -p $(OUTPUTFOLDER)
+	mkdir -p $(OBJFOLDER)
 
 # Compile the sources to obj files
-TSDRLibraryNDK.o : TSDRLibraryNDK.c TSDRLibraryNDK.h include/TSDRLibrary.h include/TSDRCodes.h
+$(OBJFOLDER)/%.o : %.c $(DEPS)
 	gcc $(foreach d, $(INC), -I$d) $(CFLAGS) -c $< -o $@
-
-# Copy over a fresh set of library headers
-include/%.h : ../../TempestSDR/src/include/%.h
-	mkdir -p include
-	@cp -f $< $@
 
 # Generate the java header based on the class
 TSDRLibraryNDK.h : ../bin/martin/tempest/core/TSDRLibrary.class 
@@ -81,5 +89,5 @@ TSDRLibraryNDK.h : ../bin/martin/tempest/core/TSDRLibrary.class
 
 # Remove any compiled artifacts
 clean :
-	rm -f TSDRLibraryNDK.h *.o ../TSDRLibraryNDK$(EXT) ../TSDRLibrary$(EXT) include/*.h
-	rm -rf include/
+	rm -f TSDRLibraryNDK.h ../TSDRLibraryNDK$(EXT) ../TSDRLibrary$(EXT)
+	rm -rf $(OBJFOLDER)/

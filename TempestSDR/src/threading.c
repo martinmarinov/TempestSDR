@@ -1,0 +1,101 @@
+#include "threading.h"
+#include <stdio.h>
+#include <stdlib.h>
+
+// A platform independent threading library with mutexes
+// source: http://www.cs.wustl.edu/~schmidt/win32-cv-1.html
+
+#if WINHEAD
+    #include <windows.h>
+#else
+    #include <pthread.h>
+	#include <sys/time.h>
+#endif
+
+
+#if WINHEAD
+	#define ETIMEDOUT WAIT_TIMEOUT
+
+	typedef CRITICAL_SECTION pthread_mutex_t;
+
+	struct winthreadargs {
+		thread_function f;
+		void * ctx;
+	}typedef winthreadargs_t;
+
+	DWORD WINAPI threadFunc(LPVOID arg) {
+		winthreadargs_t * args = (winthreadargs_t *) arg;
+		thread_function f = args->f;
+		void * ctx = args->ctx;
+		free(args);
+		f(ctx);
+		return 0;
+	}
+
+#endif
+
+	void thread_start(thread_function f, void * ctx) {
+#if WINHEAD
+		winthreadargs_t * args = (winthreadargs_t *) malloc(sizeof(winthreadargs_t));
+		args->f = f;
+		args->ctx = ctx;
+		CreateThread(NULL,0,threadFunc,(LPVOID) args,0,NULL);
+#else
+		// TODO! IS THIS CORRECT?!? TODO! CEHCK IT!
+		pthread_t thread;
+		pthread_create (&thread, NULL, (void *) &f, ctx);
+#endif
+	}
+	
+	void mutex_init(mutex_t * mutex) {
+#if WINHEAD
+		mutex->thing1 = (void *) CreateEvent (0, FALSE, FALSE, 0);
+#else
+		mutex->thing1 = malloc(sizeof(pthread_mutex_t));
+		mutex->thing2 = malloc(sizeof(pthread_cond_t));
+
+		pthread_mutex_init((pthread_mutex_t *) mutex->thing1, NULL);
+		pthread_cond_init((pthread_cond_t *) mutex->thing2, NULL);
+#endif
+	}
+
+	int mutex_wait(mutex_t * imutex) {
+#if WINHEAD
+		return (WaitForSingleObject ((HANDLE) imutex->thing1, 1000) == WAIT_TIMEOUT) ? (THREAD_TIMEOUT) : (THREAD_OK);
+#else
+		if (imutex->thing1 == NULL || imutex->thing2 == NULL) return THREAD_NOT_INITED;
+
+		pthread_mutex_t * mutex = (pthread_mutex_t *) imutex->thing1;
+		pthread_cond_t * cond = (pthread_cond_t *) imutex->thing2;
+
+		struct timespec timeToWait;
+		struct timeval now;
+
+		gettimeofday(&now, NULL);
+
+		timeToWait.tv_sec = now.tv_sec;
+		timeToWait.tv_nsec = now.tv_usec*1000UL + 10 * 1000000;
+
+		pthread_mutex_lock(mutex);
+		const int res = pthread_cond_timedwait(cond, mutex, &timeToWait);
+		pthread_mutex_unlock(mutex);
+
+		if (res == ETIMEDOUT)
+			return THREAD_TIMEOUT;
+#endif
+
+		return THREAD_OK;
+	}
+	
+	void mutex_signal(mutex_t * imutex) {
+#if WINHEAD
+		SetEvent ((HANDLE) imutex->thing1);
+#else
+		pthread_mutex_t * mutex = (pthread_mutex_t *) imutex->thing1;
+		pthread_cond_t * cond = (pthread_cond_t *) imutex->thing2;
+
+		pthread_mutex_lock(mutex);
+		pthread_cond_signal(cond);
+		pthread_mutex_unlock(mutex);
+#endif
+	}

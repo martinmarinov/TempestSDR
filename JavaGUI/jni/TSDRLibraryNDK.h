@@ -10,17 +10,9 @@ extern "C" {
 /*
  * Class:     martin_tempest_core_TSDRLibrary
  * Method:    init
- * Signature: ()V
- */
-JNIEXPORT void JNICALL Java_martin_tempest_core_TSDRLibrary_init
-  (JNIEnv *, jobject);
-
-/*
- * Class:     martin_tempest_core_TSDRLibrary
- * Method:    nativeLoadPlugin
  * Signature: (Ljava/lang/String;)V
  */
-JNIEXPORT void JNICALL Java_martin_tempest_core_TSDRLibrary_nativeLoadPlugin
+JNIEXPORT void JNICALL Java_martin_tempest_core_TSDRLibrary_init
   (JNIEnv *, jobject, jstring);
 
 /*
@@ -50,10 +42,10 @@ JNIEXPORT void JNICALL Java_martin_tempest_core_TSDRLibrary_setBaseFreq
 /*
  * Class:     martin_tempest_core_TSDRLibrary
  * Method:    nativeStart
- * Signature: ()V
+ * Signature: (Ljava/lang/String;)V
  */
 JNIEXPORT void JNICALL Java_martin_tempest_core_TSDRLibrary_nativeStart
-  (JNIEnv *, jobject);
+  (JNIEnv *, jobject, jstring);
 
 /*
  * Class:     martin_tempest_core_TSDRLibrary

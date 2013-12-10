@@ -11,19 +11,16 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include "TSDRPluginLoader.h"
+#include "osdetect.h"
+#include "threading.h"
 
 #define MAX_ARR_SIZE (4000*4000)
 
-int tsdr_loadplugin(tsdr_lib_t * tsdr, char * filepath) {
+int tsdr_loadplugin(tsdr_lib_t * tsdr, const char * filepath) {
 	tsdr->running = 0;
 	tsdr->plugin = malloc(sizeof(pluginsource_t));
-	pluginsource_t * plugin = (pluginsource_t *)(tsdr->plugin);
-	return tsdrplug_load(plugin, filepath);
-}
-
-int tsdr_pluginparams(tsdr_lib_t * tsdr, char * params) {
-	pluginsource_t * plugin = (pluginsource_t *)(tsdr->plugin);
-	return plugin->tsdrplugin_init(params);
+	int status = tsdrplug_load((pluginsource_t *)(tsdr->plugin), filepath);
+	return status;
 }
 
 int tsdr_setsamplerate(tsdr_lib_t * tsdr, uint32_t rate) {
@@ -38,14 +35,20 @@ int tsdr_setbasefreq(tsdr_lib_t * tsdr, uint32_t freq) {
 }
 
 int tsdr_unloadplugin(tsdr_lib_t * tsdr) {
+	tsdr_stop(tsdr);
 	tsdrplug_close((pluginsource_t *)(tsdr->plugin));
 	free(tsdr->plugin);
 	return TSDR_OK;
 }
 
 int tsdr_stop(tsdr_lib_t * tsdr) {
+	if (!tsdr->running) return TSDR_OK;
 	pluginsource_t * plugin = (pluginsource_t *)(tsdr->plugin);
 	tsdr->running = 0;
+
+	mutex_wait((mutex_t *) tsdr->mutex_sync_unload);
+
+	free(tsdr->mutex_sync_unload);
 	return plugin->tsdrplugin_stop();
 }
 
@@ -54,9 +57,12 @@ int tsdr_setgain(tsdr_lib_t * tsdr, float gain) {
 	return plugin->tsdrplugin_setgain(gain);
 }
 
-int tsdr_readasync(tsdr_lib_t * tsdr, tsdr_readasync_function cb, void *ctx) {
+int tsdr_readasync(tsdr_lib_t * tsdr, tsdr_readasync_function cb, void *ctx, const char * params) {
 	if (tsdr->running)
 		return TSDR_ALREADY_RUNNING;
+	tsdr->mutex_sync_unload = malloc(sizeof(mutex_t));
+	mutex_init((mutex_t *) tsdr->mutex_sync_unload);
+
 	tsdr->running = 1;
 
 	const int width = tsdr->width;
@@ -82,6 +88,8 @@ int tsdr_readasync(tsdr_lib_t * tsdr, tsdr_readasync_function cb, void *ctx) {
 
 		cb(buffer, width, height, ctx);
 	}
+
+	mutex_signal((mutex_t *) tsdr->mutex_sync_unload);
 
 	free(buffer);
 	return TSDR_OK;

@@ -1,8 +1,8 @@
 # Define all of the C files here
-OBJS = TSDRLibrary.o TSDRPluginLoader.o
+OBJS = TSDRLibrary.o TSDRPluginLoader.o threading.o
 
 # Define all of the dependencies here
-DEPS = include/TSDRLibrary.h TSDRPluginLoader.h include/TSDRPlugin.h
+DEPS = include/TSDRLibrary.h TSDRPluginLoader.h include/TSDRPlugin.h osdetect.h threading.h
 
 # USER CONFIGURATION ENDS HERE
 

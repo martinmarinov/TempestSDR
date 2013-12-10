@@ -40,7 +40,7 @@ public class TSDRLibrary {
 	 * @return
 	 * @throws IOException
 	 */
-	static final File extractLibrary(final String name) throws TSDRLibraryNotCompatible {
+	private static final File extractLibrary(final String name) throws TSDRLibraryNotCompatible {
 		final String rawOSNAME = System.getProperty("os.name").toLowerCase();
 		final String rawARCHNAME = System.getProperty("os.arch").toLowerCase();
 
@@ -104,7 +104,7 @@ public class TSDRLibrary {
 	 * @param name
 	 * @throws IOException 
 	 */
-	static final void loadLibrary(final String name) throws TSDRLibraryNotCompatible {
+	private static final void loadLibrary(final String name) throws TSDRLibraryNotCompatible {
 		try {
 			// try traditional method
 			System.loadLibrary(name); 
@@ -128,40 +128,53 @@ public class TSDRLibrary {
 		} 
 	}
 	
-	public TSDRLibrary(int width, int height) throws TSDRException {
+	public TSDRLibrary(final TSDRSource plugin, int width, int height) throws TSDRException {
 		if (m_e != null) throw m_e;
-		init();
+		init(extractLibrary(plugin.libname).getAbsolutePath());
 		setResolution(width, height);
+		
+		Runtime.getRuntime().addShutdownHook(new Thread() {
+			@Override
+			public void run() {
+				try {
+					unloadPlugin();
+				} catch (Throwable e) {}
+			}
+		});
 	}
 
-	private native void init();
-	private native void nativeLoadPlugin(String filepath) throws TSDRException;
+	private native void init(String filepath)  throws TSDRException;
 	public native void pluginParams(String params) throws TSDRException;
 	public native void setSampleRate(long rate) throws TSDRException;
 	public native void setBaseFreq(long freq) throws TSDRException;
-	private native void nativeStart() throws TSDRException;
+	private native void nativeStart(String params) throws TSDRException;
 	public native void stop() throws TSDRException;
 	public native void setGain(float gain) throws TSDRException;
-	public native void unloadPlugin() throws TSDRException;
+	
+	/**
+	 * This MUST be called before exiting the program
+	 * @throws TSDRException
+	 */
+	private native void unloadPlugin() throws TSDRException;
 	public native void setResolution(int width, int height) throws TSDRException;
 	public native void setVfreq(float freq) throws TSDRException;
 	public native void setHfreq(float freq) throws TSDRException;
 	
-	public void loadSource(final TSDRSource plugin) throws TSDRException {
-		nativeLoadPlugin(extractLibrary(plugin.libname).getAbsolutePath());
-	}
-	
-	public void startAsync() {
+	public void startAsync(final String params) {
 		new Thread() {
 			public void run() {
 				try {
-					nativeStart();
+					nativeStart(params);
 				} catch (TSDRException e) {
 					for (final FrameReadyCallback callback : callbacks) callback.onException(TSDRLibrary.this, e);
 				}
 				for (final FrameReadyCallback callback : callbacks) callback.onClosed(TSDRLibrary.this);
 			};
 		}.start();
+	}
+	
+	public void startAsync() {
+		startAsync("");
 	}
 	
 	public static TSDRSource[] getAllSources() {
@@ -174,11 +187,6 @@ public class TSDRLibrary {
 	
 	public boolean unregisterFrameReadyCallback(final FrameReadyCallback callback) {
 		return callbacks.remove(callback);
-	}
-	
-	@Override
-	protected void finalize() throws Throwable {
-		unloadPlugin();
 	}
 	
 	public interface FrameReadyCallback {

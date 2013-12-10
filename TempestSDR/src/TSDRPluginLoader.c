@@ -13,7 +13,7 @@ void *tsdrplug_getfunction(pluginsource_t * plugin, char *functname)
 #endif
 }
 
-int tsdrplug_load(pluginsource_t * plugin, char *dlname)
+int tsdrplug_load(pluginsource_t * plugin, const char *dlname)
 {
 
     #if WINHEAD // Microsoft compiler
@@ -22,11 +22,10 @@ int tsdrplug_load(pluginsource_t * plugin, char *dlname)
         plugin->fd = dlopen(dlname,2);
     #endif
 
-    if (plugin->fd == 0)
+    if (plugin->fd == NULL)
     	return TSDR_ERR_PLUGIN;
 
     if ((plugin->tsdrplugin_getName = tsdrplug_getfunction(plugin, "tsdrplugin_getName")) == 0) return TSDR_ERR_PLUGIN;
-    if ((plugin->tsdrplugin_init = tsdrplug_getfunction(plugin, "tsdrplugin_init")) == 0) return TSDR_ERR_PLUGIN;
     if ((plugin->tsdrplugin_setsamplerate = tsdrplug_getfunction(plugin, "tsdrplugin_setsamplerate")) == 0) return TSDR_ERR_PLUGIN;
     if ((plugin->tsdrplugin_setbasefreq = tsdrplug_getfunction(plugin, "tsdrplugin_setbasefreq")) == 0) return TSDR_ERR_PLUGIN;
     if ((plugin->tsdrplugin_stop = tsdrplug_getfunction(plugin, "tsdrplugin_stop")) == 0) return TSDR_ERR_PLUGIN;
@@ -39,7 +38,7 @@ int tsdrplug_load(pluginsource_t * plugin, char *dlname)
 
 void tsdrplug_close(pluginsource_t * plugin)
 {
-	if (plugin->fd == 0) return;
+	if (plugin->fd == NULL) return;
 #if WINHEAD
     FreeLibrary((HINSTANCE)plugin->fd);
 #else
