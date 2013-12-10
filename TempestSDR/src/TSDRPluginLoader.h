@@ -21,7 +21,7 @@
 		int (*tsdrplugin_setbasefreq)(uint32_t);
 		int (*tsdrplugin_stop)(void);
 		int (*tsdrplugin_setgain)(float);
-		int (*tsdrplugin_readasync)(tsdrplugin_readasync_function, void *ctx, uint32_t, uint32_t, char * params);
+		int (*tsdrplugin_readasync)(tsdrplugin_readasync_function cb, void *ctx, const char * params);
 	} typedef pluginsource_t;
 
 	int tsdrplug_load(pluginsource_t * plugin, const char * dlname);

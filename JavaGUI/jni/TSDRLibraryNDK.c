@@ -42,6 +42,9 @@ void error_translate (int exception_code, char * exceptionclass) {
 		case TSDR_ALREADY_RUNNING:
 			strcpy(exceptionclass, "martin/tempest/core/exceptions/TSDRAlreadyRunningException");
 			return;
+		case TSDR_PLUGIN_PARAMETERS_WRONG:
+			strcpy(exceptionclass, "martin/tempest/core/exceptions/TSDRPluginParametersException");
+			return;
 		default:
 			strcpy(exceptionclass, "java/lang/Exception");
 			return;
@@ -71,12 +74,9 @@ void error(JNIEnv * env, int exception_code, const char *inmsg, ...)
     (*env)->DeleteLocalRef(env, cls);
 }
 
-JNIEXPORT void JNICALL Java_martin_tempest_core_TSDRLibrary_init (JNIEnv * env, jobject obj, jstring  path) {
+JNIEXPORT void JNICALL Java_martin_tempest_core_TSDRLibrary_init (JNIEnv * env, jobject obj) {
 	(*env)->GetJavaVM(env, &jvm);
 	javaversion = (*env)->GetVersion(env);
-	const char *npath = (*env)->GetStringUTFChars(env, path, 0);
-	THROW(tsdr_loadplugin(&tsdr_instance, npath));
-	(*env)->ReleaseStringUTFChars(env, path, npath);
 }
 
 JNIEXPORT void JNICALL Java_martin_tempest_core_TSDRLibrary_setSampleRate (JNIEnv * env, jobject obj, jlong rate) {
@@ -120,7 +120,7 @@ void read_async(float *buf, int width, int height, void *ctx) {
 	(*env)->CallVoidMethod(env, context->obj, context->notifyCallbacks);
 }
 
-JNIEXPORT void JNICALL Java_martin_tempest_core_TSDRLibrary_nativeStart (JNIEnv * env, jobject obj, jstring params) {
+JNIEXPORT void JNICALL Java_martin_tempest_core_TSDRLibrary_nativeStart (JNIEnv * env, jobject obj, jstring path, jstring params) {
 
 	java_context_t * context = (java_context_t *) malloc(sizeof(java_context_t));
 
@@ -139,11 +139,12 @@ JNIEXPORT void JNICALL Java_martin_tempest_core_TSDRLibrary_nativeStart (JNIEnv 
 	context->pixelsize = i_width * i_height;
 	context->pixels = (jint *) malloc(sizeof(jint) * context->pixelsize);
 
+	const char *npath = (*env)->GetStringUTFChars(env, path, 0);
 	const char *nparams = (*env)->GetStringUTFChars(env, params, 0);
 
-	THROW(tsdr_readasync(&tsdr_instance, read_async, (void *) context, nparams));
+	THROW(tsdr_readasync(&tsdr_instance, npath, read_async, (void *) context, nparams));
 
-
+	(*env)->ReleaseStringUTFChars(env, path, npath);
 	(*env)->ReleaseStringUTFChars(env, params, nparams);
 	(*env)->DeleteGlobalRef(env, context->obj);
 	(*env)->DeleteGlobalRef(env, context->cls);
@@ -157,10 +158,6 @@ JNIEXPORT void JNICALL Java_martin_tempest_core_TSDRLibrary_stop (JNIEnv * env, 
 
 JNIEXPORT void JNICALL Java_martin_tempest_core_TSDRLibrary_setGain (JNIEnv * env, jobject obj, jfloat gain) {
 	THROW(tsdr_setgain(&tsdr_instance, (float) gain));
-}
-
-JNIEXPORT void JNICALL Java_martin_tempest_core_TSDRLibrary_unloadPlugin (JNIEnv * env, jobject obj) {
-	THROW(tsdr_unloadplugin(&tsdr_instance));
 }
 
 JNIEXPORT void JNICALL Java_martin_tempest_core_TSDRLibrary_setResolution (JNIEnv * env, jobject obj, jint width, jint height) {

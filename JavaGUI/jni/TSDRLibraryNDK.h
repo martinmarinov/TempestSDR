@@ -10,18 +10,10 @@ extern "C" {
 /*
  * Class:     martin_tempest_core_TSDRLibrary
  * Method:    init
- * Signature: (Ljava/lang/String;)V
+ * Signature: ()V
  */
 JNIEXPORT void JNICALL Java_martin_tempest_core_TSDRLibrary_init
-  (JNIEnv *, jobject, jstring);
-
-/*
- * Class:     martin_tempest_core_TSDRLibrary
- * Method:    pluginParams
- * Signature: (Ljava/lang/String;)V
- */
-JNIEXPORT void JNICALL Java_martin_tempest_core_TSDRLibrary_pluginParams
-  (JNIEnv *, jobject, jstring);
+  (JNIEnv *, jobject);
 
 /*
  * Class:     martin_tempest_core_TSDRLibrary
@@ -42,10 +34,10 @@ JNIEXPORT void JNICALL Java_martin_tempest_core_TSDRLibrary_setBaseFreq
 /*
  * Class:     martin_tempest_core_TSDRLibrary
  * Method:    nativeStart
- * Signature: (Ljava/lang/String;)V
+ * Signature: (Ljava/lang/String;Ljava/lang/String;)V
  */
 JNIEXPORT void JNICALL Java_martin_tempest_core_TSDRLibrary_nativeStart
-  (JNIEnv *, jobject, jstring);
+  (JNIEnv *, jobject, jstring, jstring);
 
 /*
  * Class:     martin_tempest_core_TSDRLibrary
@@ -62,14 +54,6 @@ JNIEXPORT void JNICALL Java_martin_tempest_core_TSDRLibrary_stop
  */
 JNIEXPORT void JNICALL Java_martin_tempest_core_TSDRLibrary_setGain
   (JNIEnv *, jobject, jfloat);
-
-/*
- * Class:     martin_tempest_core_TSDRLibrary
- * Method:    unloadPlugin
- * Signature: ()V
- */
-JNIEXPORT void JNICALL Java_martin_tempest_core_TSDRLibrary_unloadPlugin
-  (JNIEnv *, jobject);
 
 /*
  * Class:     martin_tempest_core_TSDRLibrary

@@ -7,6 +7,7 @@ import javax.swing.JFrame;
 
 import martin.tempest.core.TSDRLibrary;
 import martin.tempest.core.exceptions.TSDRException;
+import martin.tempest.sources.TSDRSource;
 
 public class Main implements TSDRLibrary.FrameReadyCallback {
 	
@@ -36,9 +37,9 @@ public class Main implements TSDRLibrary.FrameReadyCallback {
 		new Thread() {
 			public void run() {
 				try {
-					TSDRLibrary sdrlib = new TSDRLibrary(TSDRLibrary.getAllSources()[0], WIDTH, HEIGHT);
+					TSDRLibrary sdrlib = new TSDRLibrary();
 					sdrlib.registerFrameReadyCallback(Main.this);
-					sdrlib.startAsync();
+					sdrlib.startAsync(TSDRSource.fromRawFile("D:\\Dokumenti\\Cambridge\\project\\mphilproj\\Toshiba-440CDX\\toshiba.iq"), WIDTH, HEIGHT);
 				} catch (Throwable e) {e.printStackTrace();};
 				
 			};
@@ -54,6 +55,7 @@ public class Main implements TSDRLibrary.FrameReadyCallback {
 
 	@Override
 	public void onException(TSDRLibrary lib, Exception e) {
+		System.out.println("On Exception");
 		e.printStackTrace();
 	}
 

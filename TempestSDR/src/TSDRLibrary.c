@@ -16,12 +16,13 @@
 
 #define MAX_ARR_SIZE (4000*4000)
 
-int tsdr_loadplugin(tsdr_lib_t * tsdr, const char * filepath) {
-	tsdr->running = 0;
-	tsdr->plugin = malloc(sizeof(pluginsource_t));
-	int status = tsdrplug_load((pluginsource_t *)(tsdr->plugin), filepath);
-	return status;
-}
+struct tsdr_context {
+		tsdr_readasync_function cb;
+		float * buffer;
+		tsdr_lib_t * this;
+		int bufsize;
+		void *ctx;
+	} typedef tsdr_context_t;
 
 int tsdr_setsamplerate(tsdr_lib_t * tsdr, uint32_t rate) {
 	pluginsource_t * plugin = (pluginsource_t *)(tsdr->plugin);
@@ -34,36 +35,54 @@ int tsdr_setbasefreq(tsdr_lib_t * tsdr, uint32_t freq) {
 	return plugin->tsdrplugin_setbasefreq(freq);
 }
 
-int tsdr_unloadplugin(tsdr_lib_t * tsdr) {
-	tsdr_stop(tsdr);
-	tsdrplug_close((pluginsource_t *)(tsdr->plugin));
-	free(tsdr->plugin);
-	return TSDR_OK;
-}
-
 int tsdr_stop(tsdr_lib_t * tsdr) {
 	if (!tsdr->running) return TSDR_OK;
+
 	pluginsource_t * plugin = (pluginsource_t *)(tsdr->plugin);
-	tsdr->running = 0;
+
+	int status = plugin->tsdrplugin_stop();
 
 	mutex_wait((mutex_t *) tsdr->mutex_sync_unload);
 
 	free(tsdr->mutex_sync_unload);
-	return plugin->tsdrplugin_stop();
+	return status;
 }
 
 int tsdr_setgain(tsdr_lib_t * tsdr, float gain) {
+	if (!tsdr->running) return TSDR_ERR_PLUGIN;
+
 	pluginsource_t * plugin = (pluginsource_t *)(tsdr->plugin);
 	return plugin->tsdrplugin_setgain(gain);
 }
 
-int tsdr_readasync(tsdr_lib_t * tsdr, tsdr_readasync_function cb, void *ctx, const char * params) {
+void process(float *buf, uint32_t len, void *ctx) {
+	tsdr_context_t * context = (tsdr_context_t *) ctx;
+
+	const int length = (len < context->bufsize) ? (len) : (context->bufsize);
+
+	int i;
+	for (i = 0; i < length; i++) context->buffer[i] = buf[i];
+
+	context->cb(context->buffer, context->this->width, context->this->height, context->ctx);
+}
+
+int tsdr_readasync(tsdr_lib_t * tsdr, const char * pluginfilepath, tsdr_readasync_function cb, void *ctx, const char * params) {
 	if (tsdr->running)
 		return TSDR_ALREADY_RUNNING;
+	tsdr->running = 1;
+
+	tsdr->plugin = malloc(sizeof(pluginsource_t));
+
+	int status = tsdrplug_load((pluginsource_t *)(tsdr->plugin), pluginfilepath);
+	if (status != TSDR_OK) {
+		tsdrplug_close((pluginsource_t *)(tsdr->plugin));
+		free(tsdr->plugin);
+		return status;
+	}
+
 	tsdr->mutex_sync_unload = malloc(sizeof(mutex_t));
 	mutex_init((mutex_t *) tsdr->mutex_sync_unload);
-
-	tsdr->running = 1;
+	pluginsource_t * plugin = (pluginsource_t *)(tsdr->plugin);
 
 	const int width = tsdr->width;
 	const int height = tsdr->height;
@@ -72,27 +91,27 @@ int tsdr_readasync(tsdr_lib_t * tsdr, tsdr_readasync_function cb, void *ctx, con
 	if (width < 0 || height < 0 || size > MAX_ARR_SIZE)
 		return TSDR_WRONG_WIDTHHEIGHT;
 
-	float * buffer = (float *) malloc(sizeof(float) * size);
+	tsdr_context_t * context = (tsdr_context_t *) malloc(sizeof(tsdr_context_t));
+	context->this = tsdr;
+	context->cb = cb;
+	context->bufsize = width * height;
+	context->buffer = (float *) malloc(sizeof(float) * context->bufsize);
+	context->ctx = ctx;
 
-	uint32_t frames = 0;
-	while (tsdr->running) {
-		frames++;
-		int i;
-		for (i = 0; i < size; i++) {
-			const int x = i % width;
-			const int y = ((i / width) + frames) % height;
+	status = plugin->tsdrplugin_readasync(process, (void *) context, params);
 
-			const float rat = (x > width/2) ? (y / (float) height) : (1.0f - y / (float) height);
-			buffer[i] = rat;
-		}
+	if (status != TSDR_OK) return status;
 
-		cb(buffer, width, height, ctx);
-	}
+	free(context->buffer);
+	free(context);
+
+	tsdrplug_close((pluginsource_t *)(tsdr->plugin));
+	free(tsdr->plugin);
 
 	mutex_signal((mutex_t *) tsdr->mutex_sync_unload);
 
-	free(buffer);
-	return TSDR_OK;
+	tsdr->running = 0;
+	return status;
 }
 
 int tsdr_setresolution(tsdr_lib_t * tsdr, int width, int height) {
