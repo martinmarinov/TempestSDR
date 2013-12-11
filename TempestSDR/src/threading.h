@@ -24,5 +24,6 @@
 	void mutex_init(mutex_t * mutex);
 	int mutex_wait(mutex_t * mutex);
 	void mutex_signal(mutex_t * mutex);
+	void mutex_free(mutex_t * mutex);
 
 #endif

@@ -11,8 +11,10 @@ import martin.tempest.sources.TSDRSource;
 
 public class Main implements TSDRLibrary.FrameReadyCallback {
 	
-	private static final int WIDTH = 800;
-	private static final int HEIGHT = 600;
+	private static final int WIDTH = 1056;
+	private static final int HEIGHT = 628;
+	private static final float REFRESHRATE = 50.11061e6f;
+	private static final String COMMAND = "D:\\Dokumenti\\Cambridge\\project\\mphilproj\\Toshiba-440CDX\\toshiba.iq";
 	
 	private final ImageVisualizer viz = new ImageVisualizer();
 	private JFrame frame;
@@ -39,7 +41,7 @@ public class Main implements TSDRLibrary.FrameReadyCallback {
 				try {
 					TSDRLibrary sdrlib = new TSDRLibrary();
 					sdrlib.registerFrameReadyCallback(Main.this);
-					sdrlib.startAsync(TSDRSource.fromRawFile("D:\\Dokumenti\\Cambridge\\project\\mphilproj\\Toshiba-440CDX\\toshiba.iq"), WIDTH, HEIGHT);
+					sdrlib.startAsync(TSDRSource.fromRawFile(COMMAND), WIDTH, HEIGHT, REFRESHRATE);
 				} catch (Throwable e) {e.printStackTrace();};
 				
 			};

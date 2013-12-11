@@ -58,26 +58,10 @@ JNIEXPORT void JNICALL Java_martin_tempest_core_TSDRLibrary_setGain
 /*
  * Class:     martin_tempest_core_TSDRLibrary
  * Method:    setResolution
- * Signature: (II)V
+ * Signature: (IIF)V
  */
 JNIEXPORT void JNICALL Java_martin_tempest_core_TSDRLibrary_setResolution
-  (JNIEnv *, jobject, jint, jint);
-
-/*
- * Class:     martin_tempest_core_TSDRLibrary
- * Method:    setVfreq
- * Signature: (F)V
- */
-JNIEXPORT void JNICALL Java_martin_tempest_core_TSDRLibrary_setVfreq
-  (JNIEnv *, jobject, jfloat);
-
-/*
- * Class:     martin_tempest_core_TSDRLibrary
- * Method:    setHfreq
- * Signature: (F)V
- */
-JNIEXPORT void JNICALL Java_martin_tempest_core_TSDRLibrary_setHfreq
-  (JNIEnv *, jobject, jfloat);
+  (JNIEnv *, jobject, jint, jint, jfloat);
 
 #ifdef __cplusplus
 }

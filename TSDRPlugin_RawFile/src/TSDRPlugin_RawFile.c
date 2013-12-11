@@ -12,7 +12,7 @@
 #define TYPE_BYTE (1)
 #define TYPE_SHORT (2)
 
-#define SAMPLES_TO_READ_AT_ONCE (800*600)
+#define SAMPLES_TO_READ_AT_ONCE (2048)
 
 TickTockTimer_t timer;
 volatile int working = 0;
@@ -20,12 +20,18 @@ volatile int working = 0;
 int type = TYPE_FLOAT;
 int sizepersample = 4; // matlab single TODO! change via parameter
 
+uint32_t samplerate = 100e6 / 4; // TODO! real sample rate
+
 void tsdrplugin_getName(char * name) {
 	strcpy(name, "TSDR Raw File Source Plugin");
 }
 
-int tsdrplugin_setsamplerate(uint32_t rate) {
-	return TSDR_NOT_IMPLEMENTED;
+uint32_t tsdrplugin_setsamplerate(uint32_t rate) {
+	return samplerate;
+}
+
+uint32_t tsdrplugin_getsamplerate() {
+	return samplerate;
 }
 
 int tsdrplugin_setbasefreq(uint32_t freq) {
@@ -75,7 +81,7 @@ int tsdrplugin_readasync(tsdrplugin_readasync_function cb, void *ctx, const char
 		if (working) {
 
 			if (type == TYPE_FLOAT) {
-				memccpy(outbuf, buf, 0, bytestoread);
+				memcpy(outbuf, buf, bytestoread);
 			}
 
 			cb(outbuf, SAMPLES_TO_READ_AT_ONCE, ctx);

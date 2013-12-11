@@ -99,3 +99,15 @@
 		pthread_mutex_unlock(mutex);
 #endif
 	}
+
+	void mutex_free(mutex_t * mutex) {
+#if WINHEAD
+		CloseHandle ((HANDLE) mutex->thing1);
+#else
+		pthread_mutex_t * mutex = (pthread_mutex_t *) imutex->thing1;
+		pthread_cond_t * cond = (pthread_cond_t *) imutex->thing2;
+
+		pthread_mutex_destroy(mutex);
+		pthread_cond_destroy(cond);
+#endif
+	}

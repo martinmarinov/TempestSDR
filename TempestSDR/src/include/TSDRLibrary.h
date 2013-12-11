@@ -6,11 +6,13 @@
 	struct tsdr_lib {
 		void * plugin;
 		void * mutex_sync_unload;
+		void * mutex_video_stopped;
 		uint32_t samplerate;
 		int width;
 		int height;
-		float vf;
-		float hf;
+		float refreshrate;
+		float fh;
+		float fv;
 		volatile int running;
 	} typedef tsdr_lib_t;
 
@@ -22,8 +24,6 @@
 	int tsdr_setgain(tsdr_lib_t * tsdr, float gain);
 	int tsdr_readasync(tsdr_lib_t * tsdr, const char * pluginfilepath, tsdr_readasync_function cb, void *, const char * params);
 	int tsdr_unloadplugin(tsdr_lib_t * tsdr);
-	int tsdr_setresolution(tsdr_lib_t * tsdr, int width, int height);
-	int tsdr_setvfreq(tsdr_lib_t * tsdr, float freq);
-	int tsdr_sethfreq(tsdr_lib_t * tsdr, float freq);
+	int tsdr_setresolution(tsdr_lib_t * tsdr, int width, int height, float refreshrate);
 
 #endif

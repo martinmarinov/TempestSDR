@@ -25,6 +25,7 @@ int tsdrplug_load(pluginsource_t * plugin, const char *dlname)
     if (plugin->fd == NULL)
     	return TSDR_ERR_PLUGIN;
 
+    if ((plugin->tsdrplugin_getsamplerate = tsdrplug_getfunction(plugin, "tsdrplugin_getsamplerate")) == 0) return TSDR_ERR_PLUGIN;
     if ((plugin->tsdrplugin_getName = tsdrplug_getfunction(plugin, "tsdrplugin_getName")) == 0) return TSDR_ERR_PLUGIN;
     if ((plugin->tsdrplugin_setsamplerate = tsdrplug_getfunction(plugin, "tsdrplugin_setsamplerate")) == 0) return TSDR_ERR_PLUGIN;
     if ((plugin->tsdrplugin_setbasefreq = tsdrplug_getfunction(plugin, "tsdrplugin_setbasefreq")) == 0) return TSDR_ERR_PLUGIN;

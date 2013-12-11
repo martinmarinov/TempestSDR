@@ -160,14 +160,6 @@ JNIEXPORT void JNICALL Java_martin_tempest_core_TSDRLibrary_setGain (JNIEnv * en
 	THROW(tsdr_setgain(&tsdr_instance, (float) gain));
 }
 
-JNIEXPORT void JNICALL Java_martin_tempest_core_TSDRLibrary_setResolution (JNIEnv * env, jobject obj, jint width, jint height) {
-	THROW(tsdr_setresolution(&tsdr_instance, (int) width, (int) height));
-}
-
-JNIEXPORT void JNICALL Java_martin_tempest_core_TSDRLibrary_setVfreq (JNIEnv * env, jobject obj, jfloat freq) {
-	THROW(tsdr_setvfreq(&tsdr_instance, (float) freq));
-}
-
-JNIEXPORT void JNICALL Java_martin_tempest_core_TSDRLibrary_setHfreq (JNIEnv * env, jobject obj, jfloat freq) {
-	THROW(tsdr_sethfreq(&tsdr_instance, (float) freq));
+JNIEXPORT void JNICALL Java_martin_tempest_core_TSDRLibrary_setResolution (JNIEnv * env, jobject obj, jint width, jint height, jfloat refreshrate) {
+	THROW(tsdr_setresolution(&tsdr_instance, (int) width, (int) height, (float) refreshrate));
 }

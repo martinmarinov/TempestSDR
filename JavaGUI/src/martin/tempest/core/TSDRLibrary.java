@@ -139,14 +139,12 @@ public class TSDRLibrary {
 	public native void stop() throws TSDRException;
 	public native void setGain(float gain) throws TSDRException;
 	
-	public native void setResolution(int width, int height) throws TSDRException;
-	public native void setVfreq(float freq) throws TSDRException;
-	public native void setHfreq(float freq) throws TSDRException;
+	public native void setResolution(int width, int height, float refreshrate) throws TSDRException;
 	
-	public void startAsync(final TSDRSource plugin, int width, int height) throws TSDRException {
+	public void startAsync(final TSDRSource plugin, int width, int height, float refreshrate) throws TSDRException {
 		final String absolute_path = plugin.absolute ? plugin.libname : (extractLibrary(plugin.libname).getAbsolutePath());
 		
-		setResolution(width, height);
+		setResolution(width, height, refreshrate);
 		
 		Runtime.getRuntime().addShutdownHook(unloaderhook);
 		

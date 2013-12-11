@@ -17,11 +17,12 @@
 	struct pluginsource {
 		void * fd;
 		void (*tsdrplugin_getName)(char *);
-		int (*tsdrplugin_setsamplerate)(uint32_t);
+		uint32_t (*tsdrplugin_setsamplerate)(uint32_t);
+		uint32_t (*tsdrplugin_getsamplerate)(void);
 		int (*tsdrplugin_setbasefreq)(uint32_t);
 		int (*tsdrplugin_stop)(void);
 		int (*tsdrplugin_setgain)(float);
-		int (*tsdrplugin_readasync)(tsdrplugin_readasync_function cb, void *ctx, const char * params);
+		int (*tsdrplugin_readasync)(tsdrplugin_readasync_function, void *, const char *);
 	} typedef pluginsource_t;
 
 	int tsdrplug_load(pluginsource_t * plugin, const char * dlname);
