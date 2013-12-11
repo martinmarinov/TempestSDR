@@ -68,7 +68,7 @@ float timer_ticktock(TickTockTimer_t * timer) {
 		timersub(&now, &timer->start, &elapsed);
 		timer->start = now;
 
-		return (float) elapsed.tv_sec + (float) (elapsed.tv_usec) * (float) 1e-6;;
+		return (float) elapsed.tv_sec + (float) (elapsed.tv_usec) * (float) 1e-6;
 	}
 	return 0;
 }

@@ -17,7 +17,6 @@
 #include "circbuff.h"
 
 #define MAX_ARR_SIZE (4000*4000)
-#define CIRC_BUFF_FRAME_COUNT (100)
 
 struct tsdr_context {
 		tsdr_readasync_function cb;
@@ -135,7 +134,7 @@ int tsdr_readasync(tsdr_lib_t * tsdr, const char * pluginfilepath, tsdr_readasyn
 	context->bufsize = width * height;
 	context->buffer = (float *) malloc(sizeof(float) * context->bufsize);
 	context->ctx = ctx;
-	cb_init(&context->circbuf, CIRC_BUFF_FRAME_COUNT*context->bufsize);
+	cb_init(&context->circbuf);
 
 	tsdr_getsamplerate(tsdr);
 

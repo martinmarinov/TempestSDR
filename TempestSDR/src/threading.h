@@ -4,6 +4,7 @@
 // A platform independed threading library with mutex support
 
 	#include "osdetect.h"
+	#include <stdint.h>
 
 	#define THREAD_OK (0)
 	#define THREAD_TIMEOUT (1)
@@ -19,11 +20,15 @@
 #define THREAD_INIT ={NULL, NULL}
 
 	void thread_start(thread_function f, void * ctx);
+	void thread_sleep(uint32_t milliseconds);
 
 	// warning, there is not mutex_free so calling too many mutex_init could be a memory leak!
 	void mutex_init(mutex_t * mutex);
 	int mutex_wait(mutex_t * mutex);
 	void mutex_signal(mutex_t * mutex);
 	void mutex_free(mutex_t * mutex);
+
+	void critical_enter(mutex_t * mutex);
+	void critical_leave(mutex_t * mutex);
 
 #endif
