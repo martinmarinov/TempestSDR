@@ -13,7 +13,7 @@ public class Main implements TSDRLibrary.FrameReadyCallback {
 	
 	private static final int WIDTH = 1056;
 	private static final int HEIGHT = 628;
-	private static final float REFRESHRATE = 50.11061e6f;
+	private static final double REFRESHRATE = 75.56233;
 	private static final String COMMAND = "D:\\Dokumenti\\Cambridge\\project\\mphilproj\\Toshiba-440CDX\\toshiba.iq";
 	
 	private final ImageVisualizer viz = new ImageVisualizer();

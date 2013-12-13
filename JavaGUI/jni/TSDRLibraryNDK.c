@@ -36,8 +36,8 @@ void error_translate (int exception_code, char * exceptionclass) {
 		case TSDR_NOT_IMPLEMENTED:
 			strcpy(exceptionclass, "martin/tempest/core/exceptions/TSDRFunctionNotImplemented");
 			return;
-		case TSDR_WRONG_WIDTHHEIGHT:
-			strcpy(exceptionclass, "martin/tempest/core/exceptions/TSDRWrongWidthHeightException");
+		case TSDR_WRONG_VIDEOPARAMS:
+			strcpy(exceptionclass, "martin/tempest/core/exceptions/TSDRVideoParamsException");
 			return;
 		case TSDR_ALREADY_RUNNING:
 			strcpy(exceptionclass, "martin/tempest/core/exceptions/TSDRAlreadyRunningException");
@@ -160,6 +160,6 @@ JNIEXPORT void JNICALL Java_martin_tempest_core_TSDRLibrary_setGain (JNIEnv * en
 	THROW(tsdr_setgain(&tsdr_instance, (float) gain));
 }
 
-JNIEXPORT void JNICALL Java_martin_tempest_core_TSDRLibrary_setResolution (JNIEnv * env, jobject obj, jint width, jint height, jfloat refreshrate) {
-	THROW(tsdr_setresolution(&tsdr_instance, (int) width, (int) height, (float) refreshrate));
+JNIEXPORT void JNICALL Java_martin_tempest_core_TSDRLibrary_setResolution (JNIEnv * env, jobject obj, jint width, jint height, jdouble refreshrate) {
+	THROW(tsdr_setresolution(&tsdr_instance, (int) width, (int) height, (double) refreshrate));
 }

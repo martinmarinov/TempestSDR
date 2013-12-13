@@ -16,7 +16,7 @@
 #define TYPE_SHORT (2)
 
 #define PERFORMANCE_BENCHMARK (0)
-#define ENABLE_LOOP (0)
+#define ENABLE_LOOP (1)
 
 #define SAMPLES_TO_READ_AT_ONCE (512*1024)
 
@@ -63,7 +63,7 @@ int tsdrplugin_setgain(float gain) {
 
 int tsdrplugin_readasync(tsdrplugin_readasync_function cb, void *ctx, const char * params) {
 	working = 1;
-	size_t i;
+	int i;
 
 	int counter;
 
@@ -104,6 +104,8 @@ int tsdrplugin_readasync(tsdrplugin_readasync_function cb, void *ctx, const char
 		if (working) {
 
 			if (type == TYPE_FLOAT) {
+//				for (i = 0; i < SAMPLES_TO_READ_AT_ONCE; i++)
+//					outbuf[i] = *((float *) &buf[i*4]);
 				memcpy(outbuf, buf, bytestoread);
 			}
 
