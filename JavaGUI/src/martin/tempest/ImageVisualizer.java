@@ -21,19 +21,21 @@ public class ImageVisualizer extends JPanel {
 	private int count = 0;
 	private int fps;
 	
-	private int color = 255;
-	
 	public void drawImage(final BufferedImage image) {
-		if (image != null) color = 0;
-		if (todraw == null) todraw = image;
 		
-		if (todraw != null && image != null) {
+		if (todraw != null) {
 			synchronized (todraw) {
 				todraw = image;
 			}
-			
-		}
+		} else
+			todraw = image;
 		
+		repaint();
+	}
+	
+	@Override
+	public void paint(Graphics g) {
+
 		count++;
 		if (count > COUNT_TO_AVG) {
 			final long now = System.currentTimeMillis();
@@ -42,21 +44,13 @@ public class ImageVisualizer extends JPanel {
 			prev = now;
 		}
 		
-		repaint();
-	}
-	
-	@Override
-	public void paint(Graphics g) {
-
-		
 		if (todraw != null) {
 			synchronized (todraw) {
 				g.drawImage(todraw, 0, 0, getWidth(), getHeight(), null);
 			}
 		}
 		
-		g.setColor(new Color(color, 255, color));
-		color += 80; if (color > 255) color = 255;
+		g.setColor(Color.white);
 		g.fillRect(0, 0, 40, 20);
 		g.setColor(Color.black);
 		g.drawString(fps+" fps", 10, 15);

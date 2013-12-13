@@ -16,7 +16,7 @@
 #define TYPE_SHORT (2)
 
 #define PERFORMANCE_BENCHMARK (0)
-#define ENABLE_LOOP (1)
+#define ENABLE_LOOP (0)
 
 #define SAMPLES_TO_READ_AT_ONCE (512*1024)
 

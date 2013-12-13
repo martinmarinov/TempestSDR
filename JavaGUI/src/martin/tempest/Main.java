@@ -2,7 +2,9 @@ package martin.tempest;
 
 import java.awt.BorderLayout;
 import java.awt.image.BufferedImage;
+import java.io.IOException;
 
+import javax.imageio.ImageIO;
 import javax.swing.JFrame;
 
 import martin.tempest.core.TSDRLibrary;
@@ -49,10 +51,13 @@ public class Main implements TSDRLibrary.FrameReadyCallback {
 		
 	}
 
+	int fid = 0;
 	@Override
 	public void onFrameReady(TSDRLibrary lib, BufferedImage frame) {
-		viz.drawImage(frame);
-		try { lib.setSampleRate(0); } catch (Exception e) {};
+		//viz.drawImage(frame);
+		try {
+			ImageIO.write(frame, "bmp", new java.io.File("D:\\temp\\"+(fid++)+".bmp"));
+		} catch (IOException e) {}
 	}
 
 	@Override

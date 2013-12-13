@@ -26,9 +26,9 @@ struct tsdr_context {
 		void *ctx;
 		CircBuff_t circbuf;
 		double offset;
-		double contributionfromlast;
-		double max;
-		double min;
+		float contributionfromlast;
+		float max;
+		float min;
 	} typedef tsdr_context_t;
 
 int tsdr_setsamplerate(tsdr_lib_t * tsdr, uint32_t rate) {
@@ -122,6 +122,7 @@ void process(float *buf, uint32_t len, void *ctx) {
 	int outbufsize = context->bufsize;
 
 	const double post = context->this->pixeltimeoversampletime;
+	const double post1 = 1.0 / post;
 	const int pids = (int) ((size - context->offset) / post);
 
 	// resize buffer so it fits
@@ -131,45 +132,47 @@ void process(float *buf, uint32_t len, void *ctx) {
 	}
 
 	const double offset = context->offset;
-	double t = context->offset;
-	double contrib = context->contributionfromlast;
-	const double prev_max = context->max;
-	const double prev_min = context->min;
-	const double prev_span = (prev_min == prev_max) ? (1) : (1.0f / (prev_max - prev_min));
-	double max = -1, min = 1;
+	double t = context->offset + post;
+	float contrib = context->contributionfromlast;
+	const float prev_max = context->max;
+	const float prev_min = context->min;
+	const float prev_span = (prev_min == prev_max) ? (1) : (1.0f / (prev_max - prev_min));
+	float max = -1, min = 1;
 
 	int pid = 0;
 	int i = 0;
 	int id;
 	int j;
-	for (id = 0; id < size; id++) {
-		const double I = buf[i++];
-		const double Q = buf[i++];
 
-		const double val = sqrt(I*I+Q*Q);
+	for (id = 1; id < size; id++) {
+		const float I = buf[i++];
+		const float Q = buf[i++];
+
+		const float val = sqrtf(I*I+Q*Q);
 
 		const int id1 = id+1;
 
-		while (t <= id1-post) {
-			const double pix = (t >= id) ? (val) : ((contrib + val*(t+post-id))*post);
+		while (t <= id1) {
+			const float pix = (t >= id) ? (val) : ((contrib + val*(t-id))*post1);
 			if (pix > max) max = pix; else if (pix < min) min = pix;
 			outbuf[pid++] = (pix - prev_min) * prev_span;
-			t=offset+pid*post;
+			t+=post;
 			contrib = 0;
 		}
 
-		const double contrfract = id1-t;
-		contrib += (contrfract >= 1) ? (val) : (contrfract * val);
+		const float contrfract = id1-t+post;
+		contrib += (contrfract < 0) ? (val) : (contrfract * val);
 	}
-
-	if (pid != pids) printf("Pid %d is not pids %d", pid, pids);
 
 	context->bufsize = outbufsize;
 	context->buffer = outbuf;
-	context->offset = t-size;
+	context->offset = offset+pid*post-size;
 	context->contributionfromlast = contrib;
-	context->max = (context->max+max)/2.0f;
-	context->min = (context->min+min)/2.0f;
+	context->max = max;
+	context->min = min;
+
+//	if (pid != pids)
+//		printf("Pid %d; pids %d; t %.4f, size %d, offset %.4f\n", pid, pids, t, size, context->offset);
 
 	cb_add(&context->circbuf, outbuf, pid);
 }
