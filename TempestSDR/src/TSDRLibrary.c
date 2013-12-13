@@ -25,6 +25,10 @@ struct tsdr_context {
 		int bufsize;
 		void *ctx;
 		CircBuff_t circbuf;
+		double offset;
+		double contributionfromlast;
+		double max;
+		double min;
 	} typedef tsdr_context_t;
 
 int tsdr_setsamplerate(tsdr_lib_t * tsdr, uint32_t rate) {
@@ -34,8 +38,6 @@ int tsdr_setsamplerate(tsdr_lib_t * tsdr, uint32_t rate) {
 	if (tsdr->sampletime != 0)
 		tsdr->pixeltimeoversampletime = tsdr->pixeltime /  tsdr->sampletime;
 
-	tsdr->contributionfromlast = 0;
-	tsdr->offset = 0;
 	return TSDR_OK;
 }
 
@@ -46,8 +48,6 @@ int tsdr_getsamplerate(tsdr_lib_t * tsdr) {
 	if (tsdr->sampletime != 0)
 		tsdr->pixeltimeoversampletime = tsdr->pixeltime /  tsdr->sampletime;
 
-	tsdr->contributionfromlast = 0;
-	tsdr->offset = 0;
 	return TSDR_OK;
 }
 
@@ -116,98 +116,60 @@ void videodecodingthread(void * ctx) {
 void process(float *buf, uint32_t len, void *ctx) {
 	tsdr_context_t * context = (tsdr_context_t *) ctx;
 
-	int i = 0;
-	int id;
 	const int size = len/2;
-
-	for (id = 0; id < size; id++) {
-		const float I = buf[i++];
-		const float Q = buf[i++];
-
-		buf[id] = sqrtf(I*I+Q*Q);
-	}
-
-	const double post = context->this->pixeltimeoversampletime;
 
 	float * outbuf = context->buffer;
 	int outbufsize = context->bufsize;
-	double t = context->this->offset;
-	double contrib = context->this->contributionfromlast;
 
-	int maxinited = 0 ;
-	float max = 1;
-	int mininited = 0;
-	float min = 0;
+	const double post = context->this->pixeltimeoversampletime;
+	const int pids = (int) ((size - context->offset) / post);
 
-	int pid;
-	for (pid = 0; ;pid++) {
-
-		const double startbuffid = t;
-		const int startbuffidint = (int) startbuffid;
-		const double endbuffid = t + post;
-		const int endbuffidint = (int) endbuffid;
-
-		if (pid > outbufsize) {
-			outbufsize = pid + len;
-			outbuf = (float *) realloc(outbuf, outbufsize);
-		}
-
-		if (startbuffid < 0) {
-
-			if (endbuffid == 0)
-				outbuf[pid] = post * (contrib + buf[endbuffidint] * (endbuffid-endbuffidint));
-			else {
-				float sum = 0;
-				for (id = startbuffid+1; id < endbuffid; id++) sum += buf[id];
-				outbuf[pid] = post * (contrib + sum + buf[endbuffidint] * (endbuffid-endbuffidint));
-			}
-
-		} else if (endbuffid > size) {
-
-			if (startbuffid == size -1)
-				contrib = buf[startbuffidint] * (size - startbuffid);
-			else {
-				float sum = 0;
-				for (id = startbuffidint + 1; id < size; id++) sum += buf[id];
-				contrib = sum + buf[startbuffidint] * (size - startbuffid);
-			}
-
-			break;
-		} else if (startbuffid == endbuffid)
-			outbuf[pid] = buf[startbuffidint];
-		else if (endbuffid - startbuffid == 1)
-			outbuf[pid] = post * (buf[startbuffidint] * (1.0f - startbuffid + startbuffidint) + buf[endbuffidint] * (endbuffid-endbuffidint));
-		else {
-			float sum = 0;
-			for (id = startbuffid+1; id < endbuffid; id++) sum += buf[id];
-			outbuf[pid] = post * (buf[startbuffidint] * (1.0f - startbuffid + startbuffidint) + sum + buf[endbuffidint] * (endbuffid-endbuffidint));
-		}
-
-		const float val = outbuf[pid];
-		if (!maxinited || val > max) {
-			max = val;
-			maxinited = 1;
-		} else if (!mininited || val < min) {
-			min = val;
-			mininited = 1;
-		}
-
-		t=endbuffid; // count time
+	// resize buffer so it fits
+	if (pids > outbufsize) {
+				outbufsize = pids+len;
+				outbuf = (float *) realloc(outbuf, outbufsize);
 	}
 
-	if (max != min) {
-		const float span = max - min;
-		// auto balance
-		for (id = 0; id < pid; id++)
-			outbuf[id] = (outbuf[id]-min) / span;
+	const double offset = context->offset;
+	double t = context->offset;
+	double contrib = context->contributionfromlast;
+	const double prev_max = context->max;
+	const double prev_min = context->min;
+	const double prev_span = (prev_min == prev_max) ? (1) : (1.0f / (prev_max - prev_min));
+	double max = -1, min = 1;
+
+	int pid = 0;
+	int i = 0;
+	int id;
+	int j;
+	for (id = 0; id < size; id++) {
+		const double I = buf[i++];
+		const double Q = buf[i++];
+
+		const double val = sqrt(I*I+Q*Q);
+
+		const int id1 = id+1;
+
+		while (t <= id1-post) {
+			const double pix = (t >= id) ? (val) : ((contrib + val*(t+post-id))*post);
+			if (pix > max) max = pix; else if (pix < min) min = pix;
+			outbuf[pid++] = (pix - prev_min) * prev_span;
+			t=offset+pid*post;
+			contrib = 0;
+		}
+
+		const double contrfract = id1-t;
+		contrib += (contrfract >= 1) ? (val) : (contrfract * val);
 	}
+
+	if (pid != pids) printf("Pid %d is not pids %d", pid, pids);
 
 	context->bufsize = outbufsize;
 	context->buffer = outbuf;
-	context->this->offset = size - t - context->this->offset;
-	context->this->contributionfromlast = contrib;
-
-	//printf("Pids %d, t %.4f, size %d, post %.4f, offset %.4f\n", pid, t, size, post, context->this->offset);
+	context->offset = t-size;
+	context->contributionfromlast = contrib;
+	context->max = (context->max+max)/2.0f;
+	context->min = (context->min+min)/2.0f;
 
 	cb_add(&context->circbuf, outbuf, pid);
 }
@@ -256,6 +218,8 @@ int tsdr_readasync(tsdr_lib_t * tsdr, const char * pluginfilepath, tsdr_readasyn
 	context->bufsize = width * height;
 	context->buffer = (float *) malloc(sizeof(float) * context->bufsize);
 	context->ctx = ctx;
+	context->contributionfromlast = 0;
+	context->offset = 0;
 	cb_init(&context->circbuf);
 
 	thread_start(videodecodingthread, (void *) context);
@@ -291,9 +255,6 @@ int tsdr_setresolution(tsdr_lib_t * tsdr, int width, int height, double refreshr
 	tsdr->pixeltime = 1.0/tsdr->pixelrate;
 	if (tsdr->sampletime != 0)
 		tsdr->pixeltimeoversampletime = tsdr->pixeltime /  tsdr->sampletime;
-
-	tsdr->contributionfromlast = 0;
-	tsdr->offset = 0;
 
 	return TSDR_OK;
 }

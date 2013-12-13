@@ -15,8 +15,6 @@
 		double pixeltime;
 		double pixeltimeoversampletime;
 		volatile int running;
-		double offset;
-		double contributionfromlast;
 	} typedef tsdr_lib_t;
 
 	typedef void(*tsdr_readasync_function)(float *buf, int width, int height, void *ctx);
