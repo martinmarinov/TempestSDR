@@ -17,6 +17,7 @@
 #include "circbuff.h"
 
 #define MAX_ARR_SIZE (4000*4000)
+#define MAX_SAMP_RATE (500e6)
 
 struct tsdr_context {
 		tsdr_readasync_function cb;
@@ -27,13 +28,13 @@ struct tsdr_context {
 		CircBuff_t circbuf;
 		double offset;
 		float contributionfromlast;
-		float max;
-		float min;
 	} typedef tsdr_context_t;
 
 int tsdr_setsamplerate(tsdr_lib_t * tsdr, uint32_t rate) {
 	pluginsource_t * plugin = (pluginsource_t *)(tsdr->plugin);
 	tsdr->samplerate = plugin->tsdrplugin_setsamplerate(rate);
+	if (tsdr->samplerate == 0 || tsdr->samplerate > 500e6) return TSDR_SAMPLE_RATE_WRONG;
+
 	tsdr->sampletime = 1.0f / (float) tsdr->samplerate;
 	if (tsdr->sampletime != 0)
 		tsdr->pixeltimeoversampletime = tsdr->pixeltime /  tsdr->sampletime;
@@ -44,6 +45,8 @@ int tsdr_setsamplerate(tsdr_lib_t * tsdr, uint32_t rate) {
 int tsdr_getsamplerate(tsdr_lib_t * tsdr) {
 	pluginsource_t * plugin = (pluginsource_t *)(tsdr->plugin);
 	tsdr->samplerate = plugin->tsdrplugin_getsamplerate();
+	if (tsdr->samplerate == 0 || tsdr->samplerate > 500e6) return TSDR_SAMPLE_RATE_WRONG;
+
 	tsdr->sampletime = 1.0f / (float) tsdr->samplerate;
 	if (tsdr->sampletime != 0)
 		tsdr->pixeltimeoversampletime = tsdr->pixeltime /  tsdr->sampletime;
@@ -91,6 +94,9 @@ void videodecodingthread(void * ctx) {
 	int sizetopoll = bufsize;
 	float * buffer = (float *) malloc(sizeof(float) * bufsize);
 
+	//if (pix > max) max = pix; else if (pix < min) min = pix;
+	//outbuf[pid++] = (pix - prev_min) * prev_span;
+
 	while (context->this->running) {
 		if (context->this->height != height || context->this->width != width) {
 			height = context->this->height;
@@ -113,8 +119,6 @@ void videodecodingthread(void * ctx) {
 	mutex_signal((mutex_t *) context->this->mutex_video_stopped);
 }
 
-
-
 void process(float *buf, uint32_t len, void *ctx) {
 	tsdr_context_t * context = (tsdr_context_t *) ctx;
 
@@ -136,10 +140,6 @@ void process(float *buf, uint32_t len, void *ctx) {
 	const double offset = context->offset;
 	double t = context->offset;
 	double contrib = context->contributionfromlast;
-	const float prev_max = context->max;
-	const float prev_min = context->min;
-	const float prev_span = (prev_min == prev_max) ? (1) : (1.0f / (prev_max - prev_min));
-	float max = -1, min = 1;
 
 	int pid = 0;
 	int i = 0;
@@ -160,9 +160,7 @@ void process(float *buf, uint32_t len, void *ctx) {
 		//    id     id+1    id+2
 
 		if (t < id) {
-			const float pix = (contrib + val*(t+post-id))*post1;
-			if (pix > max) max = pix; else if (pix < min) min = pix;
-			outbuf[pid++] = (pix - prev_min) * prev_span;
+			outbuf[pid++] = (contrib + val*(t+post-id))*post1;
 			contrib = 0;
 			t=offset+pid*post;
 		}
@@ -175,9 +173,7 @@ void process(float *buf, uint32_t len, void *ctx) {
 		//    id
 
 		while (t+post < id+1) {
-			const float pix = val;
-			if (pix > max) max = pix; else if (pix < min) min = pix;
-			outbuf[pid++] = (pix - prev_min) * prev_span;
+			outbuf[pid++] = val;
 			t=offset+pid*post;
 		}
 
@@ -206,11 +202,9 @@ void process(float *buf, uint32_t len, void *ctx) {
 	context->buffer = outbuf;
 	context->offset = offset+pid*post-size;
 	context->contributionfromlast = contrib;
-	context->max = max;
-	context->min = min;
 
-	if (pid != pids)
-		printf("Pid %d; pids %d; t %.4f, size %d, offset %.4f\n", pid, pids, t, size, context->offset);
+//	if (pid != pids)
+//		printf("Pid %d; pids %d; t %.4f, size %d, offset %.4f\n", pid, pids, t, size, context->offset);
 
 	cb_add(&context->circbuf, outbuf, pid);
 }
@@ -221,37 +215,30 @@ int tsdr_readasync(tsdr_lib_t * tsdr, const char * pluginfilepath, tsdr_readasyn
 
 	tsdr->running = 1;
 
-	tsdr->plugin = malloc(sizeof(pluginsource_t));
-
-	int status = tsdrplug_load((pluginsource_t *)(tsdr->plugin), pluginfilepath);
-	if (status != TSDR_OK) {
-		tsdrplug_close((pluginsource_t *)(tsdr->plugin));
-		free(tsdr->plugin);
-		return status;
-	}
-
-	tsdr_getsamplerate(tsdr);
-
-	if (tsdr->pixeltimeoversampletime <= 0) {
-		tsdrplug_close((pluginsource_t *)(tsdr->plugin));
-		free(tsdr->plugin);
-		return TSDR_WRONG_VIDEOPARAMS;
-	}
-
-	tsdr->mutex_sync_unload = malloc(sizeof(mutex_t));
-	mutex_init((mutex_t *) tsdr->mutex_sync_unload);
-
-	tsdr->mutex_video_stopped = malloc(sizeof(mutex_t));
-	mutex_init((mutex_t *) tsdr->mutex_video_stopped);
-
-	pluginsource_t * plugin = (pluginsource_t *)(tsdr->plugin);
-
 	const int width = tsdr->width;
 	const int height = tsdr->height;
 	const int size = width * height;
 
 	if (width <= 0 || height <= 0 || size > MAX_ARR_SIZE)
 		return TSDR_WRONG_VIDEOPARAMS;
+
+	tsdr->plugin = malloc(sizeof(pluginsource_t));
+
+	int status = tsdrplug_load((pluginsource_t *)(tsdr->plugin), pluginfilepath);
+	if (status != TSDR_OK) goto end;
+
+	pluginsource_t * plugin = (pluginsource_t *)(tsdr->plugin);
+
+	if ((status = plugin->tsdrplugin_setParams(params)) != TSDR_OK) goto end;
+	if ((status = tsdr_getsamplerate(tsdr)) != TSDR_OK) goto end;
+
+	if (tsdr->pixeltimeoversampletime <= 0) goto end;
+
+	tsdr->mutex_sync_unload = malloc(sizeof(mutex_t));
+	mutex_init((mutex_t *) tsdr->mutex_sync_unload);
+
+	tsdr->mutex_video_stopped = malloc(sizeof(mutex_t));
+	mutex_init((mutex_t *) tsdr->mutex_video_stopped);
 
 	tsdr_context_t * context = (tsdr_context_t *) malloc(sizeof(tsdr_context_t));
 	context->this = tsdr;
@@ -264,7 +251,7 @@ int tsdr_readasync(tsdr_lib_t * tsdr, const char * pluginfilepath, tsdr_readasyn
 	cb_init(&context->circbuf);
 
 	thread_start(videodecodingthread, (void *) context);
-	status = plugin->tsdrplugin_readasync(process, (void *) context, params);
+	status = plugin->tsdrplugin_readasync(process, (void *) context);
 	tsdr->running = 0;
 
 	mutex_wait((mutex_t *) tsdr->mutex_video_stopped);
@@ -272,17 +259,16 @@ int tsdr_readasync(tsdr_lib_t * tsdr, const char * pluginfilepath, tsdr_readasyn
 	mutex_free((mutex_t *) tsdr->mutex_video_stopped);
 	free(tsdr->mutex_video_stopped);
 
-	if (status != TSDR_OK) return status;
-
 	free(context->buffer);
 	free(context);
 
 	cb_free(&context->circbuf);
-	tsdrplug_close((pluginsource_t *)(tsdr->plugin));
-	free(tsdr->plugin);
 
 	mutex_signal((mutex_t *) tsdr->mutex_sync_unload);
 
+end:
+	tsdrplug_close((pluginsource_t *)(tsdr->plugin));
+	free(tsdr->plugin);
 	return status;
 }
 

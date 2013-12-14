@@ -9,25 +9,31 @@
 #include "osdetect.h"
 #include "timer.h"
 
+#define str_eq(s1,s2)  (!strcmp ((s1),(s2)))
+
 #define MAX_ERRORS (5)
 
 #define TYPE_FLOAT (0)
 #define TYPE_BYTE (1)
 #define TYPE_SHORT (2)
+#define TYPE_UBYTE (3)
+#define TYPE_USHORT (4)
 
 #define PERFORMANCE_BENCHMARK (0)
 #define ENABLE_LOOP (0)
 
-#define TIME_STRETCH (10)
+#define TIME_STRETCH (1)
 #define SAMPLES_TO_READ_AT_ONCE (512*1024)
+#define MAX_SAMP_RATE (500e6)
 
 TickTockTimer_t timer;
 volatile int working = 0;
 
-int type = TYPE_FLOAT;
-int sizepersample = 4; // matlab single TODO! change via parameter
+int type = -1;
+int sizepersample = -1; // matlab single TODO! change via parameter
 
-uint32_t samplerate = 100e6 / 4; // TODO! real sample rate
+uint32_t samplerate = 0;
+char filename[300];
 
 void thread_sleep(uint32_t milliseconds) {
 #if WINHEAD
@@ -62,16 +68,97 @@ int tsdrplugin_setgain(float gain) {
 	return TSDR_NOT_IMPLEMENTED;
 }
 
-int tsdrplugin_readasync(tsdrplugin_readasync_function cb, void *ctx, const char * params) {
+char * strtoken = NULL;
+int pos = 0;
+// this function splits a string into tokens separated by spaces. If tokens are surrounded by ' or ", the spaces inside are ignored
+// it will destroy the string it is provided with!
+char * nexttoken(char * input) {
+    if (input != NULL) {
+        strtoken = input;
+        pos = 0;
+    } else if (strtoken == NULL)
+        return NULL;
+
+    int quotes = 0;
+    int i = pos;
+
+    char ch;
+    while((ch = strtoken[i++]) != 0) {
+        switch (ch) {
+        case '\'':
+        case '"':
+            quotes = !quotes;
+            if (quotes) {
+                pos++;
+                break;
+            }
+        case ' ':
+            if (!quotes) {
+                strtoken[i-1] = 0;
+                const int start = pos;
+                pos = i;
+                if (pos - start > 1)
+                    return &strtoken[start];
+            }
+            break;
+        }
+    }
+
+    if (quotes)
+        return NULL;
+    else {
+        char * answer = strtoken;
+        strtoken = NULL;
+        return &answer[pos];
+    }
+}
+
+int tsdrplugin_setParams(const char * params) {
+	char * fname = nexttoken((char *) params);
+	if (fname == NULL) return TSDR_PLUGIN_PARAMETERS_WRONG;
+	char * samplerate_s = nexttoken(NULL);
+	if (samplerate_s == NULL) return TSDR_SAMPLE_RATE_WRONG;
+	long samplerate_l = atol(samplerate_s);
+	if (samplerate_l > MAX_SAMP_RATE || samplerate_l <= 0) return TSDR_SAMPLE_RATE_WRONG;
+	char * type_s = nexttoken(NULL);
+	if (type_s == NULL) return TSDR_PLUGIN_PARAMETERS_WRONG;
+
+	if (str_eq(type_s,"float")) {
+		type = TYPE_FLOAT;
+		sizepersample = 4;
+	} else if (str_eq(type_s,"int8")) {
+		type = TYPE_BYTE;
+		sizepersample = 1;
+	} else if (str_eq(type_s,"int16")) {
+		type = TYPE_SHORT;
+		sizepersample = 2;
+	} else if (str_eq(type_s,"uint8")) {
+		type = TYPE_UBYTE;
+		sizepersample = 1;
+	} else if (str_eq(type_s,"uint16")) {
+		type = TYPE_USHORT;
+		sizepersample = 2;
+	} else
+		return TSDR_PLUGIN_PARAMETERS_WRONG;
+
+	strcpy(filename, fname);
+	samplerate = (uint32_t) samplerate_l;
+
+	return TSDR_OK;
+}
+
+int tsdrplugin_readasync(tsdrplugin_readasync_function cb, void *ctx) {
 	working = 1;
 	int i;
 
 	int counter;
 
-	FILE * file=fopen(params,"rb");
-
-	if (file == NULL)
+	if (sizepersample == -1)
 		return TSDR_PLUGIN_PARAMETERS_WRONG;
+
+	FILE * file=fopen(filename,"rb");
+	if (file == NULL) return TSDR_PLUGIN_PARAMETERS_WRONG;
+	if (samplerate > MAX_SAMP_RATE || samplerate <= 0) return TSDR_SAMPLE_RATE_WRONG;
 
 	const size_t bytestoread = SAMPLES_TO_READ_AT_ONCE * sizepersample;
 	char * buf = (char *) malloc(bytestoread);
@@ -104,10 +191,26 @@ int tsdrplugin_readasync(tsdrplugin_readasync_function cb, void *ctx, const char
 
 		if (working) {
 
-			if (type == TYPE_FLOAT) {
-//				for (i = 0; i < SAMPLES_TO_READ_AT_ONCE; i++)
-//					outbuf[i] = *((float *) &buf[i*4]);
+			switch (type) {
+			case TYPE_FLOAT:
 				memcpy(outbuf, buf, bytestoread);
+				break;
+			case TYPE_BYTE:
+				for (i = 0; i < SAMPLES_TO_READ_AT_ONCE; i++)
+					outbuf[i] = ((int8_t) buf[i]) / 128.0;
+				break;
+			case TYPE_SHORT:
+				for (i = 0; i < SAMPLES_TO_READ_AT_ONCE; i++)
+					outbuf[i] = (*((int16_t *) (&buf[i*sizepersample]))) / 32767.0;
+				break;
+			case TYPE_UBYTE:
+				for (i = 0; i < SAMPLES_TO_READ_AT_ONCE; i++)
+					outbuf[i] = (((uint8_t) buf[i]) - 128) / 128.0;
+				break;
+			case TYPE_USHORT:
+				for (i = 0; i < SAMPLES_TO_READ_AT_ONCE; i++)
+					outbuf[i] = ((*((uint16_t *) (&buf[i*sizepersample])))-32767) / 32767.0;
+				break;
 			}
 
 			cb(outbuf, SAMPLES_TO_READ_AT_ONCE, ctx);

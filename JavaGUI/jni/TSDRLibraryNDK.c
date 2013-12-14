@@ -45,6 +45,9 @@ void error_translate (int exception_code, char * exceptionclass) {
 		case TSDR_PLUGIN_PARAMETERS_WRONG:
 			strcpy(exceptionclass, "martin/tempest/core/exceptions/TSDRPluginParametersException");
 			return;
+		case TSDR_SAMPLE_RATE_WRONG:
+			strcpy(exceptionclass, "martin/tempest/core/exceptions/TSDRSampleRateWrongException");
+			return;
 		default:
 			strcpy(exceptionclass, "java/lang/Exception");
 			return;

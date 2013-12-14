@@ -2,9 +2,6 @@ package martin.tempest;
 
 import java.awt.BorderLayout;
 import java.awt.image.BufferedImage;
-import java.io.IOException;
-
-import javax.imageio.ImageIO;
 import javax.swing.JFrame;
 
 import martin.tempest.core.TSDRLibrary;
@@ -16,7 +13,7 @@ public class Main implements TSDRLibrary.FrameReadyCallback {
 	private static final int WIDTH = 1056;
 	private static final int HEIGHT = 628;
 	private static final double REFRESHRATE = 75.5622125;
-	private static final String COMMAND = "D:\\Dokumenti\\Cambridge\\project\\mphilproj\\Toshiba-440CDX\\toshiba.iq";
+	private static final String COMMAND = "D:\\Dokumenti\\Cambridge\\project\\mphilproj\\Toshiba-440CDX\\toshiba.iq 25000000 float";
 	
 	private final ImageVisualizer viz = new ImageVisualizer();
 	private JFrame frame;
