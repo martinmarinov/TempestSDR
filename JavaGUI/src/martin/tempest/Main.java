@@ -54,10 +54,10 @@ public class Main implements TSDRLibrary.FrameReadyCallback {
 	int fid = 0;
 	@Override
 	public void onFrameReady(TSDRLibrary lib, BufferedImage frame) {
-		//viz.drawImage(frame);
-		try {
-			ImageIO.write(frame, "bmp", new java.io.File("D:\\temp\\"+(fid++)+".bmp"));
-		} catch (IOException e) {}
+		viz.drawImage(frame);
+		//try {
+		//	ImageIO.write(frame, "bmp", new java.io.File("D:\\temp\\"+(fid++)+".bmp"));
+		//} catch (IOException e) {}
 	}
 
 	@Override

@@ -113,6 +113,8 @@ void videodecodingthread(void * ctx) {
 	mutex_signal((mutex_t *) context->this->mutex_video_stopped);
 }
 
+
+
 void process(float *buf, uint32_t len, void *ctx) {
 	tsdr_context_t * context = (tsdr_context_t *) ctx;
 
@@ -122,7 +124,7 @@ void process(float *buf, uint32_t len, void *ctx) {
 	int outbufsize = context->bufsize;
 
 	const double post = context->this->pixeltimeoversampletime;
-	const double post1 = 1.0 / post;
+	const double post1 = 1.0/post;
 	const int pids = (int) ((size - context->offset) / post);
 
 	// resize buffer so it fits
@@ -132,8 +134,8 @@ void process(float *buf, uint32_t len, void *ctx) {
 	}
 
 	const double offset = context->offset;
-	double t = context->offset + post;
-	float contrib = context->contributionfromlast;
+	double t = context->offset;
+	double contrib = context->contributionfromlast;
 	const float prev_max = context->max;
 	const float prev_min = context->min;
 	const float prev_span = (prev_min == prev_max) ? (1) : (1.0f / (prev_max - prev_min));
@@ -150,18 +152,54 @@ void process(float *buf, uint32_t len, void *ctx) {
 
 		const float val = sqrtf(I*I+Q*Q);
 
-		const int id1 = id+1;
+		// we are in case:
+		//    pid
+		//    t                                  (in terms of id)
+		//  . ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! !  pixels (pid)
+		// ____|__val__|_______|_______|_______| samples (id)
+		//    id     id+1    id+2
 
-		while (t <= id1) {
-			const float pix = (t >= id) ? (val) : ((contrib + val*(t-id))*post1);
+		if (t < id) {
+			const float pix = (contrib + val*(t+post-id))*post1;
 			if (pix > max) max = pix; else if (pix < min) min = pix;
 			outbuf[pid++] = (pix - prev_min) * prev_span;
-			t+=post;
 			contrib = 0;
+			t=offset+pid*post;
 		}
 
-		const float contrfract = id1-t+post;
+		// we are in case:
+		//      pid
+		//      t t+post                        (in terms of id)
+		//  . ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! !  pixels (pid)
+		// ____|__val__|_______|_______|_______| samples (id)
+		//    id
+
+		while (t+post < id+1) {
+			const float pix = val;
+			if (pix > max) max = pix; else if (pix < min) min = pix;
+			outbuf[pid++] = (pix - prev_min) * prev_span;
+			t=offset+pid*post;
+		}
+
+		// we are in case:
+		//            pid
+		//            t                          (in terms of id)
+		//  . ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! !  pixels (pid)
+		// ____|__val__|_______|_______|_______| samples (id)
+		//    id     id+1    id+2
+
+		const float contrfract = id+1-t;
 		contrib += (contrfract < 0) ? (val) : (contrfract * val);
+
+
+	// gaussian distrib is
+	// exp(-x^2/(2*s^2))
+	// s^2 = 0.2 is a nice number
+	// if we put -1/(2*s^2) = a
+	// the integral has expansion x + (a*x^3)/3 + (a^2*x^5)/10
+	// i want this from -1 to 1 to be equal to 1
+	// so multiply by = 1 / (2 + 2*a/3 + a^2/5)
+
 	}
 
 	context->bufsize = outbufsize;
@@ -171,8 +209,8 @@ void process(float *buf, uint32_t len, void *ctx) {
 	context->max = max;
 	context->min = min;
 
-//	if (pid != pids)
-//		printf("Pid %d; pids %d; t %.4f, size %d, offset %.4f\n", pid, pids, t, size, context->offset);
+	if (pid != pids)
+		printf("Pid %d; pids %d; t %.4f, size %d, offset %.4f\n", pid, pids, t, size, context->offset);
 
 	cb_add(&context->circbuf, outbuf, pid);
 }

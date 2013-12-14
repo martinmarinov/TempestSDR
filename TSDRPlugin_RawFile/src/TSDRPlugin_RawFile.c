@@ -18,6 +18,7 @@
 #define PERFORMANCE_BENCHMARK (0)
 #define ENABLE_LOOP (0)
 
+#define TIME_STRETCH (10)
 #define SAMPLES_TO_READ_AT_ONCE (512*1024)
 
 TickTockTimer_t timer;
@@ -77,7 +78,7 @@ int tsdrplugin_readasync(tsdrplugin_readasync_function cb, void *ctx, const char
 	float * outbuf = (float *) malloc(sizeof(float) * SAMPLES_TO_READ_AT_ONCE);
 
 #if !PERFORMANCE_BENCHMARK
-	uint32_t delayms = (uint32_t) (1000.0f * (float) SAMPLES_TO_READ_AT_ONCE / (float) samplerate);
+	uint32_t delayms = (uint32_t) (TIME_STRETCH*1000.0f * (float) SAMPLES_TO_READ_AT_ONCE / (float) samplerate);
 	if (delayms == 0) delayms = 1;
 #endif
 
