@@ -22,7 +22,7 @@
 #define PERFORMANCE_BENCHMARK (0)
 #define ENABLE_LOOP (0)
 
-#define TIME_STRETCH (1)
+#define TIME_STRETCH (10)
 #define SAMPLES_TO_READ_AT_ONCE (512*1024)
 #define MAX_SAMP_RATE (500e6)
 

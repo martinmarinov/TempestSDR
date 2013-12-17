@@ -94,10 +94,18 @@ void videodecodingthread(void * ctx) {
 	int sizetopoll = bufsize;
 	float * buffer = (float *) malloc(sizeof(float) * bufsize);
 
+
+
 	//if (pix > max) max = pix; else if (pix < min) min = pix;
 	//outbuf[pid++] = (pix - prev_min) * prev_span;
 
+	float pmax, pmin;
+
 	while (context->this->running) {
+		float max = -9999999999999;
+		float min = 9999999999999;
+		const float span = (pmax == pmin) ? (0) : (pmax - pmin);
+
 		if (context->this->height != height || context->this->width != width) {
 			height = context->this->height;
 			width = context->this->width;
@@ -110,13 +118,30 @@ void videodecodingthread(void * ctx) {
 		}
 
 		if (cb_rem_blocking(&context->circbuf, buffer, sizetopoll) == CB_OK) {
+			int i;
+			for (i = 0; i < sizetopoll; i++) {
+				const float val = buffer[i];
+				if (val > max) max = val; else if (val < min) min = val;
+				buffer[i] = (val - pmin) / span;
+			}
+
 			context->cb(buffer, width, height, context->ctx);
+
+			pmax = max;
+			pmin = min;
 		}
 	}
 
 	free (buffer);
 
 	mutex_signal((mutex_t *) context->this->mutex_video_stopped);
+}
+
+// This is the pixel function. Start must be >=0 and end must be <=1
+// Return the area of the pixel signal spanned by this if the pixel was from 0 to 1
+float integrate(float start, float end) {
+	if (start < 0 || end > 1 || end < start) printf("%.4f to %.4f\n", start, end);
+	return end - start;
 }
 
 void process(float *buf, uint32_t len, void *ctx) {
@@ -128,8 +153,8 @@ void process(float *buf, uint32_t len, void *ctx) {
 	int outbufsize = context->bufsize;
 
 	const double post = context->this->pixeltimeoversampletime;
-	const double post1 = 1.0/post;
 	const int pids = (int) ((size - context->offset) / post);
+	const float normalize = integrate(0, 1);
 
 	// resize buffer so it fits
 	if (pids > outbufsize) {
@@ -139,14 +164,14 @@ void process(float *buf, uint32_t len, void *ctx) {
 
 	const double offset = context->offset;
 	double t = context->offset;
-	double contrib = context->contributionfromlast;
+	float contrib = context->contributionfromlast;
 
 	int pid = 0;
 	int i = 0;
 	int id;
 	int j;
 
-	for (id = 1; id < size; id++) {
+	for (id = 0; id < size; id++) {
 		const float I = buf[i++];
 		const float Q = buf[i++];
 
@@ -160,8 +185,8 @@ void process(float *buf, uint32_t len, void *ctx) {
 		//    id     id+1    id+2
 
 		if (t < id) {
-			// TODO! SNOWFLAKES AT PID = 0
-			outbuf[pid++] = (contrib + val*(t+post-id))*post1;
+			const float start = (id-t)/post;
+			outbuf[pid++] = contrib + val*integrate(start, 1)/normalize;
 			contrib = 0;
 			t=offset+pid*post;
 		}
@@ -186,17 +211,9 @@ void process(float *buf, uint32_t len, void *ctx) {
 		// ____|__val__|_______|_______|_______| samples (id)
 		//    id     id+1    id+2
 
-		const float contrfract = id+1-t;
-		contrib += (contrfract < 0) ? (val) : (contrfract * val);
-
-
-	// gaussian distrib is
-	// exp(-x^2/(2*s^2))
-	// s^2 = 0.2 is a nice number
-	// if we put -1/(2*s^2) = a
-	// the integral has expansion x + (a*x^3)/3 + (a^2*x^5)/10
-	// i want this from -1 to 1 to be equal to 1
-	// so multiply by = 1 / (2 + 2*a/3 + a^2/5)
+		// TODO! WHAT ABOUT ENLARGING
+		const float contrfract = integrate(0,(id+1-t)/post)/normalize;
+		contrib += contrfract * val;
 
 	}
 
@@ -205,8 +222,8 @@ void process(float *buf, uint32_t len, void *ctx) {
 	context->offset = t-size;
 	context->contributionfromlast = contrib;
 
-	if (pid != pids || context->offset > 0 || context->offset < -post)
-		printf("Pid %d; pids %d; t %.4f, size %d, offset %.4f\n", pid, pids, t, size, context->offset);
+//	if (pid != pids || context->offset > 0 || context->offset < -post)
+//		printf("Pid %d; pids %d; t %.4f, size %d, offset %.4f\n", pid, pids, t, size, context->offset);
 
 	cb_add(&context->circbuf, outbuf, pid);
 }
