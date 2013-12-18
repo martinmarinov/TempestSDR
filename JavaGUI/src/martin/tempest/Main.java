@@ -2,6 +2,8 @@ package martin.tempest;
 
 import java.awt.BorderLayout;
 import java.awt.image.BufferedImage;
+
+import javax.imageio.ImageIO;
 import javax.swing.JFrame;
 
 import martin.tempest.core.TSDRLibrary;
@@ -10,9 +12,14 @@ import martin.tempest.sources.TSDRSource;
 
 public class Main implements TSDRLibrary.FrameReadyCallback {
 	
+	private static final boolean TOFILE = false;
+	
 	private static final int WIDTH = 1056;
 	private static final int HEIGHT = 628;
-	private static final double REFRESHRATE = 75.5622125;
+	private static final double REFRESHRATE = 75.5622125;//75.56236
+	
+	//private static final String COMMAND = "D:\\Dokumenti\\Cambridge\\project\\mphilproj\\martin-vaio-h-200.dat 25000000 int16";
+	//private static final String COMMAND = "D:\\Dokumenti\\Cambridge\\project\\mphilproj\\cdxdemo-rf.dat 25000000 int16";
 	private static final String COMMAND = "D:\\Dokumenti\\Cambridge\\project\\mphilproj\\Toshiba-440CDX\\toshiba.iq 25000000 float";
 	
 	private final ImageVisualizer viz = new ImageVisualizer();
@@ -51,10 +58,12 @@ public class Main implements TSDRLibrary.FrameReadyCallback {
 	int fid = 0;
 	@Override
 	public void onFrameReady(TSDRLibrary lib, BufferedImage frame) {
-		viz.drawImage(frame);
-		//try {
-		//	ImageIO.write(frame, "bmp", new java.io.File("D:\\temp\\"+(fid++)+".bmp"));
-		//} catch (IOException e) {}
+		if (TOFILE)
+		try {
+			ImageIO.write(frame, "bmp", new java.io.File("D:\\temp\\"+(fid++)+".bmp"));
+		} catch (Exception e) {}
+		else
+			viz.drawImage(frame);
 	}
 
 	@Override

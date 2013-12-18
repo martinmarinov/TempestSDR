@@ -19,6 +19,9 @@
 #define MAX_ARR_SIZE (4000*4000)
 #define MAX_SAMP_RATE (500e6)
 
+#define INTEG_TYPE (0)
+#define PI (3.141592653589793238462643383279502f)
+
 struct tsdr_context {
 		tsdr_readasync_function cb;
 		float * buffer;
@@ -50,6 +53,8 @@ int tsdr_getsamplerate(tsdr_lib_t * tsdr) {
 	tsdr->sampletime = 1.0f / (float) tsdr->samplerate;
 	if (tsdr->sampletime != 0)
 		tsdr->pixeltimeoversampletime = tsdr->pixeltime /  tsdr->sampletime;
+
+	printf("post %.4f\n", tsdr->pixeltimeoversampletime);
 
 	return TSDR_OK;
 }
@@ -137,12 +142,32 @@ void videodecodingthread(void * ctx) {
 	mutex_signal((mutex_t *) context->this->mutex_video_stopped);
 }
 
+
+static inline float definiteintegral(float x) {
+//if (x > 1 || x < 0) printf("Requested %.4f/n", x);
+#if INTEG_TYPE == 0
+	// box
+	return x;
+#elif INTEG_TYPE == 1
+	// triangle
+	if (x < 0.5f)
+		return 2*x*x;
+	else {
+		const int x1 = 1.0f-x;
+		return 1+2*x1*x1;
+	}
+#elif INTEG_TYPE == 2
+	// sin from 0 to 1
+	return -cosf(x*PI);
+#elif INTEG_TYPE == 3
+	// normal distribution centred around 0.5
+	return -0.177245f * erff(2.5f-5.0f*x);
+#endif
+}
+
 // This is the pixel function. Start must be >=0 and end must be <=1
 // Return the area of the pixel signal spanned by this if the pixel was from 0 to 1
-float integrate(float start, float end) {
-	if (start < 0 || end > 1 || end < start) printf("%.4f to %.4f\n", start, end);
-	return end - start;
-}
+#define integrate(start, end) (definiteintegral(end) - definiteintegral(start))
 
 void process(float *buf, uint32_t len, void *ctx) {
 	tsdr_context_t * context = (tsdr_context_t *) ctx;
@@ -184,9 +209,14 @@ void process(float *buf, uint32_t len, void *ctx) {
 		// ____|__val__|_______|_______|_______| samples (id)
 		//    id     id+1    id+2
 
-		if (t < id) {
+		if (t < id && (t + post) < (id+1)) {
 			const float start = (id-t)/post;
-			outbuf[pid++] = contrib + val*integrate(start, 1)/normalize;
+#if INTEG_TYPE == -1
+			outbuf[pid++] = val;
+#else
+			const float contrfract = integrate(start, 1)/normalize;
+			outbuf[pid++] = contrib + val*contrfract;
+#endif
 			contrib = 0;
 			t=offset+pid*post;
 		}
@@ -198,8 +228,8 @@ void process(float *buf, uint32_t len, void *ctx) {
 		// ____|__val__|_______|_______|_______| samples (id)
 		//    id
 
-		// TODO the condition depends on pid, not on t!
-		while (t+post < id+1) {
+		while ((t+post) < (id+1)) {
+			// this only ever triggers if post < 1
 			outbuf[pid++] = val;
 			t=offset+pid*post;
 		}
@@ -211,9 +241,14 @@ void process(float *buf, uint32_t len, void *ctx) {
 		// ____|__val__|_______|_______|_______| samples (id)
 		//    id     id+1    id+2
 
-		// TODO! WHAT ABOUT ENLARGING
-		const float contrfract = integrate(0,(id+1-t)/post)/normalize;
-		contrib += contrfract * val;
+		if (t < (id + 1) && t > id) {
+			const float contrfract = integrate(0,(id+1-t)/post)/normalize;
+			contrib += contrfract * val;
+		} else {
+			const float idt = id - t;
+			const float contrfract = integrate(idt/post,(idt+1)/post)/normalize;
+			contrib += contrfract * val;
+		}
 
 	}
 

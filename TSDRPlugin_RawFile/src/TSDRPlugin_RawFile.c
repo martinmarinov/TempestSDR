@@ -22,15 +22,15 @@
 #define PERFORMANCE_BENCHMARK (0)
 #define ENABLE_LOOP (0)
 
-#define TIME_STRETCH (10)
+#define TIME_STRETCH (1)
 #define SAMPLES_TO_READ_AT_ONCE (512*1024)
-#define MAX_SAMP_RATE (500e6)
+#define MAX_SAMP_RATE (1000e6)
 
 TickTockTimer_t timer;
 volatile int working = 0;
 
 int type = -1;
-int sizepersample = -1; // matlab single TODO! change via parameter
+int sizepersample = -1;
 
 uint32_t samplerate = 0;
 char filename[300];
