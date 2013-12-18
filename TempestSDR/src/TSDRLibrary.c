@@ -136,10 +136,10 @@ void videodecodingthread(void * ctx) {
 			float * circbuff = (float *) realloc(circbuff, sizeof(float) * frames_to_average * bufsize);
 		}
 
-		if (cb_rem_blocking(&context->circbuf, buffer, sizetopoll) == CB_OK) {
-			int i, j;
+		if (cb_rem_blocking(&context->circbuf, &circbuff[circbuffidx*sizetopoll], sizetopoll) == CB_OK) {
+			circbuffidx=((circbuffidx+1) % frames_to_average);
 
-			memcpy(&circbuff[(circbuffidx=((circbuffidx+1) % frames_to_average))*sizetopoll],buffer,sizetopoll*sizeof(float));
+			int i, j;
 
 			for (i = 0; i < sizetopoll; i++) {
 				float val = 0;
