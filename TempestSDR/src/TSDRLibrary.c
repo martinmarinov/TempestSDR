@@ -19,6 +19,8 @@
 #define MAX_ARR_SIZE (4000*4000)
 #define MAX_SAMP_RATE (500e6)
 
+#define DEFAULT_FRAMES_TO_AVERAGE (3)
+
 #define INTEG_TYPE (0)
 #define PI (3.141592653589793238462643383279502f)
 
@@ -32,6 +34,11 @@ struct tsdr_context {
 		double offset;
 		float contributionfromlast;
 	} typedef tsdr_context_t;
+
+
+void tsdr_init(tsdr_lib_t * tsdr) {
+	tsdr->frames_to_average = DEFAULT_FRAMES_TO_AVERAGE;
+}
 
 int tsdr_setsamplerate(tsdr_lib_t * tsdr, uint32_t rate) {
 	pluginsource_t * plugin = (pluginsource_t *)(tsdr->plugin);
@@ -53,8 +60,6 @@ int tsdr_getsamplerate(tsdr_lib_t * tsdr) {
 	tsdr->sampletime = 1.0f / (float) tsdr->samplerate;
 	if (tsdr->sampletime != 0)
 		tsdr->pixeltimeoversampletime = tsdr->pixeltime /  tsdr->sampletime;
-
-	printf("post %.4f\n", tsdr->pixeltimeoversampletime);
 
 	return TSDR_OK;
 }
@@ -94,10 +99,14 @@ void videodecodingthread(void * ctx) {
 	const uint32_t samplerate = context->this->samplerate;
 	int height = context->this->height;
 	int width = context->this->width;
+	int frames_to_average = context->this->frames_to_average;
 
 	int bufsize = height * width;
 	int sizetopoll = bufsize;
 	float * buffer = (float *) malloc(sizeof(float) * bufsize);
+
+	float * circbuff = (float *) malloc(sizeof(float) * frames_to_average * bufsize);
+	int circbuffidx = 0;
 
 
 
@@ -122,10 +131,24 @@ void videodecodingthread(void * ctx) {
 			}
 		}
 
+		if (context->this->frames_to_average > 1 && frames_to_average != context->this->frames_to_average) {
+			frames_to_average = context->this->frames_to_average;
+			float * circbuff = (float *) realloc(circbuff, sizeof(float) * frames_to_average * bufsize);
+		}
+
 		if (cb_rem_blocking(&context->circbuf, buffer, sizetopoll) == CB_OK) {
-			int i;
+			int i, j;
+
+			memcpy(&circbuff[(circbuffidx=((circbuffidx+1) % frames_to_average))*sizetopoll],buffer,sizetopoll*sizeof(float));
+
 			for (i = 0; i < sizetopoll; i++) {
-				const float val = buffer[i];
+				float val = 0;
+				for (j = 0; j < frames_to_average; j++) {
+					const int id = circbuffidx - j - 1;
+					const int correctedid = (id < 0) ? (frames_to_average+id) : id;
+					val+=circbuff[correctedid*sizetopoll+i];
+				}
+
 				if (val > max) max = val; else if (val < min) min = val;
 				buffer[i] = (val - pmin) / span;
 			}
