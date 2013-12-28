@@ -14,12 +14,18 @@ public class Main implements TSDRLibrary.FrameReadyCallback {
 	
 	private static final boolean TOFILE = false;
 	
-	private static final int WIDTH = 1056;
-	private static final int HEIGHT = 628;
-	private static final double REFRESHRATE = 75.56236;// 75.5622125;
+	//private static final int WIDTH = 1056;
+	//private static final int HEIGHT = 628;
+	//private static final double REFRESHRATE = 75.56236;
 	
+	private static final int WIDTH = 576;
+	private static final int HEIGHT = 625;
+	private static final double REFRESHRATE = 49.9967;
+	
+	private static final String COMMAND = "D:\\Dokumenti\\Cambridge\\project\\tvpal8bit2048000.wav 2048000 int8";
+	//private static final String COMMAND = "D:\\Dokumenti\\Cambridge\\project\\tvpal16bit8000000.wav 8000000 int16";
 	//private static final String COMMAND = "D:\\Dokumenti\\Cambridge\\project\\mphilproj\\martin-vaio-h-200.dat 25000000 int16";
-	private static final String COMMAND = "D:\\Dokumenti\\Cambridge\\project\\mphilproj\\cdxdemo-rf.dat 25000000 int16";
+	//private static final String COMMAND = "D:\\Dokumenti\\Cambridge\\project\\mphilproj\\cdxdemo-rf.dat 25000000 int16";
 	//private static final String COMMAND = "D:\\Dokumenti\\Cambridge\\project\\mphilproj\\Toshiba-440CDX\\toshiba.iq 25000000 float";
 	
 	private final ImageVisualizer viz = new ImageVisualizer();

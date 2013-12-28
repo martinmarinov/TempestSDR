@@ -207,7 +207,7 @@ void process(float *buf, uint32_t len, void *ctx) {
 	// resize buffer so it fits
 	if (pids > outbufsize) {
 				outbufsize = pids+len;
-				outbuf = (float *) realloc(outbuf, outbufsize);
+				outbuf = (float *) realloc(outbuf, sizeof(float) * outbufsize);
 	}
 
 	const double offset = context->offset;
@@ -272,7 +272,6 @@ void process(float *buf, uint32_t len, void *ctx) {
 			const float contrfract = integrate(idt/post,(idt+1)/post)/normalize;
 			contrib += contrfract * val;
 		}
-
 	}
 
 	context->bufsize = outbufsize;
@@ -284,6 +283,7 @@ void process(float *buf, uint32_t len, void *ctx) {
 //		printf("Pid %d; pids %d; t %.4f, size %d, offset %.4f\n", pid, pids, t, size, context->offset);
 
 	cb_add(&context->circbuf, outbuf, pid);
+
 }
 
 int tsdr_readasync(tsdr_lib_t * tsdr, const char * pluginfilepath, tsdr_readasync_function cb, void *ctx, const char * params) {
