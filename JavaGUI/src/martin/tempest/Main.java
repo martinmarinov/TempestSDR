@@ -250,8 +250,12 @@ public class Main implements TSDRLibrary.FrameReadyCallback {
 	private void performStartStop() {
 		
 		if (mSdrlib.isRunning()) {
-			
-			btnStartStop.setText("Start");
+			try {
+				mSdrlib.stop();
+			} catch (TSDRException e) {
+				displayException(frmTempestSdr, e);
+			}
+
 		} else {
 			final TSDRSource src = (TSDRSource) cbDevice.getSelectedItem();
 		

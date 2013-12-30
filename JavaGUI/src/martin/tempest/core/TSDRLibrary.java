@@ -11,6 +11,7 @@ import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
 
+import martin.tempest.core.exceptions.TSDRAlreadyRunningException;
 import martin.tempest.core.exceptions.TSDRException;
 import martin.tempest.core.exceptions.TSDRLibraryNotCompatible;
 import martin.tempest.sources.TSDRSource;
@@ -28,6 +29,8 @@ public class TSDRLibrary {
 	
 	private int width;
 	private int height;
+	
+	volatile private boolean nativerunning = false;
 	
 	// If the binaries weren't loaded, this will go off
 	private static TSDRLibraryNotCompatible m_e = null;
@@ -143,13 +146,15 @@ public class TSDRLibrary {
 	public native void setResolution(int width, int height, double refreshrate) throws TSDRException;
 	
 	public void startAsync(final TSDRSource plugin, int width, int height, double refreshrate) throws TSDRException {
+		if (nativerunning) throw new TSDRAlreadyRunningException("");
+		
 		final String absolute_path = plugin.absolute ? plugin.libname : (extractLibrary(plugin.libname).getAbsolutePath());
 		
 		setResolution(width, height, refreshrate);
 		
 		new Thread() {
 			public void run() {
-				
+				nativerunning = true;
 				Runtime.getRuntime().addShutdownHook(unloaderhook);
 				try {
 					nativeStart(absolute_path, plugin.getParams());
@@ -161,6 +166,7 @@ public class TSDRLibrary {
 					} catch (Throwable e) {};
 				}
 				for (final FrameReadyCallback callback : callbacks) callback.onClosed(TSDRLibrary.this);
+				nativerunning = false;
 			};
 		}.start();
 		
