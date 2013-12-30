@@ -138,6 +138,7 @@ public class TSDRLibrary {
 	private native void nativeStart(String pluginfilepath, String params) throws TSDRException;
 	public native void stop() throws TSDRException;
 	public native void setGain(float gain) throws TSDRException;
+	public native boolean isRunning();
 	
 	public native void setResolution(int width, int height, double refreshrate) throws TSDRException;
 	
@@ -146,17 +147,18 @@ public class TSDRLibrary {
 		
 		setResolution(width, height, refreshrate);
 		
-		Runtime.getRuntime().addShutdownHook(unloaderhook);
-		
 		new Thread() {
 			public void run() {
+				
+				Runtime.getRuntime().addShutdownHook(unloaderhook);
 				try {
-					nativeStart(absolute_path, plugin.params);
-					try {
-						Runtime.getRuntime().removeShutdownHook(unloaderhook);
-					} catch (Throwable e) {};
+					nativeStart(absolute_path, plugin.getParams());
 				} catch (TSDRException e) {
 					for (final FrameReadyCallback callback : callbacks) callback.onException(TSDRLibrary.this, e);
+				} finally {
+					try {
+							Runtime.getRuntime().removeShutdownHook(unloaderhook);
+					} catch (Throwable e) {};
 				}
 				for (final FrameReadyCallback callback : callbacks) callback.onClosed(TSDRLibrary.this);
 			};
@@ -174,7 +176,10 @@ public class TSDRLibrary {
 	};
 	
 	public boolean registerFrameReadyCallback(final FrameReadyCallback callback) {
-		return callbacks.add(callback);
+		if (callbacks.contains(callback))
+			return false;
+		else
+			return callbacks.add(callback);
 	}
 	
 	public boolean unregisterFrameReadyCallback(final FrameReadyCallback callback) {

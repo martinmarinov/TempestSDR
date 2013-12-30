@@ -3,25 +3,41 @@ package martin.tempest.sources;
 import java.io.File;
 
 public class TSDRSource {
-	public final String libname;
-	public final String params;
-	public final boolean absolute;
 	
-	TSDRSource(final String libname, final String params, final boolean absolute) {
+	private final static TSDRSource[] SOURCES = new TSDRSource[] {
+		new TSDRFileSource(""),
+	};
+	
+	public final String libname;
+	private String params;
+	public final boolean absolute;
+	public final String descr;
+	
+	public static TSDRSource[] getAvailableSources() {
+		return SOURCES;
+	}
+	
+	TSDRSource(final String desc, final String libname, final String params, final boolean absolute) {
+		this.descr = desc;
 		this.libname = libname;
 		this.params = params;
 		this.absolute = absolute;
 	}
 	
-	public static TSDRSource fromRawFile(final File file) {
-		return new TSDRSource("TSDRPlugin_RawFile", file.getAbsolutePath(), false);
+	public void setParams(final String params) {
+		this.params = params;
 	}
 	
-	public static TSDRSource fromRawFile(final String filename) {
-		return new TSDRSource("TSDRPlugin_RawFile", filename, false);
+	public String getParams() {
+		return params;
 	}
 	
-	public static TSDRSource fromPlugin(final File full_path_to_library, final String params) {
-		return new TSDRSource(full_path_to_library.getAbsolutePath(), params, true);
+	public static TSDRSource fromPlugin(final String desc, final File full_path_to_library, final String params) {
+		return new TSDRSource(desc, full_path_to_library.getAbsolutePath(), params, true);
+	}
+	
+	@Override
+	public String toString() {
+		return descr;
 	}
 }

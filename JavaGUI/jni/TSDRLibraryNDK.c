@@ -167,3 +167,10 @@ JNIEXPORT void JNICALL Java_martin_tempest_core_TSDRLibrary_setGain (JNIEnv * en
 JNIEXPORT void JNICALL Java_martin_tempest_core_TSDRLibrary_setResolution (JNIEnv * env, jobject obj, jint width, jint height, jdouble refreshrate) {
 	THROW(tsdr_setresolution(&tsdr_instance, (int) width, (int) height, (double) refreshrate));
 }
+
+JNIEXPORT jboolean JNICALL Java_martin_tempest_core_TSDRLibrary_isRunning  (JNIEnv * env, jobject obj) {
+	if (tsdr_isrunning(&tsdr_instance))
+		return JNI_TRUE;
+	else
+		return JNI_FALSE;
+}

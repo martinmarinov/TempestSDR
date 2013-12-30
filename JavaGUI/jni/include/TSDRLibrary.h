@@ -15,6 +15,7 @@
 		double pixeltime;
 		double pixeltimeoversampletime;
 		volatile int running;
+		volatile int nativerunning;
 		int frames_to_average;
 	} typedef tsdr_lib_t;
 
@@ -28,5 +29,6 @@
 	int tsdr_readasync(tsdr_lib_t * tsdr, const char * pluginfilepath, tsdr_readasync_function cb, void *, const char * params);
 	int tsdr_unloadplugin(tsdr_lib_t * tsdr);
 	int tsdr_setresolution(tsdr_lib_t * tsdr, int width, int height, double refreshrate);
+	int tsdr_isrunning(tsdr_lib_t * tsdr);
 
 #endif

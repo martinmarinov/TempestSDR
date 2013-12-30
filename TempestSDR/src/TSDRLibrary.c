@@ -19,7 +19,7 @@
 #define MAX_ARR_SIZE (4000*4000)
 #define MAX_SAMP_RATE (500e6)
 
-#define DEFAULT_FRAMES_TO_AVERAGE (3)
+#define DEFAULT_FRAMES_TO_AVERAGE (1)
 
 #define INTEG_TYPE (0)
 #define PI (3.141592653589793238462643383279502f)
@@ -38,6 +38,11 @@ struct tsdr_context {
 
 void tsdr_init(tsdr_lib_t * tsdr) {
 	tsdr->frames_to_average = DEFAULT_FRAMES_TO_AVERAGE;
+	tsdr->nativerunning = 0;
+}
+
+int tsdr_isrunning(tsdr_lib_t * tsdr) {
+	return tsdr->nativerunning;
 }
 
 int tsdr_setsamplerate(tsdr_lib_t * tsdr, uint32_t rate) {
@@ -287,8 +292,10 @@ void process(float *buf, uint32_t len, void *ctx) {
 }
 
 int tsdr_readasync(tsdr_lib_t * tsdr, const char * pluginfilepath, tsdr_readasync_function cb, void *ctx, const char * params) {
-	if (tsdr->running)
+	if (tsdr->nativerunning || tsdr->running)
 		return TSDR_ALREADY_RUNNING;
+
+	tsdr->nativerunning = 1;
 
 	tsdr->running = 1;
 
@@ -346,6 +353,9 @@ int tsdr_readasync(tsdr_lib_t * tsdr, const char * pluginfilepath, tsdr_readasyn
 end:
 	tsdrplug_close((pluginsource_t *)(tsdr->plugin));
 	free(tsdr->plugin);
+
+	tsdr->running = 0;
+	tsdr->nativerunning = 0;
 	return status;
 }
 

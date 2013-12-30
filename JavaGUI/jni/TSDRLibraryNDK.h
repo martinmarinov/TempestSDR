@@ -57,6 +57,14 @@ JNIEXPORT void JNICALL Java_martin_tempest_core_TSDRLibrary_setGain
 
 /*
  * Class:     martin_tempest_core_TSDRLibrary
+ * Method:    isRunning
+ * Signature: ()Z
+ */
+JNIEXPORT jboolean JNICALL Java_martin_tempest_core_TSDRLibrary_isRunning
+  (JNIEnv *, jobject);
+
+/*
+ * Class:     martin_tempest_core_TSDRLibrary
  * Method:    setResolution
  * Signature: (IID)V
  */

@@ -48,6 +48,9 @@ public class ImageVisualizer extends JPanel {
 			synchronized (todraw) {
 				g.drawImage(todraw, 0, 0, getWidth(), getHeight(), null);
 			}
+		} else {
+			g.setColor(Color.BLUE);
+			g.fillRect(0, 0, getWidth(), getHeight());
 		}
 		
 		g.setColor(Color.white);
