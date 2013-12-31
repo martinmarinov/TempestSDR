@@ -70,6 +70,8 @@ public class VideoMode {
 		new VideoMode("1600x1200 @ 75Hz", 2160, 1250, 75),
 		new VideoMode("1600x1200 @ 85Hz", 2160, 1250, 85),
 		new VideoMode("1600x1200 @ 100 Hz", 2208, 1271, 100),
+		new VideoMode("1680x1050 @ 60Hz (reduced blanking)", 1840, 1080, 60),
+		new VideoMode("1680x1050 @ 60Hz (non-interlaced)", 2240, 1089, 60),
 		new VideoMode("1680x1050 @ 60 Hz", 2256, 1087, 60),
 		new VideoMode("1792x1344 @ 60Hz", 2448, 1394, 60),
 		new VideoMode("1792x1344 @ 75Hz", 2456, 1417, 75),

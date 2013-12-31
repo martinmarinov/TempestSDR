@@ -3,10 +3,9 @@ package martin.tempest;
 import java.awt.Component;
 import java.awt.EventQueue;
 
+import javax.swing.AbstractSpinnerModel;
 import javax.swing.JFrame;
-
 import javax.swing.JComboBox;
-
 import javax.swing.JButton;
 import javax.swing.JLabel;
 import javax.swing.JOptionPane;
@@ -24,7 +23,10 @@ import javax.swing.JSlider;
 import java.awt.event.ActionListener;
 import java.awt.event.ActionEvent;
 import java.awt.image.BufferedImage;
+
 import javax.swing.SwingConstants;
+import javax.swing.event.ChangeListener;
+import javax.swing.event.ChangeEvent;
 
 public class Main implements TSDRLibrary.FrameReadyCallback {
 
@@ -117,7 +119,8 @@ public class Main implements TSDRLibrary.FrameReadyCallback {
 				onVideoModeSelected((VideoMode) cbVideoModes.getSelectedItem());
 			}
 		});
-		cbVideoModes.setModel(new DefaultComboBoxModel<VideoMode>(VideoMode.getVideoModes()));
+		final VideoMode[] videomodes = VideoMode.getVideoModes();
+		cbVideoModes.setModel(new DefaultComboBoxModel<VideoMode>(videomodes));
 		frmTempestSdr.getContentPane().add(cbVideoModes);
 		
 		JLabel lblWidth = new JLabel("Width:");
@@ -126,6 +129,11 @@ public class Main implements TSDRLibrary.FrameReadyCallback {
 		frmTempestSdr.getContentPane().add(lblWidth);
 		
 		spWidth = new JSpinner();
+		spWidth.addChangeListener(new ChangeListener() {
+			public void stateChanged(ChangeEvent arg0) {
+				onResolutionChange();
+			}
+		});
 		spWidth.setBounds(638, 59, 89, 22);
 		spWidth.setModel(new SpinnerNumberModel(576, 1, 10000, 1));
 		frmTempestSdr.getContentPane().add(spWidth);
@@ -136,6 +144,11 @@ public class Main implements TSDRLibrary.FrameReadyCallback {
 		frmTempestSdr.getContentPane().add(lblHeight);
 		
 		spHeight = new JSpinner();
+		spHeight.addChangeListener(new ChangeListener() {
+			public void stateChanged(ChangeEvent arg0) {
+				onResolutionChange();
+			}
+		});
 		spHeight.setBounds(638, 86, 89, 22);
 		spHeight.setModel(new SpinnerNumberModel(625, 1, 10000, 1));
 		frmTempestSdr.getContentPane().add(spHeight);
@@ -146,8 +159,13 @@ public class Main implements TSDRLibrary.FrameReadyCallback {
 		frmTempestSdr.getContentPane().add(lblFramerate);
 		
 		spFramerate = new JSpinner();
+		spFramerate.addChangeListener(new ChangeListener() {
+			public void stateChanged(ChangeEvent arg0) {
+				onResolutionChange();
+			}
+		});
 		spFramerate.setBounds(638, 113, 89, 22);
-		spFramerate.setModel(new SpinnerNumberModel(50.0, 1.0, 120.0, 0.0));
+		spFramerate.setModel(new SpinnerNumberModel(new Double(50), new Double(1), new Double(500), new Double(0.001)));
 		frmTempestSdr.getContentPane().add(spFramerate);
 		
 		lblGain = new JLabel("Gain:");
@@ -168,6 +186,8 @@ public class Main implements TSDRLibrary.FrameReadyCallback {
 		spFrequency.setBounds(223, 470, 340, 22);
 		spFrequency.setModel(new SpinnerNumberModel(new Long(200000000), new Long(0), new Long(2147483647), new Long(1)));
 		frmTempestSdr.getContentPane().add(spFrequency);
+		
+		onVideoModeSelected(videomodes[0]);
 	}
 	
 	private void onVideoModeSelected(final VideoMode m) {
@@ -200,7 +220,7 @@ public class Main implements TSDRLibrary.FrameReadyCallback {
 			new Thread() {
 				public void run() {
 					try {
-						mSdrlib.startAsync(src, (Integer) spWidth.getValue(), (Integer) spHeight.getValue(), (Double) spFramerate.getValue());
+						mSdrlib.startAsync(src, (Integer) spWidth.getValue(), (Integer) spHeight.getValue(), Double.parseDouble(spFramerate.getValue().toString()));
 					} catch (TSDRException e1) {
 						btnStartStop.setText("Start");
 						displayException(frmTempestSdr, e1);
@@ -213,6 +233,14 @@ public class Main implements TSDRLibrary.FrameReadyCallback {
 			btnStartStop.setText("Stop");
 		}
 		
+	}
+	
+	private void onResolutionChange() {
+		try {
+			mSdrlib.setResolution((Integer) spWidth.getValue(), (Integer) spHeight.getValue(), Double.parseDouble(spFramerate.getValue().toString()));
+		} catch (TSDRException e) {
+			displayException(frmTempestSdr, e);
+		}
 	}
 
 	@Override

@@ -107,7 +107,7 @@ void videodecodingthread(void * ctx) {
 	int frames_to_average = context->this->frames_to_average;
 
 	int bufsize = height * width;
-	int sizetopoll = bufsize;
+	int sizetopoll = height * width;
 	float * buffer = (float *) malloc(sizeof(float) * bufsize);
 
 	float * circbuff = (float *) malloc(sizeof(float) * frames_to_average * bufsize);
@@ -132,13 +132,15 @@ void videodecodingthread(void * ctx) {
 
 			if (sizetopoll > bufsize) {
 				bufsize = sizetopoll;
-				float * buffer = (float *) realloc(buffer, sizeof(float) * bufsize);
+				buffer = (float *) realloc(buffer, sizeof(float) * bufsize);
+				frames_to_average = context->this->frames_to_average;
+				circbuff = (float *) realloc(circbuff, sizeof(float) * frames_to_average * bufsize);
 			}
 		}
 
 		if (context->this->frames_to_average > 1 && frames_to_average != context->this->frames_to_average) {
 			frames_to_average = context->this->frames_to_average;
-			float * circbuff = (float *) realloc(circbuff, sizeof(float) * frames_to_average * bufsize);
+			circbuff = (float *) realloc(circbuff, sizeof(float) * frames_to_average * bufsize);
 		}
 
 		if (cb_rem_blocking(&context->circbuf, &circbuff[circbuffidx*sizetopoll], sizetopoll) == CB_OK) {
@@ -166,6 +168,7 @@ void videodecodingthread(void * ctx) {
 	}
 
 	free (buffer);
+	free (circbuff);
 
 	mutex_signal((mutex_t *) context->this->mutex_video_stopped);
 }
