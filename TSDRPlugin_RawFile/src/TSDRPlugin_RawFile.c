@@ -65,7 +65,7 @@ int tsdrplugin_stop(void) {
 }
 
 int tsdrplugin_setgain(float gain) {
-	return TSDR_NOT_IMPLEMENTED;
+	return TSDR_OK;
 }
 
 char * strtoken = NULL;

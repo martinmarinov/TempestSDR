@@ -39,6 +39,8 @@ struct tsdr_context {
 void tsdr_init(tsdr_lib_t * tsdr) {
 	tsdr->frames_to_average = DEFAULT_FRAMES_TO_AVERAGE;
 	tsdr->nativerunning = 0;
+	tsdr->plugin = NULL;
+	tsdr->centfreq = 0;
 }
 
 int tsdr_isrunning(tsdr_lib_t * tsdr) {
@@ -70,8 +72,13 @@ int tsdr_getsamplerate(tsdr_lib_t * tsdr) {
 }
 
 int tsdr_setbasefreq(tsdr_lib_t * tsdr, uint32_t freq) {
-	pluginsource_t * plugin = (pluginsource_t *)(tsdr->plugin);
-	return plugin->tsdrplugin_setbasefreq(freq);
+	tsdr->centfreq = freq;
+
+	if (tsdr->plugin != NULL) {
+		pluginsource_t * plugin = (pluginsource_t *)(tsdr->plugin);
+		return plugin->tsdrplugin_setbasefreq(tsdr->centfreq);
+	} else
+		return TSDR_OK;
 }
 
 int tsdr_stop(tsdr_lib_t * tsdr) {
@@ -318,6 +325,7 @@ int tsdr_readasync(tsdr_lib_t * tsdr, const char * pluginfilepath, tsdr_readasyn
 
 	if ((status = plugin->tsdrplugin_setParams(params)) != TSDR_OK) goto end;
 	if ((status = tsdr_getsamplerate(tsdr)) != TSDR_OK) goto end;
+	if ((status = tsdr_setbasefreq(tsdr, tsdr->centfreq)) != TSDR_OK) goto end;
 
 	if (tsdr->pixeltimeoversampletime <= 0) goto end;
 
@@ -356,6 +364,7 @@ int tsdr_readasync(tsdr_lib_t * tsdr, const char * pluginfilepath, tsdr_readasyn
 end:
 	tsdrplug_close((pluginsource_t *)(tsdr->plugin));
 	free(tsdr->plugin);
+	tsdr->plugin = NULL;
 
 	tsdr->running = 0;
 	tsdr->nativerunning = 0;

@@ -190,6 +190,11 @@ public class Main implements TSDRLibrary.FrameReadyCallback {
 		frmTempestSdr.getContentPane().add(lblFrequency);
 		
 		spFrequency = new JSpinner();
+		spFrequency.addChangeListener(new ChangeListener() {
+			public void stateChanged(ChangeEvent arg0) {
+				onCenterFreqChange();
+			}
+		});
 		spFrequency.setBounds(223, 470, 340, 22);
 		spFrequency.setModel(new SpinnerNumberModel(new Long(200000000), new Long(0), new Long(2147483647), new Long(1)));
 		frmTempestSdr.getContentPane().add(spFrequency);
@@ -224,6 +229,15 @@ public class Main implements TSDRLibrary.FrameReadyCallback {
 		
 			src.setParams(textArgs.getText());
 			
+			final Long newfreq = (Long) spFrequency.getValue();
+			if (newfreq != null && newfreq > 0)
+				try {
+					mSdrlib.setBaseFreq(newfreq);
+				} catch (TSDRException e) {
+					displayException(frmTempestSdr, e);
+					return;
+				}
+			
 			new Thread() {
 				public void run() {
 					try {
@@ -245,6 +259,18 @@ public class Main implements TSDRLibrary.FrameReadyCallback {
 	private void onResolutionChange() {
 		try {
 			mSdrlib.setResolution((Integer) spWidth.getValue(), (Integer) spHeight.getValue(), Double.parseDouble(spFramerate.getValue().toString()));
+		} catch (TSDRException e) {
+			displayException(frmTempestSdr, e);
+		}
+	}
+	
+	private void onCenterFreqChange() {
+		final Long newfreq = (Long) spFrequency.getValue();
+		
+		if (newfreq == null || newfreq < 0) return;
+		
+		try {
+			mSdrlib.setBaseFreq(newfreq);
 		} catch (TSDRException e) {
 			displayException(frmTempestSdr, e);
 		}

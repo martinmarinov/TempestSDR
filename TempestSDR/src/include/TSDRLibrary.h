@@ -17,6 +17,7 @@
 		volatile int running;
 		volatile int nativerunning;
 		int frames_to_average;
+		uint32_t centfreq;
 	} typedef tsdr_lib_t;
 
 	typedef void(*tsdr_readasync_function)(float *buf, int width, int height, void *ctx);

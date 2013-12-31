@@ -48,6 +48,9 @@ void error_translate (int exception_code, char * exceptionclass) {
 		case TSDR_SAMPLE_RATE_WRONG:
 			strcpy(exceptionclass, "martin/tempest/core/exceptions/TSDRSampleRateWrongException");
 			return;
+		case TSDR_CANNOT_OPEN_DEVICE:
+			strcpy(exceptionclass, "martin/tempest/core/exceptions/TSDRCannotOpenDeviceException");
+			return;
 		default:
 			strcpy(exceptionclass, "java/lang/Exception");
 			return;
