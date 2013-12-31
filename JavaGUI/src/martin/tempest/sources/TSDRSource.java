@@ -6,6 +6,7 @@ public class TSDRSource {
 	
 	private final static TSDRSource[] SOURCES = new TSDRSource[] {
 		new TSDRFileSource(""),
+		new TSDRMiricsSource(),
 	};
 	
 	public final String libname;
