@@ -45,8 +45,23 @@ public class ImageVisualizer extends JPanel {
 		}
 		
 		if (todraw != null) {
+			final int sc_width = getWidth();
+			final int sc_height = getHeight();
+			final int im_width = todraw.getWidth();
+			final int im_height = todraw.getHeight();
+			
+			int width = sc_width;
+			int height = sc_height;
+			
+			if (im_width > im_height)
+				height = (sc_width * im_height) / im_width;
+			else
+				width = (sc_height * im_width) / im_height;
+			
+			g.setColor(Color.BLACK);
+			g.fillRect(0, 0, sc_width, sc_height);
 			synchronized (todraw) {
-				g.drawImage(todraw, 0, 0, getWidth(), getHeight(), null);
+				g.drawImage(todraw, (sc_width - width) / 2, (sc_height - height) / 2, width, height, null);
 			}
 		} else {
 			g.setColor(Color.BLUE);
@@ -54,7 +69,7 @@ public class ImageVisualizer extends JPanel {
 		}
 		
 		g.setColor(Color.white);
-		g.fillRect(0, 0, 40, 20);
+		g.fillRect(0, 0, 60, 20);
 		g.setColor(Color.black);
 		g.drawString(fps+" fps", 10, 15);
 		
