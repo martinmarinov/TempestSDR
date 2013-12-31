@@ -16,6 +16,8 @@ volatile int working = 0;
 volatile double desiredfreq = 200;
 volatile int desiredgainred = 40;
 
+#define SAMPLES_TO_PROCESS_AT_ONCE (20)
+
 void tsdrplugin_getName(char * name) {
 	strcpy(name, "TSDR Mirics SDR Plugin");
 }
@@ -52,7 +54,7 @@ int tsdrplugin_setParams(const char * params) {
 int tsdrplugin_readasync(tsdrplugin_readasync_function cb, void *ctx) {
 	working = 1;
 
-	int err, sps, grc, rfc, fsc, i;
+	int err, sps, grc, rfc, fsc, i, id;
 	unsigned int fs;
 
 	double freq = desiredfreq;
@@ -63,15 +65,18 @@ int tsdrplugin_readasync(tsdrplugin_readasync_function cb, void *ctx) {
 		return TSDR_CANNOT_OPEN_DEVICE;
 	}
 
-	short * xi = (short *)malloc(sps * sizeof(short));
-	short * xq = (short *)malloc(sps * sizeof(short));
+	short * xi = (short *)malloc(sps * SAMPLES_TO_PROCESS_AT_ONCE * sizeof(short));
+	short * xq = (short *)malloc(sps * SAMPLES_TO_PROCESS_AT_ONCE * sizeof(short));
 
-	int outbufsize =  2 * sps;
+	int outbufsize =  2 * sps * SAMPLES_TO_PROCESS_AT_ONCE;
 	float * outbuf = (float *) malloc(sizeof(float) * outbufsize);
 
 	while (working) {
-		err = mir_sdr_ReadPacket(xi, xq, &fs, &grc, &rfc, &fsc);
-		if (err != 0) break;
+
+		for (id = 0; id < SAMPLES_TO_PROCESS_AT_ONCE; id++) {
+			err = mir_sdr_ReadPacket(&xi[id*sps], &xq[id*sps], &fs, &grc, &rfc, &fsc);
+			if (err != 0) break;
+		}
 
 		// if desired frequency is different and valid
 		if (freq != desiredfreq && !(desiredfreq < 60e6 || (desiredfreq > 245e6 && desiredfreq < 420e6) || desiredfreq > 1000e6)) {
@@ -87,8 +92,9 @@ int tsdrplugin_readasync(tsdrplugin_readasync_function cb, void *ctx) {
 				if (err == 3) {
 					// if the desired frequency is outside operational range, go back to the working frequency
 					mir_sdr_Uninit();
-					err = mir_sdr_Init(gainred, 8, freq / 1000000.0, mir_sdr_BW_8_000, mir_sdr_IF_Zero, &sps);
+					mir_sdr_Init(gainred, 8, freq / 1000000.0, mir_sdr_BW_8_000, mir_sdr_IF_Zero, &sps);
 					desiredfreq = freq;
+					err = 0;
 				}
 				else
 					freq = desiredfreq;
@@ -99,7 +105,6 @@ int tsdrplugin_readasync(tsdrplugin_readasync_function cb, void *ctx) {
 			gainred = desiredgainred;
 			mir_sdr_SetGr(gainred, 1, 0);
 		}
-
 
 		for (i = 0; i < outbufsize; i++) {
 			const short val = (i & 1) ? (xq[i >> 1]) : (xi[i >> 1]);

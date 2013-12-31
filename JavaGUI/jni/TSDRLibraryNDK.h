@@ -65,6 +65,14 @@ JNIEXPORT jboolean JNICALL Java_martin_tempest_core_TSDRLibrary_isRunning
 
 /*
  * Class:     martin_tempest_core_TSDRLibrary
+ * Method:    setInvertedColors
+ * Signature: (Z)V
+ */
+JNIEXPORT void JNICALL Java_martin_tempest_core_TSDRLibrary_setInvertedColors
+  (JNIEnv *, jobject, jboolean);
+
+/*
+ * Class:     martin_tempest_core_TSDRLibrary
  * Method:    setResolution
  * Signature: (IID)V
  */

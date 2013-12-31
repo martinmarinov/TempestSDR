@@ -142,6 +142,7 @@ public class TSDRLibrary {
 	public native void stop() throws TSDRException;
 	public native void setGain(float gain) throws TSDRException;
 	public native boolean isRunning();
+	public native void setInvertedColors(boolean invertedEnabled);
 	
 	public native void setResolution(int width, int height, double refreshrate) throws TSDRException;
 	

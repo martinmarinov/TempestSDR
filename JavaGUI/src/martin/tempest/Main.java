@@ -26,6 +26,7 @@ import java.awt.image.BufferedImage;
 import javax.swing.SwingConstants;
 import javax.swing.event.ChangeListener;
 import javax.swing.event.ChangeEvent;
+import javax.swing.JCheckBox;
 
 public class Main implements TSDRLibrary.FrameReadyCallback {
 
@@ -203,6 +204,16 @@ public class Main implements TSDRLibrary.FrameReadyCallback {
 		spFrequency.setBounds(223, 470, 340, 22);
 		spFrequency.setModel(new SpinnerNumberModel(new Long(113095000), new Long(0), new Long(2147483647), new Long(1000000)));
 		frmTempestSdr.getContentPane().add(spFrequency);
+		
+		final JCheckBox chckbxInvertedColours = new JCheckBox("Inverted colours");
+		chckbxInvertedColours.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent arg0) {
+				mSdrlib.setInvertedColors(chckbxInvertedColours.isSelected());
+			}
+		});
+		chckbxInvertedColours.setHorizontalAlignment(SwingConstants.LEFT);
+		chckbxInvertedColours.setBounds(568, 141, 159, 25);
+		frmTempestSdr.getContentPane().add(chckbxInvertedColours);
 		
 		onVideoModeSelected(videomodes[0]);
 	}

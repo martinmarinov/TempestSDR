@@ -25,6 +25,7 @@ struct java_context {
 
 static JavaVM *jvm;
 static int javaversion;
+int inverted = 0;
 
 void error_translate (int exception_code, char * exceptionclass) {
 	switch (exception_code) {
@@ -116,7 +117,7 @@ void read_async(float *buf, int width, int height, void *ctx) {
 
 	int i;
 	for (i = 0; i < context->pixelsize; i++) {
-		const int col = (int) (*(buf++) * 255.0f);
+		const int col = (inverted) ? (255 - (int) (*(buf++) * 255.0f)) : ((int) (*(buf++) * 255.0f));
 		*(data++) = col | (col << 8) | (col << 16);
 	}
 
@@ -176,4 +177,8 @@ JNIEXPORT jboolean JNICALL Java_martin_tempest_core_TSDRLibrary_isRunning  (JNIE
 		return JNI_TRUE;
 	else
 		return JNI_FALSE;
+}
+
+JNIEXPORT void JNICALL Java_martin_tempest_core_TSDRLibrary_setInvertedColors  (JNIEnv * env, jobject obj, jboolean invertedEnabled) {
+	inverted = invertedEnabled == JNI_TRUE;
 }

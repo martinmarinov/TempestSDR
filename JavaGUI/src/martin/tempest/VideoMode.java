@@ -6,7 +6,7 @@ public class VideoMode {
 	final public double refreshrate;
 	
 	private static VideoMode[] MODES = new VideoMode[] {
-		new VideoMode("PAL TV", 576, 625, 50),
+		new VideoMode("PAL TV", 576, 625, 25),
 		new VideoMode("640x400 @ 85Hz", 832, 445, 85),
 		new VideoMode("720x400 @ 85Hz", 936, 446, 85),
 		new VideoMode("640x480 @ 60Hz", 800, 525, 60),
