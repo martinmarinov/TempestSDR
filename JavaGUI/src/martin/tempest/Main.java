@@ -3,7 +3,6 @@ package martin.tempest;
 import java.awt.Component;
 import java.awt.EventQueue;
 
-import javax.swing.AbstractSpinnerModel;
 import javax.swing.JFrame;
 import javax.swing.JComboBox;
 import javax.swing.JButton;
@@ -45,6 +44,14 @@ public class Main implements TSDRLibrary.FrameReadyCallback {
 	private final TSDRLibrary mSdrlib;
 	private ImageVisualizer visualizer;
 
+	//private static final String COMMAND = "D:\\Dokumenti\\Cambridge\\project\\lcd1680x1050x60_8bit_8000000.wav 80000000 int8";
+	private static final String COMMAND = "D:\\Dokumenti\\Cambridge\\project\\tvpal8bit8000000.wav 8000000 int8";
+	//private static final String COMMAND = "D:\\Dokumenti\\Cambridge\\project\\tvpal8bit2048000.wav 2048000 int8";
+	//private static final String COMMAND = "D:\\Dokumenti\\Cambridge\\project\\tvpal16bit8000000.wav 8000000 int16";
+	//private static final String COMMAND = "D:\\Dokumenti\\Cambridge\\project\\mphilproj\\martin-vaio-h-200.dat 25000000 int16";
+	//private static final String COMMAND = "D:\\Dokumenti\\Cambridge\\project\\mphilproj\\cdxdemo-rf.dat 25000000 int16";
+	//private static final String COMMAND = "D:\\Dokumenti\\Cambridge\\project\\mphilproj\\Toshiba-440CDX\\toshiba.iq 25000000 float";
+	
 	/**
 	 * Launch the application.
 	 */
@@ -94,7 +101,7 @@ public class Main implements TSDRLibrary.FrameReadyCallback {
 		cbDevice.setModel(new DefaultComboBoxModel<TSDRSource>(TSDRSource.getAvailableSources()));
 		frmTempestSdr.getContentPane().add(cbDevice);
 		
-		textArgs = new JTextField();
+		textArgs = new JTextField(COMMAND);
 		textArgs.setBounds(223, 3, 340, 22);
 		frmTempestSdr.getContentPane().add(textArgs);
 		textArgs.setColumns(10);
