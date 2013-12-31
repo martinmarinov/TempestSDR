@@ -12,8 +12,9 @@
 #define SAMPLE_RATE (8000000)
 
 volatile int working = 0;
-double freq = 200;
-double desiredfreq = 200;
+
+volatile double desiredfreq = 200;
+volatile int desiredgainred = 40;
 
 void tsdrplugin_getName(char * name) {
 	strcpy(name, "TSDR Mirics SDR Plugin");
@@ -38,8 +39,10 @@ int tsdrplugin_stop(void) {
 }
 
 int tsdrplugin_setgain(float gain) {
-	printf("Mirics setgain %.4f\n", gain);
-	return TSDR_NOT_IMPLEMENTED;
+	desiredgainred = 102 - (int) (gain * 102);
+	if (desiredgainred < 0) desiredgainred = 0;
+	else if (desiredgainred > 102) desiredgainred = 102;
+	return TSDR_OK;
 }
 
 int tsdrplugin_setParams(const char * params) {
@@ -51,10 +54,10 @@ int tsdrplugin_readasync(tsdrplugin_readasync_function cb, void *ctx) {
 
 	int err, sps, grc, rfc, fsc, i;
 	unsigned int fs;
-	int newGr = 40;
 
-	freq = desiredfreq;
-	err = mir_sdr_Init(newGr, 8, freq / 1000000.0, mir_sdr_BW_8_000, mir_sdr_IF_Zero, &sps);
+	double freq = desiredfreq;
+	double gainred = desiredgainred;
+	err = mir_sdr_Init(gainred, 8, freq / 1000000.0, mir_sdr_BW_8_000, mir_sdr_IF_Zero, &sps);
 	if (err != 0) {
 		mir_sdr_Uninit();
 		return TSDR_CANNOT_OPEN_DEVICE;
@@ -70,25 +73,37 @@ int tsdrplugin_readasync(tsdrplugin_readasync_function cb, void *ctx) {
 		err = mir_sdr_ReadPacket(xi, xq, &fs, &grc, &rfc, &fsc);
 		if (err != 0) break;
 
-		if (freq != desiredfreq) {
-			freq = desiredfreq;
-			err = mir_sdr_SetRf(freq, 1, 0);
+		// if desired frequency is different and valid
+		if (freq != desiredfreq && !(desiredfreq < 60e6 || (desiredfreq > 245e6 && desiredfreq < 420e6) || desiredfreq > 1000e6)) {
 
-			if (err == mir_sdr_RfUpdateError) {
+			err = mir_sdr_SetRf(desiredfreq, 1, 0);
+			if (err == 0)
+				freq = desiredfreq; // if OK, frequency has been changed
+			else if (err == mir_sdr_RfUpdateError) {
+				// if an error occurs, try to reset the device
 				mir_sdr_Uninit();
-				err = mir_sdr_Init(newGr, 8, freq / 1000000.0, mir_sdr_BW_8_000, mir_sdr_IF_Zero, &sps);
+				gainred = desiredgainred;
+				err = mir_sdr_Init(gainred, 8, desiredfreq / 1000000.0, mir_sdr_BW_8_000, mir_sdr_IF_Zero, &sps);
+				if (err == 3) {
+					// if the desired frequency is outside operational range, go back to the working frequency
+					mir_sdr_Uninit();
+					err = mir_sdr_Init(gainred, 8, freq / 1000000.0, mir_sdr_BW_8_000, mir_sdr_IF_Zero, &sps);
+					desiredfreq = freq;
+				}
+				else
+					freq = desiredfreq;
 			}
+		}
 
-			if (err != 0) {
-				printf("FS error id %d trying to set freq to %.4f\n", err, freq);
-				break;
-			}
+		if (gainred != desiredgainred) {
+			gainred = desiredgainred;
+			mir_sdr_SetGr(gainred, 1, 0);
 		}
 
 
 		for (i = 0; i < outbufsize; i++) {
 			const short val = (i & 1) ? (xq[i >> 1]) : (xi[i >> 1]);
-			outbuf[i] = (val - 32767) / 32767.0;
+			outbuf[i] = val / 32767.0;
 		}
 
 		cb(outbuf, outbufsize, ctx);

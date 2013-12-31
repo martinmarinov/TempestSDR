@@ -96,10 +96,13 @@ int tsdr_stop(tsdr_lib_t * tsdr) {
 }
 
 int tsdr_setgain(tsdr_lib_t * tsdr, float gain) {
-	if (!tsdr->running) return TSDR_ERR_PLUGIN;
+	tsdr->gain = gain;
 
-	pluginsource_t * plugin = (pluginsource_t *)(tsdr->plugin);
-	return plugin->tsdrplugin_setgain(gain);
+	if (tsdr->plugin != NULL) {
+		pluginsource_t * plugin = (pluginsource_t *)(tsdr->plugin);
+		return plugin->tsdrplugin_setgain(gain);
+	} else
+		return TSDR_OK;
 }
 
 // bresenham algorithm
@@ -326,6 +329,7 @@ int tsdr_readasync(tsdr_lib_t * tsdr, const char * pluginfilepath, tsdr_readasyn
 	if ((status = plugin->tsdrplugin_setParams(params)) != TSDR_OK) goto end;
 	if ((status = tsdr_getsamplerate(tsdr)) != TSDR_OK) goto end;
 	if ((status = tsdr_setbasefreq(tsdr, tsdr->centfreq)) != TSDR_OK) goto end;
+	if ((status = tsdr_setgain(tsdr, tsdr->gain)) != TSDR_OK) goto end;
 
 	if (tsdr->pixeltimeoversampletime <= 0) goto end;
 

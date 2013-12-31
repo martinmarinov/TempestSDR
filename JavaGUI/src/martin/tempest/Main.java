@@ -181,6 +181,11 @@ public class Main implements TSDRLibrary.FrameReadyCallback {
 		frmTempestSdr.getContentPane().add(lblGain);
 		
 		slGain = new JSlider();
+		slGain.addChangeListener(new ChangeListener() {
+			public void stateChanged(ChangeEvent e) {
+				onGainLevelChanged();
+			}
+		});
 		slGain.setBounds(223, 497, 340, 26);
 		frmTempestSdr.getContentPane().add(slGain);
 		
@@ -196,7 +201,7 @@ public class Main implements TSDRLibrary.FrameReadyCallback {
 			}
 		});
 		spFrequency.setBounds(223, 470, 340, 22);
-		spFrequency.setModel(new SpinnerNumberModel(new Long(200000000), new Long(0), new Long(2147483647), new Long(1)));
+		spFrequency.setModel(new SpinnerNumberModel(new Long(113095000), new Long(0), new Long(2147483647), new Long(1000000)));
 		frmTempestSdr.getContentPane().add(spFrequency);
 		
 		onVideoModeSelected(videomodes[0]);
@@ -226,17 +231,21 @@ public class Main implements TSDRLibrary.FrameReadyCallback {
 			
 		} else {
 			final TSDRSource src = (TSDRSource) cbDevice.getSelectedItem();
-		
-			src.setParams(textArgs.getText());
-			
-			final Long newfreq = (Long) spFrequency.getValue();
-			if (newfreq != null && newfreq > 0)
-				try {
+			try {
+				src.setParams(textArgs.getText());
+
+				final Long newfreq = (Long) spFrequency.getValue();
+				if (newfreq != null && newfreq > 0)
 					mSdrlib.setBaseFreq(newfreq);
-				} catch (TSDRException e) {
-					displayException(frmTempestSdr, e);
-					return;
-				}
+
+				float gain = (slGain.getValue() - slGain.getMinimum()) / (float) (slGain.getMaximum() - slGain.getMinimum());
+				if (gain < 0.0f) gain = 0.0f; else if (gain > 1.0f) gain = 1.0f;
+				mSdrlib.setGain(gain);
+
+			} catch (TSDRException e) {
+				displayException(frmTempestSdr, e);
+				return;
+			}
 			
 			new Thread() {
 				public void run() {
@@ -271,6 +280,17 @@ public class Main implements TSDRLibrary.FrameReadyCallback {
 		
 		try {
 			mSdrlib.setBaseFreq(newfreq);
+		} catch (TSDRException e) {
+			displayException(frmTempestSdr, e);
+		}
+	}
+	
+	private void onGainLevelChanged() {
+		float gain = (slGain.getValue() - slGain.getMinimum()) / (float) (slGain.getMaximum() - slGain.getMinimum());
+		if (gain < 0.0f) gain = 0.0f; else if (gain > 1.0f) gain = 1.0f;
+		
+		try {
+			mSdrlib.setGain(gain);
 		} catch (TSDRException e) {
 			displayException(frmTempestSdr, e);
 		}
