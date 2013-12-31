@@ -3,7 +3,7 @@
 # Make all
 all :
 	@$(MAKE) -C TSDRPlugin_RawFile/ all JAVA_HOME=$(JAVA_HOME)
-	@$(MAKE) -C TSDRPlugin_Mirics/ all
+	@$(MAKE) -C TSDRPlugin_Mirics/ all MIRICS_HOME=$(MIRICS_HOME)
 	@$(MAKE) -C TempestSDR/ all
 	@$(MAKE) -C JavaGUI/ all
 

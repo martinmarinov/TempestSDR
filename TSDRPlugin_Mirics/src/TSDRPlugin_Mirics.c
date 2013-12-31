@@ -4,6 +4,8 @@
 #include "TSDRPlugin.h"
 #include "TSDRCodes.h"
 
+#include <mir_sdr.h>
+
 #include <stdint.h>
 
 void tsdrplugin_getName(char * name) {
@@ -36,6 +38,11 @@ int tsdrplugin_setgain(float gain) {
 }
 
 int tsdrplugin_setParams(const char * params) {
+	float ver;
+	int err;
+
+	err = mir_sdr_ApiVersion(&ver);
+	printf("MIRICS VERSION %.4f with err %d\n", ver, err);
 	printf("Mirics setParams %s\n", params);
 	return TSDR_NOT_IMPLEMENTED;
 }

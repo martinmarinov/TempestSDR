@@ -6,6 +6,9 @@ PLUGNAME=TSDRPlugin_Mirics
 OBJS=$(PLUGNAME).o
 DEPS=TSDRPlugin.h TSDRCodes.h
 
+# Headers
+INC = "$(MIRICS_HOME)/API/inc"
+
 # END OF CONFIGURATION IF STANDARD DIR STRUCTURE IS USED
 
 # Where the TSDRPlugin.h of the TempestSDR library resides (so it will be copied over)
@@ -65,7 +68,7 @@ copyoverheaderfile:
 
 # Link
 $(OUTPUTFOLDER)/$(PLUGNAME)$(EXT): copyoverheaderfile $(_OBJS)
-	gcc -Wl,--add-stdcall-alias -shared -o $@ $(_OBJS)
+	gcc -L"$(MIRICS_HOME)/API/$(ARCHNAME)/" -lmir_sdr_api -Wl,--add-stdcall-alias -shared -o $@ $(_OBJS)
 
 # Make dirs and compile
 $(OBJFOLDER)/%.o : $(SOURCEFOLDER)/%.c $(_DEPS)

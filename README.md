@@ -51,3 +51,11 @@ This is the Java wrapper and GUI. It builds all projects and supported plugins i
 On Windows 8 this could look like
 
     make all JAVA_HOME=C:/PROGRA~2/Java/jdk1.7.0_45
+	
+### Mirics Plugin
+
+Go to the plugin folder and type in
+
+    make all MIRICS_HOME=path_to_mirics_installation
+	
+Where the path needs to lead to a path like C:\Program Files\MiricsSDR
