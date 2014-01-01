@@ -54,7 +54,9 @@ On Windows 8 x64 this could look like
 	
 ### Mirics Plugin
 
-Go to the plugin folder and type in
+This is a driver for the FlexiTV™ MSi3101 SDR USB Dongle for Windows. You first need to install the SDR driver from http://www.mirics.com/
+
+In order to compile the plugin go to the plugin folder and type in
 
     make all MIRICS_HOME=path_to_mirics_installation
 	
@@ -62,4 +64,5 @@ On Windows 8 x64 this could look like
 
     make all MIRICS_HOME=C:/PROGRA~1/MiricsSDR
 	
-If running Mirics Plugin, make sure the mir_sdr_api.dll is in the library path
+If running Mirics Plugin, make sure the mir_sdr_api.dll is in the library path (or in the same directory as the executable).
+You can find the dll in C:/Program Files/MiricsSDR/API/x86 or C:/Program Files/MiricsSDR/API/x64 depending on your architecture.
