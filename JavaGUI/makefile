@@ -64,7 +64,7 @@ all : jnilib jar
 
 # Package compiled files into a runnable jar
 jar : java
-	jar cvfe JTempestSDR.jar martin.tempest.Main lib -C bin .
+	jar cvfe JTempestSDR.jar martin.tempest.gui.Main lib -C bin .
 
 # The compilation of the java classes from command line
 # depends on the class files (we want to produce them)

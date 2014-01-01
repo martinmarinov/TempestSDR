@@ -1,4 +1,4 @@
-package martin.tempest;
+package martin.tempest.gui;
 import java.awt.Color;
 import java.awt.Graphics;
 import java.awt.image.BufferedImage;

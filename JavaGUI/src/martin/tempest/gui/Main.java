@@ -1,4 +1,4 @@
-package martin.tempest;
+package martin.tempest.gui;
 
 import java.awt.Component;
 import java.awt.EventQueue;

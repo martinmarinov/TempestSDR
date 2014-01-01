@@ -1,4 +1,4 @@
-package martin.tempest;
+package martin.tempest.gui;
 
 public class VideoMode {
 	final public String name;
