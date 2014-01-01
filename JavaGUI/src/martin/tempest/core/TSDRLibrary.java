@@ -30,6 +30,8 @@ public class TSDRLibrary {
 	private int width;
 	private int height;
 	
+	public enum SYNC_DIRECTION {ANY, UP, DOWN, LEFT, RIGHT};
+	
 	volatile private boolean nativerunning = false;
 	
 	// If the binaries weren't loaded, this will go off
@@ -143,7 +145,7 @@ public class TSDRLibrary {
 	public native void setGain(float gain) throws TSDRException;
 	public native boolean isRunning();
 	public native void setInvertedColors(boolean invertedEnabled);
-	
+	public native void sync(int pixels, SYNC_DIRECTION dir);
 	public native void setResolution(int width, int height, double refreshrate) throws TSDRException;
 	
 	public void startAsync(final TSDRSource plugin, int width, int height, double refreshrate) throws TSDRException {

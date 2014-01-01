@@ -73,6 +73,14 @@ JNIEXPORT void JNICALL Java_martin_tempest_core_TSDRLibrary_setInvertedColors
 
 /*
  * Class:     martin_tempest_core_TSDRLibrary
+ * Method:    sync
+ * Signature: (ILmartin/tempest/core/TSDRLibrary/SYNC_DIRECTION;)V
+ */
+JNIEXPORT void JNICALL Java_martin_tempest_core_TSDRLibrary_sync
+  (JNIEnv *, jobject, jint, jobject);
+
+/*
+ * Class:     martin_tempest_core_TSDRLibrary
  * Method:    setResolution
  * Signature: (IID)V
  */
@@ -87,6 +95,17 @@ JNIEXPORT void JNICALL Java_martin_tempest_core_TSDRLibrary_setResolution
 
 #ifndef _Included_martin_tempest_core_TSDRLibrary_FrameReadyCallback
 #define _Included_martin_tempest_core_TSDRLibrary_FrameReadyCallback
+#ifdef __cplusplus
+extern "C" {
+#endif
+#ifdef __cplusplus
+}
+#endif
+#endif
+/* Header for class martin_tempest_core_TSDRLibrary_SYNC_DIRECTION */
+
+#ifndef _Included_martin_tempest_core_TSDRLibrary_SYNC_DIRECTION
+#define _Included_martin_tempest_core_TSDRLibrary_SYNC_DIRECTION
 #ifdef __cplusplus
 extern "C" {
 #endif

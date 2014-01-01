@@ -3,6 +3,12 @@
 
 	#include <stdint.h>
 
+	#define DIRECTION_CUSTOM (0)
+	#define DIRECTION_UP (1)
+	#define DIRECTION_DOWN (2)
+	#define DIRECTION_LEFT (3)
+	#define DIRECTION_RIGHT (4)
+
 	struct tsdr_lib {
 		void * plugin;
 		void * mutex_sync_unload;
@@ -19,6 +25,7 @@
 		int frames_to_average;
 		uint32_t centfreq;
 		float gain;
+		volatile int syncoffset;
 	} typedef tsdr_lib_t;
 
 	typedef void(*tsdr_readasync_function)(float *buf, int width, int height, void *ctx);
@@ -32,5 +39,6 @@
 	int tsdr_unloadplugin(tsdr_lib_t * tsdr);
 	int tsdr_setresolution(tsdr_lib_t * tsdr, int width, int height, double refreshrate);
 	int tsdr_isrunning(tsdr_lib_t * tsdr);
+	int tsdr_sync(tsdr_lib_t * tsdr, int pixels, int direction);
 
 #endif

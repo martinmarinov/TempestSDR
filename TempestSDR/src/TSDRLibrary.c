@@ -41,6 +41,7 @@ void tsdr_init(tsdr_lib_t * tsdr) {
 	tsdr->nativerunning = 0;
 	tsdr->plugin = NULL;
 	tsdr->centfreq = 0;
+	tsdr->syncoffset = 0;
 }
 
 int tsdr_isrunning(tsdr_lib_t * tsdr) {
@@ -123,6 +124,8 @@ void videodecodingthread(void * ctx) {
 	float * circbuff = (float *) malloc(sizeof(float) * frames_to_average * bufsize);
 	int circbuffidx = 0;
 
+	int stat;
+
 
 
 	//if (pix > max) max = pix; else if (pix < min) min = pix;
@@ -153,7 +156,20 @@ void videodecodingthread(void * ctx) {
 			circbuff = (float *) realloc(circbuff, sizeof(float) * frames_to_average * bufsize);
 		}
 
-		if (cb_rem_blocking(&context->circbuf, &circbuff[circbuffidx*sizetopoll], sizetopoll) == CB_OK) {
+		// apply synchronisation offset
+		const int syncoff = context->this->syncoffset;
+		if (syncoff < 0) {
+			stat = cb_rem_blocking(&context->circbuf, &circbuff[circbuffidx*sizetopoll], -syncoff);
+			if (stat == CB_OK) context->this->syncoffset = 0;
+
+			stat = cb_rem_blocking(&context->circbuf, &circbuff[circbuffidx*sizetopoll], sizetopoll);
+		} else if (syncoff > 0) {
+			stat = cb_rem_blocking(&context->circbuf, &circbuff[circbuffidx*sizetopoll+syncoff], sizetopoll-syncoff);
+			if (stat == CB_OK) context->this->syncoffset = 0;
+		} else
+			stat = cb_rem_blocking(&context->circbuf, &circbuff[circbuffidx*sizetopoll], sizetopoll);
+
+		if (stat == CB_OK) {
 			circbuffidx=((circbuffidx+1) % frames_to_average);
 
 			int i, j;
@@ -386,6 +402,32 @@ int tsdr_setresolution(tsdr_lib_t * tsdr, int width, int height, double refreshr
 	if (tsdr->sampletime != 0)
 		tsdr->pixeltimeoversampletime = tsdr->pixeltime /  tsdr->sampletime;
 
+	return TSDR_OK;
+}
+
+int tsdr_sync(tsdr_lib_t * tsdr, int pixels, int direction) {
+	if (pixels == 0) return TSDR_OK;
+	switch(direction) {
+	case DIRECTION_CUSTOM:
+		tsdr->syncoffset += pixels;
+		break;
+	case DIRECTION_UP:
+		if (pixels > tsdr->height || pixels < 0) return TSDR_WRONG_VIDEOPARAMS;
+		tsdr->syncoffset += pixels * tsdr->width;
+		break;
+	case DIRECTION_DOWN:
+		if (pixels > tsdr->height || pixels < 0) return TSDR_WRONG_VIDEOPARAMS;
+		tsdr->syncoffset -= pixels * tsdr->width;
+		break;
+	case DIRECTION_LEFT:
+		if (pixels > tsdr->width || pixels < 0) return TSDR_WRONG_VIDEOPARAMS;
+		tsdr->syncoffset+=pixels;
+		break;
+	case DIRECTION_RIGHT:
+		if (pixels > tsdr->width || pixels < 0) return TSDR_WRONG_VIDEOPARAMS;
+		tsdr->syncoffset-=pixels;
+		break;
+	}
 	return TSDR_OK;
 }
 

@@ -14,6 +14,7 @@ import javax.swing.JTextField;
 import javax.swing.DefaultComboBoxModel;
 
 import martin.tempest.core.TSDRLibrary;
+import martin.tempest.core.TSDRLibrary.SYNC_DIRECTION;
 import martin.tempest.core.exceptions.TSDRException;
 import martin.tempest.sources.TSDRSource;
 
@@ -29,6 +30,8 @@ import javax.swing.event.ChangeEvent;
 import javax.swing.JCheckBox;
 
 public class Main implements TSDRLibrary.FrameReadyCallback {
+	
+	private static final int SYNC_AMOUNT = 10;
 
 	private JFrame frmTempestSdr;
 	private JTextField textArgs;
@@ -215,6 +218,42 @@ public class Main implements TSDRLibrary.FrameReadyCallback {
 		chckbxInvertedColours.setBounds(568, 141, 159, 25);
 		frmTempestSdr.getContentPane().add(chckbxInvertedColours);
 		
+		JButton btnUp = new JButton("Up");
+		btnUp.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent arg0) {
+				mSdrlib.sync(SYNC_AMOUNT, SYNC_DIRECTION.UP);
+			}
+		});
+		btnUp.setBounds(608, 186, 78, 25);
+		frmTempestSdr.getContentPane().add(btnUp);
+		
+		JButton btnLeft = new JButton("Left");
+		btnLeft.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				mSdrlib.sync(SYNC_AMOUNT, SYNC_DIRECTION.LEFT);
+			}
+		});
+		btnLeft.setBounds(568, 211, 65, 25);
+		frmTempestSdr.getContentPane().add(btnLeft);
+		
+		JButton btnRight = new JButton("Right");
+		btnRight.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				mSdrlib.sync(SYNC_AMOUNT, SYNC_DIRECTION.RIGHT);
+			}
+		});
+		btnRight.setBounds(662, 211, 65, 25);
+		frmTempestSdr.getContentPane().add(btnRight);
+		
+		JButton btnDown = new JButton("Down");
+		btnDown.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				mSdrlib.sync(SYNC_AMOUNT, SYNC_DIRECTION.DOWN);
+			}
+		});
+		btnDown.setBounds(608, 237, 78, 25);
+		frmTempestSdr.getContentPane().add(btnDown);
+		
 		onVideoModeSelected(videomodes[0]);
 	}
 	
@@ -257,20 +296,14 @@ public class Main implements TSDRLibrary.FrameReadyCallback {
 				displayException(frmTempestSdr, e);
 				return;
 			}
-			
-			new Thread() {
-				public void run() {
-					try {
-						mSdrlib.startAsync(src, (Integer) spWidth.getValue(), (Integer) spHeight.getValue(), Double.parseDouble(spFramerate.getValue().toString()));
-					} catch (TSDRException e1) {
-						btnStartStop.setText("Start");
-						displayException(frmTempestSdr, e1);
-					}
-					
-				};
-			}.start();
-			
-			
+
+			try {
+				mSdrlib.startAsync(src, (Integer) spWidth.getValue(), (Integer) spHeight.getValue(), Double.parseDouble(spFramerate.getValue().toString()));
+			} catch (TSDRException e1) {
+				displayException(frmTempestSdr, e1);
+				btnStartStop.setText("Start");
+			}
+
 			btnStartStop.setText("Stop");
 		}
 		

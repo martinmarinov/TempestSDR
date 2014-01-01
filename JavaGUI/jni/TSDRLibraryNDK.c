@@ -182,3 +182,23 @@ JNIEXPORT jboolean JNICALL Java_martin_tempest_core_TSDRLibrary_isRunning  (JNIE
 JNIEXPORT void JNICALL Java_martin_tempest_core_TSDRLibrary_setInvertedColors  (JNIEnv * env, jobject obj, jboolean invertedEnabled) {
 	inverted = invertedEnabled == JNI_TRUE;
 }
+
+JNIEXPORT void JNICALL Java_martin_tempest_core_TSDRLibrary_sync (JNIEnv * env, jobject obj, jint pixels, jobject dir) {
+	jclass enumClass = (*env)->FindClass(env, "martin/tempest/core/TSDRLibrary$SYNC_DIRECTION");
+	jmethodID getNameMethod = (*env)->GetMethodID(env, enumClass, "name", "()Ljava/lang/String;");
+	jstring value = (jstring)(*env)->CallObjectMethod(env, dir, getNameMethod);
+	const char* valueNative = (*env)->GetStringUTFChars(env, value, 0);
+
+	if (strcmp(valueNative, "ANY") == 0)
+		THROW(tsdr_sync(&tsdr_instance, (int) pixels, DIRECTION_CUSTOM));
+	else if (strcmp(valueNative, "UP") == 0)
+		THROW(tsdr_sync(&tsdr_instance, (int) pixels, DIRECTION_UP));
+	else if (strcmp(valueNative, "DOWN") == 0)
+		THROW(tsdr_sync(&tsdr_instance, (int) pixels, DIRECTION_DOWN));
+	else if (strcmp(valueNative, "LEFT") == 0)
+		THROW(tsdr_sync(&tsdr_instance, (int) pixels, DIRECTION_LEFT));
+	else if (strcmp(valueNative, "RIGHT") == 0)
+		THROW(tsdr_sync(&tsdr_instance, (int) pixels, DIRECTION_RIGHT));
+
+	(*env)->ReleaseStringUTFChars(env, value, valueNative);
+}
