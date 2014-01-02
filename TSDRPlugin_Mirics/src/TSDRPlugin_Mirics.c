@@ -9,14 +9,21 @@
 #include <stdint.h>
 #include <stdlib.h>
 
+#include "threading.h"
+#include "circbuff.h"
+
 #define SAMPLE_RATE (8000000)
+#define SAMPLES_TO_READ_AT_ONCE (512*1024)
 
 volatile int working = 0;
 
 volatile double desiredfreq = 200;
 volatile int desiredgainred = 40;
+volatile int err_return_code = 0;
+CircBuff_t circbuf;
+mutex_t mutex;
 
-#define SAMPLES_TO_PROCESS_AT_ONCE (20)
+#define SAMPLES_TO_PROCESS_AT_ONCE (500)
 
 void tsdrplugin_getName(char * name) {
 	strcpy(name, "TSDR Mirics SDR Plugin");
@@ -51,8 +58,7 @@ int tsdrplugin_setParams(const char * params) {
 	return TSDR_OK;
 }
 
-int tsdrplugin_readasync(tsdrplugin_readasync_function cb, void *ctx) {
-	working = 1;
+void samplepollthread(void * ctx) {
 
 	int err, sps, grc, rfc, fsc, i, id;
 	unsigned int fs;
@@ -62,7 +68,7 @@ int tsdrplugin_readasync(tsdrplugin_readasync_function cb, void *ctx) {
 	err = mir_sdr_Init(gainred, 8, freq / 1000000.0, mir_sdr_BW_8_000, mir_sdr_IF_Zero, &sps);
 	if (err != 0) {
 		mir_sdr_Uninit();
-		return TSDR_CANNOT_OPEN_DEVICE;
+		err_return_code = TSDR_CANNOT_OPEN_DEVICE; return;
 	}
 
 	short * xi = (short *)malloc(sps * SAMPLES_TO_PROCESS_AT_ONCE * sizeof(short));
@@ -111,14 +117,57 @@ int tsdrplugin_readasync(tsdrplugin_readasync_function cb, void *ctx) {
 			outbuf[i] = val / 32767.0;
 		}
 
-		cb(outbuf, outbufsize, ctx);
+		//mir_sdr_SetSyncUpdatePeriod(sps * SAMPLES_TO_PROCESS_AT_ONCE);
+		//mir_sdr_SetSyncUpdateSampleNum(fs+sps * SAMPLES_TO_PROCESS_AT_ONCE);
+
+		cb_add(&circbuf, outbuf, outbufsize);
 	}
 
 	free(outbuf);
 	free(xi);
 	free(xq);
 
-	if (mir_sdr_Uninit() != 0) return TSDR_ERR_PLUGIN;
+	if (mir_sdr_Uninit() != 0) {
+		err_return_code = TSDR_ERR_PLUGIN;
+		return;
+	}
 
-	return (err == 0) ? TSDR_OK : TSDR_ERR_PLUGIN;
+	if (err != 0) {
+		err_return_code = TSDR_ERR_PLUGIN;
+		return;
+	}
+
+	err_return_code = 0;
+
+	mutex_signal(&mutex);
+}
+
+
+
+int tsdrplugin_readasync(tsdrplugin_readasync_function cb, void *ctx) {
+	working = 1;
+
+	cb_init(&circbuf);
+	mutex_init(&mutex);
+
+	thread_start(samplepollthread, NULL);
+
+	float * buff = (float *) malloc(sizeof(float) * SAMPLES_TO_READ_AT_ONCE);
+
+	while (working) {
+		if (cb_rem_blocking(&circbuf, buff, SAMPLES_TO_READ_AT_ONCE) == CB_OK)
+			cb(buff, SAMPLES_TO_READ_AT_ONCE, ctx);
+		if (err_return_code != 0)
+			working = 0;
+	}
+
+	if (err_return_code == 0)
+		mutex_wait(&mutex);
+
+	free(buff);
+
+	mutex_free(&mutex);
+	cb_free(&circbuf);
+
+	return err_return_code;
 }
