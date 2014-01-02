@@ -42,12 +42,13 @@ public class Main implements TSDRLibrary.FrameReadyCallback {
 	private final static String FRAMERATE_FORMAT = "%."+FRAMERATE_SIGNIFICANT_FIGURES+"f";
 	
 	//private static final String COMMAND = "D:\\Dokumenti\\Cambridge\\project\\lcd1680x1050x60_8bit_8000000.wav 80000000 int8";
-	private static final String COMMAND = "D:\\Dokumenti\\Cambridge\\project\\tvpal8bit8000000.wav 8000000 int8";
+	//private static final String COMMAND = "D:\\Dokumenti\\Cambridge\\project\\cablepal16bit8000000.wav 8000000 int16";
+	//private static final String COMMAND = "D:\\Dokumenti\\Cambridge\\project\\tvpal8bit8000000.wav 8000000 int8";
 	//private static final String COMMAND = "D:\\Dokumenti\\Cambridge\\project\\tvpal8bit2048000.wav 2048000 int8";
 	//private static final String COMMAND = "D:\\Dokumenti\\Cambridge\\project\\tvpal16bit8000000.wav 8000000 int16";
 	//private static final String COMMAND = "D:\\Dokumenti\\Cambridge\\project\\mphilproj\\martin-vaio-h-200.dat 25000000 int16";
 	//private static final String COMMAND = "D:\\Dokumenti\\Cambridge\\project\\mphilproj\\cdxdemo-rf.dat 25000000 int16";
-	//private static final String COMMAND = "D:\\Dokumenti\\Cambridge\\project\\mphilproj\\Toshiba-440CDX\\toshiba.iq 25000000 float";
+	private static final String COMMAND = "D:\\Dokumenti\\Cambridge\\project\\mphilproj\\Toshiba-440CDX\\toshiba.iq 25000000 float";
 
 	private JFrame frmTempestSdr;
 	private JTextField textArgs;
@@ -390,6 +391,11 @@ public class Main implements TSDRLibrary.FrameReadyCallback {
 	
 	public void setFrameRate(final double val) {
 		txtFramerate.setText(String.format(FRAMERATE_FORMAT, val));
+		try {
+			mSdrlib.setResolution((Integer) spWidth.getValue(), (Integer) spHeight.getValue(), val);
+		} catch (TSDRException e) {
+			displayException(frmTempestSdr, e);
+		}
 	}
 	
 	public void onFrameRateChanged(boolean left, int clicksofar) {
@@ -399,11 +405,6 @@ public class Main implements TSDRLibrary.FrameReadyCallback {
 			framerate -= amount;
 		else if (!left)
 			framerate += amount;
-		try {
-			mSdrlib.setResolution((Integer) spWidth.getValue(), (Integer) spHeight.getValue(), framerate);
-		} catch (TSDRException e) {
-			displayException(frmTempestSdr, e);
-		}
 		setFrameRate(framerate);
 	}
 

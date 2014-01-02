@@ -16,7 +16,7 @@ volatile int working = 0;
 volatile double desiredfreq = 200;
 volatile int desiredgainred = 40;
 
-#define SAMPLES_TO_PROCESS_AT_ONCE (20)
+#define SAMPLES_TO_PROCESS_AT_ONCE (500)
 
 void tsdrplugin_getName(char * name) {
 	strcpy(name, "TSDR Mirics SDR Plugin");
@@ -110,6 +110,9 @@ int tsdrplugin_readasync(tsdrplugin_readasync_function cb, void *ctx) {
 			const short val = (i & 1) ? (xq[i >> 1]) : (xi[i >> 1]);
 			outbuf[i] = val / 32767.0;
 		}
+
+		mir_sdr_SetSyncUpdatePeriod(sps * SAMPLES_TO_PROCESS_AT_ONCE);
+		mir_sdr_SetSyncUpdateSampleNum(fs+sps * SAMPLES_TO_PROCESS_AT_ONCE);
 
 		cb(outbuf, outbufsize, ctx);
 	}
