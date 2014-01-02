@@ -1,7 +1,7 @@
 #include "circbuff.h"
 #include <errno.h>
 
-#define SIZE_COEFF (20)
+#define SIZE_COEFF (200)
 
 void cb_init(CircBuff_t * cb) {
 	cb->size = 0;
