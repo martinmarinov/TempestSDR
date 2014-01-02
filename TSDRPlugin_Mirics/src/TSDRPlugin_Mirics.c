@@ -117,10 +117,17 @@ void samplepollthread(void * ctx) {
 			outbuf[i] = val / 32767.0;
 		}
 
+<<<<<<< HEAD
 		//mir_sdr_SetSyncUpdatePeriod(sps * SAMPLES_TO_PROCESS_AT_ONCE);
 		//mir_sdr_SetSyncUpdateSampleNum(fs+sps * SAMPLES_TO_PROCESS_AT_ONCE);
 
 		cb_add(&circbuf, outbuf, outbufsize);
+=======
+		mir_sdr_SetSyncUpdatePeriod(sps * SAMPLES_TO_PROCESS_AT_ONCE);
+		mir_sdr_SetSyncUpdateSampleNum(fs+sps * SAMPLES_TO_PROCESS_AT_ONCE);
+
+		cb(outbuf, outbufsize, ctx);
+>>>>>>> 82ad738f1440fbbecd19dc2f5f1851467066e34a
 	}
 
 	free(outbuf);
