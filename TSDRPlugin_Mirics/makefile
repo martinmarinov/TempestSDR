@@ -3,8 +3,8 @@
 PLUGNAME=TSDRPlugin_Mirics
 
 # Dependencies
-OBJS=$(PLUGNAME).o circbuff.o threading.o
-DEPS=TSDRPlugin.h TSDRCodes.h circbuff.h threading.h osdetect.h
+OBJS=$(PLUGNAME).o
+DEPS=TSDRPlugin.h TSDRCodes.h
 
 # Headers
 INC = "$(MIRICS_HOME)/API/inc"

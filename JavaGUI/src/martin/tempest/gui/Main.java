@@ -400,7 +400,7 @@ public class Main implements TSDRLibrary.FrameReadyCallback {
 	}
 	
 	public void onFrameRateChanged(boolean left, int clicksofar) {
-		double amount = Math.exp(clicksofar/5) * FRAMERATE_MIN_CHANGE;
+		double amount = clicksofar * clicksofar * FRAMERATE_MIN_CHANGE;
 		if (amount > 0.05) amount = 0.05;
 		if (left && framerate > amount)
 			framerate -= amount;
