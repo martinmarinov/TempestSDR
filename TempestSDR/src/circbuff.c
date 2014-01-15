@@ -1,9 +1,7 @@
 #include "circbuff.h"
 #include <errno.h>
 
-#define SIZE_COEFF (20)
-
-#define DEBUG (0)
+#define SIZE_COEFF (4)
 
 void cb_init(CircBuff_t * cb) {
     cb->desired_buf_size = SIZE_COEFF; // initial size of buffer
@@ -26,6 +24,8 @@ int cb_add(CircBuff_t * cb, float * in, const int len) {
     // if the size of the buffer is not large enough, request the buffer to be resized
     if (len*SIZE_COEFF > cb->buffer_size) cb->desired_buf_size = len*SIZE_COEFF;
 
+    critical_enter(&cb->mutex);
+
     if (cb->buffer_size < cb->desired_buf_size) {
         // if we need to resize the buffer
         const int diff = cb->desired_buf_size - cb->buffer_size;
@@ -35,13 +35,10 @@ int cb_add(CircBuff_t * cb, float * in, const int len) {
         cb->buffer_size = cb->desired_buf_size; // set the size
     }
 
-    if (cb->remaining_capacity < len) return CB_FULL; // if there is not enough space to put buffer, return error
-
-    critical_enter(&cb->mutex);
-
-#if DEBUG
-    printf("Adding "); showbuf(in, len);
-#endif
+    if (cb->remaining_capacity < len) {
+            critical_leave(&cb->mutex);
+            return CB_FULL; // if there is not enough space to put buffer, return error
+    }
 
     const int oldpos = cb->pos;
     cb->pos = (oldpos + len) % cb->buffer_size; // calculate new position
@@ -56,10 +53,6 @@ int cb_add(CircBuff_t * cb, float * in, const int len) {
         // the add will not wrap around
         memcpy(&cb->buffer[oldpos], in, len*sizeof(float));
     }
-
-#if DEBUG
-    printf("After add result "); showcb();
-#endif
 
     if (cb->is_waiting) mutex_signal(&cb->locker);
 
@@ -102,10 +95,6 @@ int cb_rem_blocking(CircBuff_t * cb, float * in, const int len) {
     cb->remaining_capacity += len; // we have removed len items
 
     critical_leave(&cb->mutex);
-
-#if DEBUG
-    printf("After rem result "); showbuf(in, len);
-#endif
 
     return CB_OK;
 }
