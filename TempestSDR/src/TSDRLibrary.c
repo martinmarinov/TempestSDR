@@ -313,8 +313,8 @@ void process(float *buf, uint32_t len, void *ctx) {
 	context->offset = t-size;
 	context->contributionfromlast = contrib;
 
-//	if (pid != pids || context->offset > 0 || context->offset < -post)
-//		printf("Pid %d; pids %d; t %.4f, size %d, offset %.4f\n", pid, pids, t, size, context->offset);
+	//if (pid != pids || context->offset > 0 || context->offset < -post)
+	//	printf("Pid %d; pids %d; t %.4f, size %d, offset %.4f\n", pid, pids, t, size, context->offset);
 
 	cb_add(&context->circbuf, outbuf, pid);
 

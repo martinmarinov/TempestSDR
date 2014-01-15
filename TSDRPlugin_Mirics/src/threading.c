@@ -5,13 +5,7 @@
 // A platform independent threading library with mutexes
 // source: http://www.cs.wustl.edu/~schmidt/win32-cv-1.html
 
-#if WINHEAD
-    #include <windows.h>
-#else
-    #include <pthread.h>
-	#include <sys/time.h>
-	#include <unistd.h>
-#endif
+#include <windows.h>
 
 
 #if WINHEAD
@@ -51,11 +45,12 @@
 		CreateThread(NULL,0,threadFunc,(LPVOID) args,0,NULL);
 #else
 		// TODO! IS THIS CORRECT?!? TODO! CEHCK IT!
+		printf("Start the thread\n");
 		pthread_t thread;
 		pthread_create (&thread, NULL, (void *) &f, ctx);
 #endif
 	}
-	
+
 	void mutex_init(mutex_t * mutex) {
 #if WINHEAD
 		mutex->thing1 = (void *) CreateEvent (0, FALSE, FALSE, 0);
@@ -88,7 +83,7 @@
 
 	int mutex_wait(mutex_t * imutex) {
 #if WINHEAD
-		return (WaitForSingleObject ((HANDLE) imutex->thing1, 1000) == WAIT_TIMEOUT) ? (THREAD_TIMEOUT) : (THREAD_OK);
+		return (WaitForSingleObject ((HANDLE) imutex->thing1, 10) == WAIT_TIMEOUT) ? (THREAD_TIMEOUT) : (THREAD_OK);
 #else
 		if (imutex->thing1 == NULL || imutex->thing2 == NULL) return THREAD_NOT_INITED;
 
@@ -113,7 +108,7 @@
 
 		return THREAD_OK;
 	}
-	
+
 	void mutex_signal(mutex_t * imutex) {
 #if WINHEAD
 		SetEvent ((HANDLE) imutex->thing1);

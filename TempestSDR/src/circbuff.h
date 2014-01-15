@@ -14,16 +14,18 @@ typedef struct CircBuff CircBuff_t;
 
 struct CircBuff
 {
-	float * buffer;
-	int pos;
-	int bufsize;
-	int bufsizereduced;
-	volatile int size;
+	float * buffer; // the circular buffer itself
+	int buffer_size; // the size of the circular buffer
+	int desired_buf_size; // the size of the buffer that we want it to become
 
-	volatile int isblocked;
-	mutex_t mutex;
-	mutex_t second;
-	mutex_t third;
+    volatile int remaining_capacity; // the available capacity. I.e. how many free elements are there in the buffer
+    int pos; // the position where the next element will be inserted
+    int rempos; // the position where the next element will be taken from
+
+    volatile int is_waiting;
+
+    mutex_t mutex; // for thread safety
+    mutex_t locker; // for waiting
 };
 
 void cb_init(CircBuff_t * cb);
