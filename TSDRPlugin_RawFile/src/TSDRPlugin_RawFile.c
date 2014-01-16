@@ -213,7 +213,7 @@ int tsdrplugin_readasync(tsdrplugin_readasync_function cb, void *ctx) {
 				break;
 			}
 
-			cb(outbuf, SAMPLES_TO_READ_AT_ONCE, ctx);
+			cb(outbuf, SAMPLES_TO_READ_AT_ONCE, ctx, 0);
 
 #if !PERFORMANCE_BENCHMARK
 			const uint32_t timeelapsed = (uint32_t) (1000.0f*timer_ticktock(&timer));

@@ -3,7 +3,7 @@
 
 	#include <stdint.h>
 
-	typedef void(*tsdrplugin_readasync_function)(float *buf, uint32_t len, void *ctx);
+	typedef void(*tsdrplugin_readasync_function)(float *buf, uint32_t len, void *ctx, int dropped_samples);
 
 	void tsdrplugin_getName(char *);
 	int tsdrplugin_setParams(const char * params);

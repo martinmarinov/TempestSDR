@@ -12,7 +12,7 @@
 	#include <dlfcn.h>
 #endif
 
-	typedef void(*tsdrplugin_readasync_function)(float *buf, uint32_t len, void *ctx);
+	typedef void(*tsdrplugin_readasync_function)(float *buf, uint32_t len, void *ctx, int dropped_samples);
 
 	struct pluginsource {
 		void * fd;

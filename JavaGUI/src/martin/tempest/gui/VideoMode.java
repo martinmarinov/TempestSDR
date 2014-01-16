@@ -77,7 +77,7 @@ public class VideoMode {
 		new VideoMode("1792x1344 @ 75Hz", 2456, 1417, 75),
 		new VideoMode("1856x1392 @ 60Hz", 2528, 1439, 60),
 		new VideoMode("1856x1392 @ 75Hz", 2560, 1500, 75),
-		new VideoMode("1920x1080 @ 60Hz", 2576, 1118, 60),
+		new VideoMode("1920x1080 @ 60Hz", 2576, 1125, 60),
 		new VideoMode("1920x1080 @ 75Hz", 2608, 1126, 75),
 		new VideoMode("1920x1200 @ 60Hz", 2592, 1242, 60),
 		new VideoMode("1920x1200 @ 75Hz", 2624, 1253, 75),

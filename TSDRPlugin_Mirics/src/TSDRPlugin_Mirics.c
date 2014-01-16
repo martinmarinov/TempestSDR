@@ -56,6 +56,7 @@ int tsdrplugin_readasync(tsdrplugin_readasync_function cb, void *ctx) {
 
 	int err, sps, grc, rfc, fsc, i, id;
 	unsigned int fs;
+	unsigned int frame = 0;
 
 	double freq = desiredfreq;
 	double gainred = desiredgainred;
@@ -72,9 +73,13 @@ int tsdrplugin_readasync(tsdrplugin_readasync_function cb, void *ctx) {
 	float * outbuf = (float *) malloc(sizeof(float) * outbufsize);
 
 	while (working) {
+		unsigned int dropped = 0;
 
 		for (id = 0; id < SAMPLES_TO_PROCESS_AT_ONCE; id++) {
 			err = mir_sdr_ReadPacket(&xi[id*sps], &xq[id*sps], &fs, &grc, &rfc, &fsc);
+			if (fs > frame)
+				dropped += fs - frame;
+			frame = fs + sps;
 			if (err != 0) break;
 		}
 
@@ -111,7 +116,7 @@ int tsdrplugin_readasync(tsdrplugin_readasync_function cb, void *ctx) {
 			outbuf[i] = val / 32767.0;
 		}
 
-		cb(outbuf, outbufsize, ctx);
+		cb(outbuf, outbufsize, ctx, dropped);
 	}
 
 	free(outbuf);

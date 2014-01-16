@@ -206,7 +206,7 @@ public class Main implements TSDRLibrary.FrameReadyCallback {
 			}
 		});
 		spFrequency.setBounds(223, 470, 340, 22);
-		spFrequency.setModel(new SpinnerNumberModel(new Long(113095000), new Long(0), new Long(2147483647), new Long(1000000)));
+		spFrequency.setModel(new SpinnerNumberModel(new Long(430000000), new Long(0), new Long(2147483647), new Long(1000000)));
 		frmTempestSdr.getContentPane().add(spFrequency);
 		
 		final JCheckBox chckbxInvertedColours = new JCheckBox("Inverted colours");

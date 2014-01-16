@@ -31,7 +31,7 @@ struct tsdr_context {
 		CircBuff_t circbuf;
 		double offset;
 		float contributionfromlast;
-		unsigned int dropped;
+		int dropped;
 		unsigned int todrop;
 	} typedef tsdr_context_t;
 
@@ -205,7 +205,7 @@ static inline float definiteintegral(float x) {
 // Return the area of the pixel signal spanned by this if the pixel was from 0 to 1
 #define integrate(start, end) (definiteintegral(end) - definiteintegral(start))
 
-void process(float *buf, uint32_t len, void *ctx) {
+void process(float *buf, uint32_t len, void *ctx, int dropped) {
 	tsdr_context_t * context = (tsdr_context_t *) ctx;
 
 	const int size = len/2;
@@ -216,6 +216,9 @@ void process(float *buf, uint32_t len, void *ctx) {
 	const double post = context->this->pixeltimeoversampletime;
 	const int pids = (int) ((size - context->offset) / post);
 	const float normalize = integrate(0, 1);
+
+	if (dropped > 0)
+		context->dropped += dropped / post;
 
 	// resize buffer so it fits
 	if (pids > outbufsize) {
@@ -295,19 +298,19 @@ void process(float *buf, uint32_t len, void *ctx) {
 	//if (pid != pids || context->offset > 0 || context->offset < -post)
 	//	printf("Pid %d; pids %d; t %.4f, size %d, offset %.4f\n", pid, pids, t, size, context->offset);
 
-	if (context->todrop > pid)
+	if (context->todrop >= pid)
 		context->todrop -= pid;
-	else if (cb_add(&context->circbuf, outbuf, pid-context->todrop) == CB_OK) {
+	else if (cb_add(&context->circbuf, &outbuf[context->todrop], pid-context->todrop) == CB_OK) {
 		context->todrop = 0;
-		if (context->dropped != 0) {
-			const int size = context->this->width * context->this->height;
-			const int dropped = context->dropped % size;
-			context->todrop = size - dropped; // how much to drop so that it ends up on one frame
+		if (context->dropped > 0) {
+			const unsigned int size = context->this->width * context->this->height;
+			const unsigned int moddropped = context->dropped % size;
+			context->todrop = size - moddropped; // how much to drop so that it ends up on one frame
 		}
 		context->dropped = 0;
 	}
 	else
-		context->dropped += pid-context->todrop;
+		context->dropped += pid;
 
 }
 
