@@ -14,13 +14,13 @@ typedef struct CircBuff CircBuff_t;
 
 struct CircBuff
 {
-	float * buffer; // the circular buffer itself
-	int buffer_size; // the size of the circular buffer
-	int desired_buf_size; // the size of the buffer that we want it to become
+    volatile float * buffer; // the circular buffer itself
+	volatile int buffer_size; // the size of the circular buffer
+	volatile int desired_buf_size; // the size of the buffer that we want it to become
 
     volatile int remaining_capacity; // the available capacity. I.e. how many free elements are there in the buffer
     int pos; // the position where the next element will be inserted
-    int rempos; // the position where the next element will be taken from
+    volatile int rempos; // the position where the next element will be taken from
 
     volatile int is_waiting;
 

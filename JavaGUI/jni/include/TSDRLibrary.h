@@ -22,7 +22,6 @@
 		double pixeltimeoversampletime;
 		volatile int running;
 		volatile int nativerunning;
-		int frames_to_average;
 		uint32_t centfreq;
 		float gain;
 		volatile int syncoffset;

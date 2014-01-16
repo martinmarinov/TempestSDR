@@ -83,7 +83,7 @@
 
 	int mutex_wait(mutex_t * imutex) {
 #if WINHEAD
-		return (WaitForSingleObject ((HANDLE) imutex->thing1, 10) == WAIT_TIMEOUT) ? (THREAD_TIMEOUT) : (THREAD_OK);
+		return (WaitForSingleObject ((HANDLE) imutex->thing1, 100) == WAIT_TIMEOUT) ? (THREAD_TIMEOUT) : (THREAD_OK);
 #else
 		if (imutex->thing1 == NULL || imutex->thing2 == NULL) return THREAD_NOT_INITED;
 

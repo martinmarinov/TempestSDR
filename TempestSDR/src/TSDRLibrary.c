@@ -19,8 +19,6 @@
 #define MAX_ARR_SIZE (4000*4000)
 #define MAX_SAMP_RATE (500e6)
 
-#define DEFAULT_FRAMES_TO_AVERAGE (1)
-
 #define INTEG_TYPE (0)
 #define PI (3.141592653589793238462643383279502f)
 
@@ -33,11 +31,12 @@ struct tsdr_context {
 		CircBuff_t circbuf;
 		double offset;
 		float contributionfromlast;
+		unsigned int dropped;
+		unsigned int todrop;
 	} typedef tsdr_context_t;
 
 
 void tsdr_init(tsdr_lib_t * tsdr) {
-	tsdr->frames_to_average = DEFAULT_FRAMES_TO_AVERAGE;
 	tsdr->nativerunning = 0;
 	tsdr->plugin = NULL;
 	tsdr->centfreq = 0;
@@ -110,23 +109,19 @@ int tsdr_setgain(tsdr_lib_t * tsdr, float gain) {
 // polyface filterbank
 // shielded loop antenna (magnetic)
 void videodecodingthread(void * ctx) {
+	int i;
+
 	tsdr_context_t * context = (tsdr_context_t *) ctx;
 
 	const uint32_t samplerate = context->this->samplerate;
 	int height = context->this->height;
 	int width = context->this->width;
-	int frames_to_average = context->this->frames_to_average;
 
 	int bufsize = height * width;
 	int sizetopoll = height * width;
 	float * buffer = (float *) malloc(sizeof(float) * bufsize);
 
-	float * circbuff = (float *) malloc(sizeof(float) * frames_to_average * bufsize);
-	int circbuffidx = 0;
-
 	int stat;
-
-
 
 	//if (pix > max) max = pix; else if (pix < min) min = pix;
 	//outbuf[pid++] = (pix - prev_min) * prev_span;
@@ -146,41 +141,26 @@ void videodecodingthread(void * ctx) {
 			if (sizetopoll > bufsize) {
 				bufsize = sizetopoll;
 				buffer = (float *) realloc(buffer, sizeof(float) * bufsize);
-				frames_to_average = context->this->frames_to_average;
-				circbuff = (float *) realloc(circbuff, sizeof(float) * frames_to_average * bufsize);
 			}
 		}
 
-		if (context->this->frames_to_average > 1 && frames_to_average != context->this->frames_to_average) {
-			frames_to_average = context->this->frames_to_average;
-			circbuff = (float *) realloc(circbuff, sizeof(float) * frames_to_average * bufsize);
-		}
-
 		// apply synchronisation offset
-		const int syncoff = context->this->syncoffset;
+		const int syncoff = context->this->syncoffset % sizetopoll;
 		if (syncoff < 0) {
-			stat = cb_rem_blocking(&context->circbuf, &circbuff[circbuffidx*sizetopoll], -syncoff);
+			stat = cb_rem_blocking(&context->circbuf, buffer, -syncoff);
 			if (stat == CB_OK) context->this->syncoffset = 0;
 
-			stat = cb_rem_blocking(&context->circbuf, &circbuff[circbuffidx*sizetopoll], sizetopoll);
+			stat = cb_rem_blocking(&context->circbuf, buffer, sizetopoll);
 		} else if (syncoff > 0) {
-			stat = cb_rem_blocking(&context->circbuf, &circbuff[circbuffidx*sizetopoll+syncoff], sizetopoll-syncoff);
+			stat = cb_rem_blocking(&context->circbuf, &buffer[syncoff], sizetopoll-syncoff);
 			if (stat == CB_OK) context->this->syncoffset = 0;
 		} else
-			stat = cb_rem_blocking(&context->circbuf, &circbuff[circbuffidx*sizetopoll], sizetopoll);
+			stat = cb_rem_blocking(&context->circbuf, buffer, sizetopoll);
 
 		if (stat == CB_OK) {
-			circbuffidx=((circbuffidx+1) % frames_to_average);
-
-			int i, j;
 
 			for (i = 0; i < sizetopoll; i++) {
-				float val = 0;
-				for (j = 0; j < frames_to_average; j++) {
-					const int id = circbuffidx - j - 1;
-					const int correctedid = (id < 0) ? (frames_to_average+id) : id;
-					val+=circbuff[correctedid*sizetopoll+i];
-				}
+				float val = buffer[i];
 
 				if (val > max) max = val; else if (val < min) min = val;
 				buffer[i] = (val - pmin) / span;
@@ -194,7 +174,6 @@ void videodecodingthread(void * ctx) {
 	}
 
 	free (buffer);
-	free (circbuff);
 
 	mutex_signal((mutex_t *) context->this->mutex_video_stopped);
 }
@@ -316,7 +295,19 @@ void process(float *buf, uint32_t len, void *ctx) {
 	//if (pid != pids || context->offset > 0 || context->offset < -post)
 	//	printf("Pid %d; pids %d; t %.4f, size %d, offset %.4f\n", pid, pids, t, size, context->offset);
 
-	cb_add(&context->circbuf, outbuf, pid);
+	if (context->todrop > pid)
+		context->todrop -= pid;
+	else if (cb_add(&context->circbuf, outbuf, pid-context->todrop) == CB_OK) {
+		context->todrop = 0;
+		if (context->dropped != 0) {
+			const int size = context->this->width * context->this->height;
+			const int dropped = context->dropped % size;
+			context->todrop = size - dropped; // how much to drop so that it ends up on one frame
+		}
+		context->dropped = 0;
+	}
+	else
+		context->dropped += pid-context->todrop;
 
 }
 
@@ -363,6 +354,8 @@ int tsdr_readasync(tsdr_lib_t * tsdr, const char * pluginfilepath, tsdr_readasyn
 	context->ctx = ctx;
 	context->contributionfromlast = 0;
 	context->offset = 0;
+	context->dropped = 0;
+	context->todrop = 0;
 	cb_init(&context->circbuf);
 
 	thread_start(videodecodingthread, (void *) context);
