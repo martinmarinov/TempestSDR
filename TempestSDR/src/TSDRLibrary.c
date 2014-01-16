@@ -121,11 +121,6 @@ void videodecodingthread(void * ctx) {
 	int sizetopoll = height * width;
 	float * buffer = (float *) malloc(sizeof(float) * bufsize);
 
-	int stat;
-
-	//if (pix > max) max = pix; else if (pix < min) min = pix;
-	//outbuf[pid++] = (pix - prev_min) * prev_span;
-
 	float pmax, pmin;
 
 	while (context->this->running) {
@@ -144,20 +139,7 @@ void videodecodingthread(void * ctx) {
 			}
 		}
 
-		// apply synchronisation offset
-		const int syncoff = context->this->syncoffset % sizetopoll;
-		if (syncoff < 0) {
-			stat = cb_rem_blocking(&context->circbuf, buffer, -syncoff);
-			if (stat == CB_OK) context->this->syncoffset = 0;
-
-			stat = cb_rem_blocking(&context->circbuf, buffer, sizetopoll);
-		} else if (syncoff > 0) {
-			stat = cb_rem_blocking(&context->circbuf, &buffer[syncoff], sizetopoll-syncoff);
-			if (stat == CB_OK) context->this->syncoffset = 0;
-		} else
-			stat = cb_rem_blocking(&context->circbuf, buffer, sizetopoll);
-
-		if (stat == CB_OK) {
+		if (cb_rem_blocking(&context->circbuf, buffer, sizetopoll) == CB_OK) {
 
 			for (i = 0; i < sizetopoll; i++) {
 				float val = buffer[i];
@@ -298,19 +280,26 @@ void process(float *buf, uint32_t len, void *ctx, int dropped) {
 	//if (pid != pids || context->offset > 0 || context->offset < -post)
 	//	printf("Pid %d; pids %d; t %.4f, size %d, offset %.4f\n", pid, pids, t, size, context->offset);
 
-	if (context->todrop >= pid)
-		context->todrop -= pid;
-	else if (cb_add(&context->circbuf, &outbuf[context->todrop], pid-context->todrop) == CB_OK) {
-		context->todrop = 0;
-		if (context->dropped > 0) {
-			const unsigned int size = context->this->width * context->this->height;
-			const unsigned int moddropped = context->dropped % size;
-			context->todrop = size - moddropped; // how much to drop so that it ends up on one frame
-		}
+	if (context->dropped > 0) {
+		const unsigned int size = context->this->width * context->this->height;
+		const unsigned int moddropped = context->dropped % size;
+		context->todrop += size - moddropped; // how much to drop so that it ends up on one frame
 		context->dropped = 0;
 	}
+
+	if (context->todrop >= pid)
+		context->todrop -= pid;
+	else if (cb_add(&context->circbuf, &outbuf[context->todrop], pid-context->todrop) == CB_OK)
+		context->todrop = 0;
 	else
 		context->dropped += pid;
+
+	const int syncoffset = context->this->syncoffset;
+	if (syncoffset > 0)
+		context->dropped += syncoffset;
+	else if (syncoffset < 0)
+		context->dropped += context->this->width * context->this->height + syncoffset;
+	context->this->syncoffset = 0;
 
 }
 
