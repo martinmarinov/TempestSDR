@@ -2,6 +2,8 @@ package martin.tempest.gui;
 
 import java.awt.Component;
 import java.awt.EventQueue;
+import java.awt.Rectangle;
+import java.awt.Toolkit;
 
 import javax.swing.JFrame;
 import javax.swing.JComboBox;
@@ -29,10 +31,13 @@ import javax.swing.SwingConstants;
 import javax.swing.event.ChangeListener;
 import javax.swing.event.ChangeEvent;
 import javax.swing.JCheckBox;
+
 import java.awt.event.KeyAdapter;
 import java.awt.event.KeyEvent;
 import java.awt.event.FocusAdapter;
 import java.awt.event.FocusEvent;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
 
 public class Main implements TSDRLibrary.FrameReadyCallback {
 	
@@ -52,6 +57,7 @@ public class Main implements TSDRLibrary.FrameReadyCallback {
 	//private static final String COMMAND = "D:\\Dokumenti\\Cambridge\\project\\mphilproj\\Toshiba-440CDX\\toshiba.iq 25000000 float";
 
 	private JFrame frmTempestSdr;
+	private JFrame fullscreenframe;
 	private JTextField textArgs;
 	private JSpinner spWidth;
 	private JSpinner spHeight;
@@ -64,6 +70,7 @@ public class Main implements TSDRLibrary.FrameReadyCallback {
 	private JButton btnStartStop;
 	private final TSDRLibrary mSdrlib;
 	private ImageVisualizer visualizer;
+	private Rectangle visualizer_bounds;
 	private double framerate = 50;
 	private JTextField txtFramerate;
 	
@@ -131,6 +138,24 @@ public class Main implements TSDRLibrary.FrameReadyCallback {
 		frmTempestSdr.getContentPane().add(btnStartStop);
 		
 		visualizer = new ImageVisualizer();
+		visualizer.addMouseListener(new MouseAdapter() {
+			@Override
+			public void mouseClicked(MouseEvent e) {
+				if (e.getClickCount() == 2) {
+					if (fullscreenframe.isVisible()) {
+						fullscreenframe.remove(visualizer);
+						visualizer.setBounds(visualizer_bounds);
+						frmTempestSdr.add(visualizer);
+						fullscreenframe.setVisible(false);
+					} else {
+						visualizer_bounds = visualizer.getBounds();
+						frmTempestSdr.remove(visualizer);
+						fullscreenframe.add(visualizer);
+						fullscreenframe.setVisible(true);
+					}
+				}
+			}
+		});
 		visualizer.setBounds(0, 32, 563, 433);
 		frmTempestSdr.getContentPane().add(visualizer);
 		
@@ -292,6 +317,15 @@ public class Main implements TSDRLibrary.FrameReadyCallback {
 		frmTempestSdr.getContentPane().add(btnHigherFramerate);
 		
 		onVideoModeSelected(videomodes[0]);
+		
+		// full screen frame
+		fullscreenframe = new JFrame("Video display");
+		Toolkit tk = Toolkit.getDefaultToolkit();  
+		int xSize = ((int) tk.getScreenSize().getWidth());  
+		int ySize = ((int) tk.getScreenSize().getHeight());  
+		fullscreenframe.setSize(xSize,ySize);
+		fullscreenframe.setUndecorated(true);
+		fullscreenframe.setLocation(0, 0);
 	}
 	
 	private void onVideoModeSelected(final VideoMode m) {
