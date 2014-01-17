@@ -12,6 +12,7 @@ void cb_init(CircBuff_t * cb) {
     cb->rempos = 0; // where the next element will be taken from
 
     cb->is_waiting = 0;
+    cb->buffering = 0;
 
     mutex_init(&cb->mutex);
     mutex_init(&cb->locker);
@@ -37,9 +38,14 @@ int cb_add(CircBuff_t * cb, float * in, const int len) {
 
     }
 
-    if (cb->remaining_capacity < len) {
-            critical_leave(&cb->mutex);
-            return CB_FULL; // if there is not enough space to put buffer, return error
+    if (cb->buffering && cb->remaining_capacity < 2*len) {
+    	cb->buffering = 0;
+    	critical_leave(&cb->mutex);
+    	return CB_FULL; // if there is not enough space to put buffer, return error
+    } else if (cb->remaining_capacity < len) {
+    	cb->buffering = 1;
+        critical_leave(&cb->mutex);
+        return CB_FULL; // if there is not enough space to put buffer, return error
     }
 
     const int oldpos = cb->pos;
@@ -71,8 +77,12 @@ int cb_rem_blocking(CircBuff_t * cb, float * in, const int len) {
             if (len*SIZE_COEFF > cb->buffer_size) cb->desired_buf_size = len*SIZE_COEFF;
 
             const int before_items_inside = items_inside;
-            if (mutex_wait(&cb->locker) == THREAD_TIMEOUT)
-                return CB_EMPTY;
+            cb->is_waiting = 1;
+            if (mutex_wait(&cb->locker) == THREAD_TIMEOUT) {
+            	cb->is_waiting = 0;
+            	return CB_EMPTY;
+            }
+            cb->is_waiting = 0;
             items_inside = cb->buffer_size - cb->remaining_capacity;
             if (before_items_inside == items_inside)
                 return CB_EMPTY; // if there are not enough items

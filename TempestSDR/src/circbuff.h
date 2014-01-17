@@ -23,6 +23,7 @@ struct CircBuff
     volatile int rempos; // the position where the next element will be taken from
 
     volatile int is_waiting;
+    int buffering;
 
     mutex_t mutex; // for thread safety
     mutex_t locker; // for waiting

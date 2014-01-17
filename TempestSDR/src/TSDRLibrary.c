@@ -280,6 +280,7 @@ void process(float *buf, uint32_t len, void *ctx, int dropped) {
 	//if (pid != pids || context->offset > 0 || context->offset < -post)
 	//	printf("Pid %d; pids %d; t %.4f, size %d, offset %.4f\n", pid, pids, t, size, context->offset);
 
+	// section for syncing lost samples
 	if (context->dropped > 0) {
 		const unsigned int size = context->this->width * context->this->height;
 		const unsigned int moddropped = context->dropped % size;
@@ -291,9 +292,11 @@ void process(float *buf, uint32_t len, void *ctx, int dropped) {
 		context->todrop -= pid;
 	else if (cb_add(&context->circbuf, &outbuf[context->todrop], pid-context->todrop) == CB_OK)
 		context->todrop = 0;
-	else
+	else // we lost samples due to buffer overflow
 		context->dropped += pid;
 
+
+	// section for manual syncing
 	const int syncoffset = context->this->syncoffset;
 	if (syncoffset > 0)
 		context->dropped += syncoffset;
