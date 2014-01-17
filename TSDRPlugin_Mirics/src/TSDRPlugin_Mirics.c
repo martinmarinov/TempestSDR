@@ -79,6 +79,11 @@ int tsdrplugin_readasync(tsdrplugin_readasync_function cb, void *ctx) {
 			err = mir_sdr_ReadPacket(&xi[id*sps], &xq[id*sps], &fs, &grc, &rfc, &fsc);
 			if (fs > frame)
 				dropped += fs - frame;
+//			else if (fs < frame) {
+//				// wrapped around
+//				dropped += 2147483647 - frame;
+//				dropped += fs;
+//			}
 			frame = fs + sps;
 			if (err != 0) break;
 		}

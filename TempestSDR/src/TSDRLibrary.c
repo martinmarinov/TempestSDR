@@ -121,15 +121,12 @@ void videodecodingthread(void * ctx) {
 	int sizetopoll = height * width;
 	float * buffer = (float *) malloc(sizeof(float) * bufsize);
 	float * screenbuffer = (float *) malloc(sizeof(float) * bufsize);
-
-	float pmax, pmin;
+	for (i = 0; i < bufsize; i++) screenbuffer[i] = 0.0f;
 
 	while (context->this->running) {
-		float max = -9999999999999;
-		float min = 9999999999999;
-		const float span = (pmax == pmin) ? (0) : (pmax - pmin);
-		const float lowpassvalue = context->this->motionblur;
-		const float antilowpassvalue = 1.0f - lowpassvalue;
+
+		const double lowpassvalue = context->this->motionblur;
+		const double antilowpassvalue = 1.0 - lowpassvalue;
 
 		if (context->this->height != height || context->this->width != width) {
 			height = context->this->height;
@@ -140,22 +137,27 @@ void videodecodingthread(void * ctx) {
 				bufsize = sizetopoll;
 				buffer = (float *) realloc(buffer, sizeof(float) * bufsize);
 				screenbuffer = (float *) realloc(screenbuffer, sizeof(float) * bufsize);
+				for (i = 0; i < bufsize; i++) screenbuffer[i] = 0.0f;
 			}
 		}
 
 		if (cb_rem_blocking(&context->circbuf, buffer, sizetopoll) == CB_OK) {
 
-			for (i = 0; i < sizetopoll; i++) {
-				float val = screenbuffer[i] * lowpassvalue + buffer[i] * antilowpassvalue;
-
+			float max = buffer[0];
+			float min = max;
+			for (i = 1; i < sizetopoll; i++) {
+				const float val = buffer[i];
 				if (val > max) max = val; else if (val < min) min = val;
-				screenbuffer[i] = (val - pmin) / span;
+			}
+
+			const float span = max - min;
+
+			for (i = 0; i < sizetopoll; i++) {
+				const float val = (buffer[i] - min) / span;
+				screenbuffer[i] = screenbuffer[i] * lowpassvalue + val * antilowpassvalue;
 			}
 
 			context->cb(screenbuffer, width, height, context->ctx);
-
-			pmax = max;
-			pmin = min;
 		}
 	}
 
@@ -301,7 +303,7 @@ void process(float *buf, uint32_t len, void *ctx, int dropped) {
 
 
 	// section for manual syncing
-	const int syncoffset = context->this->syncoffset;
+	const int syncoffset = -context->this->syncoffset;
 	if (syncoffset > 0)
 		context->dropped += syncoffset;
 	else if (syncoffset < 0)

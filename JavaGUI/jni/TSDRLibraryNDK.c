@@ -119,7 +119,7 @@ void read_async(float *buf, int width, int height, void *ctx) {
 	for (i = 0; i < context->pixelsize; i++) {
 		int col = (inverted) ? (255 - (int) (*(buf++) * 255.0f)) : ((int) (*(buf++) * 255.0f));
 		if (col > 255) col = 255; else if (col < 0) col = 0;
-		*(data++) = col | (col << 8) | (col << 16) | (0xFF << 24);
+		*(data++) = col | (col << 8) | (col << 16);
 	}
 
 	// release elements

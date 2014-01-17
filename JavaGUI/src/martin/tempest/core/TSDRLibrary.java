@@ -209,7 +209,7 @@ public class TSDRLibrary {
 	 */
 	private void fixSize(final int x, final int y) {
 		if (bimage == null || bimage.getWidth() != x || bimage.getHeight() != y) {
-			bimage = new BufferedImage(x, y, BufferedImage.TYPE_INT_ARGB);
+			bimage = new BufferedImage(x, y, BufferedImage.TYPE_INT_RGB);
 			pixels = ((DataBufferInt) bimage.getRaster().getDataBuffer()).getData();
 			width = x;
 			height = y;

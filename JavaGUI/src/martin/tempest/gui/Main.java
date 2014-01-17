@@ -494,7 +494,7 @@ public class Main implements TSDRLibrary.FrameReadyCallback {
 	private void onKeyboardKeyPressed(final KeyEvent e) {
 		final int keycode = e.getKeyCode();
 
-		if (!e.isShiftDown()) {
+		if (e.isShiftDown()) {
 			switch (keycode) {
 			case KeyEvent.VK_LEFT:
 				btnLeft.doHold();
@@ -515,10 +515,10 @@ public class Main implements TSDRLibrary.FrameReadyCallback {
 			}
 		} else {
 			switch (keycode) {
-			case KeyEvent.VK_LEFT:
+			case KeyEvent.VK_RIGHT:
 				btnHigherFramerate.doHold();
 				break;
-			case KeyEvent.VK_RIGHT:
+			case KeyEvent.VK_LEFT:
 				btnLowerFramerate.doHold();
 				break;
 			case KeyEvent.VK_UP:
@@ -534,7 +534,7 @@ public class Main implements TSDRLibrary.FrameReadyCallback {
 	private void onKeyboardKeyReleased(final KeyEvent e) {
 		final int keycode = e.getKeyCode();
 		
-		if (!e.isShiftDown()) {
+		if (e.isShiftDown()) {
 			switch (keycode) {
 			case KeyEvent.VK_LEFT:
 				btnLeft.doRelease();
@@ -553,11 +553,11 @@ public class Main implements TSDRLibrary.FrameReadyCallback {
 			}
 		} else {
 			switch (keycode) {
-			case KeyEvent.VK_LEFT:
+			case KeyEvent.VK_RIGHT:
 				btnLeft.doRelease();
 				btnHigherFramerate.doRelease();
 				break;
-			case KeyEvent.VK_RIGHT:
+			case KeyEvent.VK_LEFT:
 				btnRight.doRelease();
 				btnLowerFramerate.doRelease();
 				break;
