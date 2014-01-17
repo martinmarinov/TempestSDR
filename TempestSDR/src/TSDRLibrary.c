@@ -121,6 +121,7 @@ void videodecodingthread(void * ctx) {
 	int sizetopoll = height * width;
 	float * buffer = (float *) malloc(sizeof(float) * bufsize);
 	float * screenbuffer = (float *) malloc(sizeof(float) * bufsize);
+	float * sendbuffer = (float *) malloc(sizeof(float) * bufsize);
 	for (i = 0; i < bufsize; i++) screenbuffer[i] = 0.0f;
 
 	while (context->this->running) {
@@ -137,6 +138,7 @@ void videodecodingthread(void * ctx) {
 				bufsize = sizetopoll;
 				buffer = (float *) realloc(buffer, sizeof(float) * bufsize);
 				screenbuffer = (float *) realloc(screenbuffer, sizeof(float) * bufsize);
+				sendbuffer = (float *) realloc(sendbuffer, sizeof(float) * bufsize);
 				for (i = 0; i < bufsize; i++) screenbuffer[i] = 0.0f;
 			}
 		}
@@ -146,18 +148,17 @@ void videodecodingthread(void * ctx) {
 			float max = buffer[0];
 			float min = max;
 			for (i = 1; i < sizetopoll; i++) {
-				const float val = buffer[i];
+				const float val = screenbuffer[i] * lowpassvalue + buffer[i] * antilowpassvalue;
 				if (val > max) max = val; else if (val < min) min = val;
+				screenbuffer[i] = val;
 			}
 
 			const float span = max - min;
 
-			for (i = 0; i < sizetopoll; i++) {
-				const float val = (buffer[i] - min) / span;
-				screenbuffer[i] = screenbuffer[i] * lowpassvalue + val * antilowpassvalue;
-			}
+			for (i = 0; i < sizetopoll; i++)
+				sendbuffer[i] = (screenbuffer[i] - min) / span;
 
-			context->cb(screenbuffer, width, height, context->ctx);
+			context->cb(sendbuffer, width, height, context->ctx);
 		}
 	}
 
