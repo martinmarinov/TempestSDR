@@ -87,6 +87,14 @@ JNIEXPORT void JNICALL Java_martin_tempest_core_TSDRLibrary_sync
 JNIEXPORT void JNICALL Java_martin_tempest_core_TSDRLibrary_setResolution
   (JNIEnv *, jobject, jint, jint, jdouble);
 
+/*
+ * Class:     martin_tempest_core_TSDRLibrary
+ * Method:    setMotionBlur
+ * Signature: (F)V
+ */
+JNIEXPORT void JNICALL Java_martin_tempest_core_TSDRLibrary_setMotionBlur
+  (JNIEnv *, jobject, jfloat);
+
 #ifdef __cplusplus
 }
 #endif

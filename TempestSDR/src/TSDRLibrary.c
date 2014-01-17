@@ -120,6 +120,7 @@ void videodecodingthread(void * ctx) {
 	int bufsize = height * width;
 	int sizetopoll = height * width;
 	float * buffer = (float *) malloc(sizeof(float) * bufsize);
+	float * screenbuffer = (float *) malloc(sizeof(float) * bufsize);
 
 	float pmax, pmin;
 
@@ -127,6 +128,8 @@ void videodecodingthread(void * ctx) {
 		float max = -9999999999999;
 		float min = 9999999999999;
 		const float span = (pmax == pmin) ? (0) : (pmax - pmin);
+		const float lowpassvalue = context->this->motionblur;
+		const float antilowpassvalue = 1.0f - lowpassvalue;
 
 		if (context->this->height != height || context->this->width != width) {
 			height = context->this->height;
@@ -136,19 +139,20 @@ void videodecodingthread(void * ctx) {
 			if (sizetopoll > bufsize) {
 				bufsize = sizetopoll;
 				buffer = (float *) realloc(buffer, sizeof(float) * bufsize);
+				screenbuffer = (float *) realloc(screenbuffer, sizeof(float) * bufsize);
 			}
 		}
 
 		if (cb_rem_blocking(&context->circbuf, buffer, sizetopoll) == CB_OK) {
 
 			for (i = 0; i < sizetopoll; i++) {
-				float val = buffer[i];
+				float val = screenbuffer[i] * lowpassvalue + buffer[i] * antilowpassvalue;
 
 				if (val > max) max = val; else if (val < min) min = val;
-				buffer[i] = (val - pmin) / span;
+				screenbuffer[i] = (val - pmin) / span;
 			}
 
-			context->cb(buffer, width, height, context->ctx);
+			context->cb(screenbuffer, width, height, context->ctx);
 
 			pmax = max;
 			pmin = min;
@@ -277,8 +281,8 @@ void process(float *buf, uint32_t len, void *ctx, int dropped) {
 	context->offset = t-size;
 	context->contributionfromlast = contrib;
 
-	//if (pid != pids || context->offset > 0 || context->offset < -post)
-	//	printf("Pid %d; pids %d; t %.4f, size %d, offset %.4f\n", pid, pids, t, size, context->offset);
+//	if (pid != pids || context->offset > 0 || context->offset < -post)
+//		printf("Pid %d; pids %d; t %.4f, size %d, offset %.4f\n", pid, pids, t, size, context->offset);
 
 	// section for syncing lost samples
 	if (context->dropped > 0) {
@@ -390,6 +394,12 @@ int tsdr_setresolution(tsdr_lib_t * tsdr, int width, int height, double refreshr
 	if (tsdr->sampletime != 0)
 		tsdr->pixeltimeoversampletime = tsdr->pixeltime /  tsdr->sampletime;
 
+	return TSDR_OK;
+}
+
+int tsdr_motionblur(tsdr_lib_t * tsdr, float coeff) {
+	if (coeff < 0.0f || coeff > 1.0f) return TSDR_WRONG_VIDEOPARAMS;
+	tsdr->motionblur = coeff;
 	return TSDR_OK;
 }
 

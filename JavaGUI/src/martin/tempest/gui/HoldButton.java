@@ -19,36 +19,47 @@ public class HoldButton extends JButton {
 	volatile boolean running = false;
 	
 	private TimerTask task = null;
+	private final long repeat_interval;
 	
 	public HoldButton(final String caption) {
 		this(DEFAULT_REPEAT_INTERVAL, caption);
 	}
 	
+	public void doHold() {
+		if (running) return;
+		running = true;
+		clickssofar = 0;
+		timer.scheduleAtFixedRate(task = new TimerTask() {
+			  @Override
+			  public void run() {
+				  clickssofar++;
+				  notifyHoldListeners(clickssofar);
+			  }
+		}, 0, repeat_interval);
+	}
+	
+	public void doRelease() {
+		if (!running) return;
+		if (task != null) {
+			task.cancel();
+			task = null;
+		}
+		running = false;
+	}
+	
 	public HoldButton(final long repeat_interval, final String caption) {
 		super(caption);
+		this.repeat_interval = repeat_interval;
 		addMouseListener(new MouseListener() {
 			
 			@Override
 			public void mouseReleased(MouseEvent arg0) {
-				if (task != null) {
-					task.cancel();
-					task = null;
-				}
-				running = false;
+				doRelease();
 			}
 			
 			@Override
 			public void mousePressed(MouseEvent arg0) {
-				if (running) return;
-				running = true;
-				clickssofar = 0;
-				timer.scheduleAtFixedRate(task = new TimerTask() {
-					  @Override
-					  public void run() {
-						  clickssofar++;
-						  notifyHoldListeners(clickssofar);
-					  }
-				}, 0, repeat_interval);
+				doHold();
 			}
 
 			public void mouseExited(MouseEvent arg0) {}

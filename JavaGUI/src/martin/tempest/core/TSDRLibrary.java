@@ -147,6 +147,7 @@ public class TSDRLibrary {
 	public native void setInvertedColors(boolean invertedEnabled);
 	public native void sync(int pixels, SYNC_DIRECTION dir);
 	public native void setResolution(int width, int height, double refreshrate) throws TSDRException;
+	public native void setMotionBlur(float gain) throws TSDRException;
 	
 	public void startAsync(final TSDRSource plugin, int width, int height, double refreshrate) throws TSDRException {
 		if (nativerunning) throw new TSDRAlreadyRunningException("");
@@ -208,7 +209,7 @@ public class TSDRLibrary {
 	 */
 	private void fixSize(final int x, final int y) {
 		if (bimage == null || bimage.getWidth() != x || bimage.getHeight() != y) {
-			bimage = new BufferedImage(x, y, BufferedImage.TYPE_INT_RGB);
+			bimage = new BufferedImage(x, y, BufferedImage.TYPE_INT_ARGB);
 			pixels = ((DataBufferInt) bimage.getRaster().getDataBuffer()).getData();
 			width = x;
 			height = y;

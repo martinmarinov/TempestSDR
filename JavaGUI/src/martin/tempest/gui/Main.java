@@ -11,6 +11,7 @@ import javax.swing.JButton;
 import javax.swing.JLabel;
 import javax.swing.JOptionPane;
 import javax.swing.JSpinner;
+import javax.swing.SpinnerModel;
 import javax.swing.SpinnerNumberModel;
 import javax.swing.JTextField;
 import javax.swing.DefaultComboBoxModel;
@@ -41,21 +42,26 @@ import java.awt.event.MouseEvent;
 
 public class Main implements TSDRLibrary.FrameReadyCallback {
 	
+	private final static int OSD_TIME = 2000;
 	
 	private final static int FRAMERATE_SIGNIFICANT_FIGURES = 6;
+	private final static long FREQUENCY_STEP = 1000000;
+	
 	private final static double FRAMERATE_MIN_CHANGE = 1.0/Math.pow(10, FRAMERATE_SIGNIFICANT_FIGURES);
 	private final static String FRAMERATE_FORMAT = "%."+FRAMERATE_SIGNIFICANT_FIGURES+"f";
 	
-	private static final String COMMAND = "D:\\Dokumenti\\Cambridge\\project\\lcd800x600x60_16bit_8000000.wav 8000000 int16";
+	//private static final String COMMAND = "D:\\Dokumenti\\Cambridge\\project\\lcd800x600x60_16bit_8000000.wav 8000000 int16";
 	//private static final String COMMAND = "D:\\Dokumenti\\Cambridge\\project\\lcd1680x1050x60_8bit_8000000.wav 80000000 int8";
 	//private static final String COMMAND = "D:\\Dokumenti\\Cambridge\\project\\cablepal16bit8000000.wav 8000000 int16";
 	//private static final String COMMAND = "D:\\Dokumenti\\Cambridge\\project\\tvpal8bit8000000.wav 8000000 int8";
 	//private static final String COMMAND = "D:\\Dokumenti\\Cambridge\\project\\tvpal8bit2048000.wav 2048000 int8";
 	//private static final String COMMAND = "D:\\Dokumenti\\Cambridge\\project\\tvpal16bit8000000.wav 8000000 int16";
-	//private static final String COMMAND = "D:\\Dokumenti\\Cambridge\\project\\mphilproj\\martin-vaio-h-250.dat 25000000 int16";
-	//private static final String COMMAND = "D:\\Dokumenti\\Cambridge\\project\\mphilproj\\cdxdemo-rf.dat 25000000 int16";
+	//private static final String COMMAND = "D:\\Dokumenti\\Cambridge\\project\\mphilproj\\martin-vaio-h-148.dat 25000000 int16";
+	private static final String COMMAND = "D:\\Dokumenti\\Cambridge\\project\\mphilproj\\cdxdemo-rf.dat 25000000 int16";
 	//private static final String COMMAND = "D:\\Dokumenti\\Cambridge\\project\\mphilproj\\Toshiba-440CDX\\toshiba.iq 25000000 float";
 
+	private final SpinnerModel frequency_spinner_model = new SpinnerNumberModel(new Long(430000000), new Long(0), new Long(2147483647), new Long(FREQUENCY_STEP));
+	
 	private JFrame frmTempestSdr;
 	private JFrame fullscreenframe;
 	private JTextField textArgs;
@@ -66,6 +72,7 @@ public class Main implements TSDRLibrary.FrameReadyCallback {
 	private JSpinner spFrequency;
 	private JLabel lblFrequency;
 	private JSlider slGain;
+	private JSlider slMotionBlur;
 	private JLabel lblGain;
 	private JButton btnStartStop;
 	private final TSDRLibrary mSdrlib;
@@ -73,6 +80,7 @@ public class Main implements TSDRLibrary.FrameReadyCallback {
 	private Rectangle visualizer_bounds;
 	private double framerate = 50;
 	private JTextField txtFramerate;
+	private HoldButton btnLowerFramerate, btnHigherFramerate, btnUp, btnDown, btnLeft, btnRight;
 	
 	/**
 	 * Launch the application.
@@ -112,11 +120,48 @@ public class Main implements TSDRLibrary.FrameReadyCallback {
 	 */
 	private void initialize() {
 		frmTempestSdr = new JFrame();
+		frmTempestSdr.setFocusable(true);
+		frmTempestSdr.setFocusableWindowState(true);
+		frmTempestSdr.addKeyListener(keyhook);
 		frmTempestSdr.setResizable(false);
 		frmTempestSdr.setTitle("TempestSDR");
 		frmTempestSdr.setBounds(100, 100, 734, 561);
 		frmTempestSdr.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 		frmTempestSdr.getContentPane().setLayout(null);
+		frmTempestSdr.addMouseListener(new MouseAdapter() {
+			@Override
+			public void mouseClicked(MouseEvent e) {
+				frmTempestSdr.requestFocus();
+			}
+		});
+		
+		visualizer = new ImageVisualizer();
+		visualizer.addKeyListener(keyhook);
+		visualizer.setFocusable(true);
+		visualizer.addMouseListener(new MouseAdapter() {
+			@Override
+			public void mouseClicked(MouseEvent e) {
+				if (e.getClickCount() == 2) {
+					if (fullscreenframe.isVisible()) {
+						fullscreenframe.remove(visualizer);
+						visualizer.setBounds(visualizer_bounds);
+						frmTempestSdr.getContentPane().add(visualizer);
+						fullscreenframe.setVisible(false);
+						frmTempestSdr.requestFocus();
+					} else {
+						visualizer_bounds = visualizer.getBounds();
+						frmTempestSdr.remove(visualizer);
+						fullscreenframe.getContentPane().add(visualizer);
+						fullscreenframe.setVisible(true);
+						visualizer.requestFocus();
+					}
+				} else
+					visualizer.requestFocus();
+				
+			}
+		});
+		visualizer.setBounds(0, 32, 563, 433);
+		frmTempestSdr.getContentPane().add(visualizer);
 		
 		cbDevice = new JComboBox<TSDRSource>();
 		cbDevice.setBounds(0, 3, 218, 22);
@@ -136,28 +181,6 @@ public class Main implements TSDRLibrary.FrameReadyCallback {
 			}
 		});
 		frmTempestSdr.getContentPane().add(btnStartStop);
-		
-		visualizer = new ImageVisualizer();
-		visualizer.addMouseListener(new MouseAdapter() {
-			@Override
-			public void mouseClicked(MouseEvent e) {
-				if (e.getClickCount() == 2) {
-					if (fullscreenframe.isVisible()) {
-						fullscreenframe.remove(visualizer);
-						visualizer.setBounds(visualizer_bounds);
-						frmTempestSdr.add(visualizer);
-						fullscreenframe.setVisible(false);
-					} else {
-						visualizer_bounds = visualizer.getBounds();
-						frmTempestSdr.remove(visualizer);
-						fullscreenframe.add(visualizer);
-						fullscreenframe.setVisible(true);
-					}
-				}
-			}
-		});
-		visualizer.setBounds(0, 32, 563, 433);
-		frmTempestSdr.getContentPane().add(visualizer);
 		
 		cbVideoModes = new JComboBox<VideoMode>();
 		cbVideoModes.setBounds(568, 32, 159, 22);
@@ -231,7 +254,7 @@ public class Main implements TSDRLibrary.FrameReadyCallback {
 			}
 		});
 		spFrequency.setBounds(223, 470, 340, 22);
-		spFrequency.setModel(new SpinnerNumberModel(new Long(430000000), new Long(0), new Long(2147483647), new Long(1000000)));
+		spFrequency.setModel(frequency_spinner_model);
 		frmTempestSdr.getContentPane().add(spFrequency);
 		
 		final JCheckBox chckbxInvertedColours = new JCheckBox("Inverted colours");
@@ -244,7 +267,7 @@ public class Main implements TSDRLibrary.FrameReadyCallback {
 		chckbxInvertedColours.setBounds(568, 169, 159, 25);
 		frmTempestSdr.getContentPane().add(chckbxInvertedColours);
 		
-		HoldButton btnUp = new HoldButton("Up");
+		btnUp = new HoldButton("Up");
 		btnUp.addHoldListener(new HoldListener() {
 			public void onHold(final int clickssofar) {
 				onSync(SYNC_DIRECTION.UP, clickssofar);
@@ -253,7 +276,7 @@ public class Main implements TSDRLibrary.FrameReadyCallback {
 		btnUp.setBounds(608, 244, 78, 25);
 		frmTempestSdr.getContentPane().add(btnUp);
 		
-		HoldButton btnLeft = new HoldButton("Left");
+		btnLeft = new HoldButton("Left");
 		btnLeft.addHoldListener(new HoldListener() {
 			public void onHold(final int clickssofar) {
 				onSync(SYNC_DIRECTION.LEFT, clickssofar);
@@ -262,7 +285,7 @@ public class Main implements TSDRLibrary.FrameReadyCallback {
 		btnLeft.setBounds(568, 269, 65, 25);
 		frmTempestSdr.getContentPane().add(btnLeft);
 		
-		HoldButton btnRight = new HoldButton("Right");
+		btnRight = new HoldButton("Right");
 		btnRight.addHoldListener(new HoldListener() {
 			public void onHold(final int clickssofar) {
 				onSync(SYNC_DIRECTION.RIGHT, clickssofar);
@@ -271,7 +294,7 @@ public class Main implements TSDRLibrary.FrameReadyCallback {
 		btnRight.setBounds(662, 269, 65, 25);
 		frmTempestSdr.getContentPane().add(btnRight);
 		
-		HoldButton btnDown = new HoldButton("Down");
+		btnDown = new HoldButton("Down");
 		btnDown.addHoldListener(new HoldListener() {
 			public void onHold(final int clickssofar) {
 				onSync(SYNC_DIRECTION.DOWN, clickssofar);
@@ -298,7 +321,7 @@ public class Main implements TSDRLibrary.FrameReadyCallback {
 		frmTempestSdr.getContentPane().add(txtFramerate);
 		txtFramerate.setColumns(10);
 		
-		HoldButton btnLowerFramerate = new HoldButton("<");
+		btnLowerFramerate = new HoldButton("<");
 		btnLowerFramerate.addHoldListener(new HoldListener() {
 			public void onHold(final int clickssofar) {
 				onFrameRateChanged(true, clickssofar);
@@ -307,7 +330,7 @@ public class Main implements TSDRLibrary.FrameReadyCallback {
 		btnLowerFramerate.setBounds(638, 135, 41, 25);
 		frmTempestSdr.getContentPane().add(btnLowerFramerate);
 		
-		HoldButton btnHigherFramerate = new HoldButton(">");
+		btnHigherFramerate = new HoldButton(">");
 		btnHigherFramerate.addHoldListener(new HoldListener() {
 			public void onHold(final int clickssofar) {
 				onFrameRateChanged(false, clickssofar);
@@ -316,10 +339,32 @@ public class Main implements TSDRLibrary.FrameReadyCallback {
 		btnHigherFramerate.setBounds(686, 135, 41, 25);
 		frmTempestSdr.getContentPane().add(btnHigherFramerate);
 		
+		slMotionBlur = new JSlider();
+		slMotionBlur.setValue(0);
+		slMotionBlur.setBounds(638, 201, 89, 22);
+		slMotionBlur.addChangeListener(new ChangeListener() {
+			public void stateChanged(ChangeEvent e) {
+				onMotionBlurLevelChanged();
+			}
+		});
+		frmTempestSdr.getContentPane().add(slMotionBlur);
+		
+		JLabel lblMotionBlur = new JLabel("Lowpass:");
+		lblMotionBlur.setHorizontalAlignment(SwingConstants.RIGHT);
+		lblMotionBlur.setBounds(568, 201, 65, 16);
+		frmTempestSdr.getContentPane().add(lblMotionBlur);
+		
+		frmTempestSdr.setFocusableWindowState(true);
+		frmTempestSdr.requestFocus();
+		
 		onVideoModeSelected(videomodes[0]);
+		onGainLevelChanged();
+		onMotionBlurLevelChanged();
 		
 		// full screen frame
 		fullscreenframe = new JFrame("Video display");
+		fullscreenframe.setFocusable(true);
+		fullscreenframe.addKeyListener(keyhook);
 		Toolkit tk = Toolkit.getDefaultToolkit();  
 		int xSize = ((int) tk.getScreenSize().getWidth());  
 		int ySize = ((int) tk.getScreenSize().getHeight());  
@@ -400,6 +445,7 @@ public class Main implements TSDRLibrary.FrameReadyCallback {
 		
 		try {
 			mSdrlib.setBaseFreq(newfreq);
+			visualizer.setOSD("Freq: "+newfreq+" Hz", OSD_TIME);
 		} catch (TSDRException e) {
 			displayException(frmTempestSdr, e);
 		}
@@ -416,7 +462,17 @@ public class Main implements TSDRLibrary.FrameReadyCallback {
 		}
 	}
 	
-	public void onFrameRateTextChanged() {
+	private void onMotionBlurLevelChanged() {
+		float mblur = slMotionBlur.getValue() / 100.0f;
+		
+		try {
+			mSdrlib.setMotionBlur(mblur);
+		} catch (TSDRException e) {
+			displayException(frmTempestSdr, e);
+		}
+	}
+	
+	private void onFrameRateTextChanged() {
 		try {
 			final Double val = Double.parseDouble(txtFramerate.getText().trim());
 			if (val != null && val > 0) framerate = val;
@@ -424,16 +480,92 @@ public class Main implements TSDRLibrary.FrameReadyCallback {
 		setFrameRate(framerate);
 	}
 	
-	public void setFrameRate(final double val) {
-		txtFramerate.setText(String.format(FRAMERATE_FORMAT, val));
+	private void setFrameRate(final double val) {
+		final String frameratetext = String.format(FRAMERATE_FORMAT, val);
+		txtFramerate.setText(frameratetext);
 		try {
 			mSdrlib.setResolution((Integer) spWidth.getValue(), (Integer) spHeight.getValue(), val);
+			visualizer.setOSD("Framerate: "+frameratetext+" fps", OSD_TIME);
 		} catch (TSDRException e) {
 			displayException(frmTempestSdr, e);
 		}
 	}
 	
-	public void onFrameRateChanged(boolean left, int clicksofar) {
+	private void onKeyboardKeyPressed(final KeyEvent e) {
+		final int keycode = e.getKeyCode();
+
+		if (!e.isShiftDown()) {
+			switch (keycode) {
+			case KeyEvent.VK_LEFT:
+				btnLeft.doHold();
+				visualizer.setOSD("Move: Left", OSD_TIME);
+				break;
+			case KeyEvent.VK_RIGHT:
+				btnRight.doHold();
+				visualizer.setOSD("Move: Right", OSD_TIME);
+				break;
+			case KeyEvent.VK_UP:
+				btnUp.doHold();
+				visualizer.setOSD("Move: Up", OSD_TIME);
+				break;
+			case KeyEvent.VK_DOWN:
+				btnDown.doHold();
+				visualizer.setOSD("Move: Down", OSD_TIME);
+				break;
+			}
+		} else {
+			switch (keycode) {
+			case KeyEvent.VK_LEFT:
+				btnHigherFramerate.doHold();
+				break;
+			case KeyEvent.VK_RIGHT:
+				btnLowerFramerate.doHold();
+				break;
+			case KeyEvent.VK_UP:
+				spFrequency.setValue(frequency_spinner_model.getNextValue());
+				break;
+			case KeyEvent.VK_DOWN:
+				spFrequency.setValue(frequency_spinner_model.getPreviousValue());
+				break;
+			}
+		}
+	}
+	
+	private void onKeyboardKeyReleased(final KeyEvent e) {
+		final int keycode = e.getKeyCode();
+		
+		if (!e.isShiftDown()) {
+			switch (keycode) {
+			case KeyEvent.VK_LEFT:
+				btnLeft.doRelease();
+				btnHigherFramerate.doRelease();
+				break;
+			case KeyEvent.VK_RIGHT:
+				btnRight.doRelease();
+				btnLowerFramerate.doRelease();
+				break;
+			case KeyEvent.VK_UP:
+				btnUp.doRelease();
+				break;
+			case KeyEvent.VK_DOWN:
+				btnDown.doRelease();
+				break;
+			}
+		} else {
+			switch (keycode) {
+			case KeyEvent.VK_LEFT:
+				btnLeft.doRelease();
+				btnHigherFramerate.doRelease();
+				break;
+			case KeyEvent.VK_RIGHT:
+				btnRight.doRelease();
+				btnLowerFramerate.doRelease();
+				break;
+			}
+		}
+	}
+	
+	private void onFrameRateChanged(boolean left, int clicksofar) {
 		double amount = clicksofar * clicksofar * FRAMERATE_MIN_CHANGE;
 		if (amount > 0.05) amount = 0.05;
 		if (left && framerate > amount)
@@ -460,4 +592,17 @@ public class Main implements TSDRLibrary.FrameReadyCallback {
 		btnStartStop.setEnabled(true);
 		btnStartStop.setText("Start");
 	}
+	
+	private final KeyAdapter keyhook = new KeyAdapter() {
+		@Override
+		public void keyPressed(KeyEvent e) {
+			onKeyboardKeyPressed(e);
+			super.keyPressed(e);
+		}
+		@Override
+		public void keyReleased(KeyEvent e) {
+			onKeyboardKeyReleased(e);
+			super.keyReleased(e);
+		}
+	};
  }

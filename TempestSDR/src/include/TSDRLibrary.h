@@ -24,6 +24,7 @@
 		volatile int nativerunning;
 		uint32_t centfreq;
 		float gain;
+		float motionblur;
 		volatile int syncoffset;
 	} typedef tsdr_lib_t;
 
@@ -39,5 +40,6 @@
 	int tsdr_setresolution(tsdr_lib_t * tsdr, int width, int height, double refreshrate);
 	int tsdr_isrunning(tsdr_lib_t * tsdr);
 	int tsdr_sync(tsdr_lib_t * tsdr, int pixels, int direction);
+	int tsdr_motionblur(tsdr_lib_t * tsdr, float coeff);
 
 #endif

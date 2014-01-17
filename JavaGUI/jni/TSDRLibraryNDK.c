@@ -117,8 +117,9 @@ void read_async(float *buf, int width, int height, void *ctx) {
 
 	int i;
 	for (i = 0; i < context->pixelsize; i++) {
-		const int col = (inverted) ? (255 - (int) (*(buf++) * 255.0f)) : ((int) (*(buf++) * 255.0f));
-		*(data++) = col | (col << 8) | (col << 16);
+		int col = (inverted) ? (255 - (int) (*(buf++) * 255.0f)) : ((int) (*(buf++) * 255.0f));
+		if (col > 255) col = 255; else if (col < 0) col = 0;
+		*(data++) = col | (col << 8) | (col << 16) | (0xFF << 24);
 	}
 
 	// release elements
@@ -166,6 +167,10 @@ JNIEXPORT void JNICALL Java_martin_tempest_core_TSDRLibrary_stop (JNIEnv * env, 
 
 JNIEXPORT void JNICALL Java_martin_tempest_core_TSDRLibrary_setGain (JNIEnv * env, jobject obj, jfloat gain) {
 	THROW(tsdr_setgain(&tsdr_instance, (float) gain));
+}
+
+JNIEXPORT void JNICALL Java_martin_tempest_core_TSDRLibrary_setMotionBlur(JNIEnv * env, jobject obj, jfloat coeff) {
+	THROW(tsdr_motionblur(&tsdr_instance, (float) coeff));
 }
 
 JNIEXPORT void JNICALL Java_martin_tempest_core_TSDRLibrary_setResolution (JNIEnv * env, jobject obj, jint width, jint height, jdouble refreshrate) {
