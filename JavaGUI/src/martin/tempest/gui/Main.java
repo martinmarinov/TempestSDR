@@ -39,6 +39,7 @@ import java.awt.event.FocusAdapter;
 import java.awt.event.FocusEvent;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
+import java.util.prefs.Preferences;
 
 public class Main implements TSDRLibrary.FrameReadyCallback {
 	
@@ -57,10 +58,20 @@ public class Main implements TSDRLibrary.FrameReadyCallback {
 	//private static final String COMMAND = "D:\\Dokumenti\\Cambridge\\project\\tvpal8bit2048000.wav 2048000 int8";
 	//private static final String COMMAND = "D:\\Dokumenti\\Cambridge\\project\\tvpal16bit8000000.wav 8000000 int16";
 	//private static final String COMMAND = "D:\\Dokumenti\\Cambridge\\project\\mphilproj\\martin-vaio-h-148.dat 25000000 int16";
-	private static final String COMMAND = "D:\\Dokumenti\\Cambridge\\project\\mphilproj\\cdxdemo-rf.dat 25000000 int16";
+	//private static final String COMMAND = "D:\\Dokumenti\\Cambridge\\project\\mphilproj\\cdxdemo-rf.dat 25000000 int16";
 	//private static final String COMMAND = "D:\\Dokumenti\\Cambridge\\project\\mphilproj\\Toshiba-440CDX\\toshiba.iq 25000000 float";
 
-	private final SpinnerModel frequency_spinner_model = new SpinnerNumberModel(new Long(430000000), new Long(0), new Long(2147483647), new Long(FREQUENCY_STEP));
+	private final Preferences prefs = Preferences.userNodeForPackage(this.getClass());
+	private final static String PREF_WIDTH = "width";
+	private final static String PREF_HEIGHT = "height";
+	private final static String PREF_FRAMERATE = "framerate";
+	private final static String PREF_COMMAND_PREFIX = "command";
+	private final static String PREF_FREQ = "frequency";
+	private final static String PREF_GAIN = "gain";
+	private final static String PREF_MOTIONBLUR = "motionblur";
+	private final static String PREF_SOURCE_ID = "source_id";
+	
+	private final SpinnerModel frequency_spinner_model = new SpinnerNumberModel(new Long(prefs.getLong(PREF_FREQ, 400000000)), new Long(0), new Long(2147483647), new Long(FREQUENCY_STEP));
 	
 	private JFrame frmTempestSdr;
 	private JFrame fullscreenframe;
@@ -78,9 +89,15 @@ public class Main implements TSDRLibrary.FrameReadyCallback {
 	private final TSDRLibrary mSdrlib;
 	private ImageVisualizer visualizer;
 	private Rectangle visualizer_bounds;
-	private double framerate = 50;
+	private double framerate = 25;
 	private JTextField txtFramerate;
 	private HoldButton btnLowerFramerate, btnHigherFramerate, btnUp, btnDown, btnLeft, btnRight;
+	private String current_plugin_name = "";
+	
+	private final TSDRSource[] souces = TSDRSource.getAvailableSources();
+	private final VideoMode[] videomodes = VideoMode.getVideoModes();
+	
+	private boolean video_mode_change_manually_triggered = false;
 	
 	/**
 	 * Launch the application.
@@ -119,6 +136,11 @@ public class Main implements TSDRLibrary.FrameReadyCallback {
 	 * Initialize the contents of the frame.
 	 */
 	private void initialize() {
+		final int width_initial = prefs.getInt(PREF_WIDTH, 576);
+		final int height_initial = prefs.getInt(PREF_HEIGHT, 625);
+		final double framerate_initial = prefs.getDouble(PREF_FRAMERATE, framerate);
+		final int closest_videomode_id = findClosestVideoModeId(width_initial, height_initial, framerate_initial, videomodes);
+		
 		frmTempestSdr = new JFrame();
 		frmTempestSdr.setFocusable(true);
 		frmTempestSdr.setFocusableWindowState(true);
@@ -164,11 +186,25 @@ public class Main implements TSDRLibrary.FrameReadyCallback {
 		frmTempestSdr.getContentPane().add(visualizer);
 		
 		cbDevice = new JComboBox<TSDRSource>();
+		final int cbDeviceIndex = prefs.getInt(PREF_SOURCE_ID, 0);
+		current_plugin_name = souces[cbDeviceIndex].descr;
+		cbDevice.setModel(new DefaultComboBoxModel<TSDRSource>(souces));
+		cbDevice.setSelectedIndex(cbDeviceIndex);
+		cbDevice.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent arg0) {
+				onPluginSelected();
+			}
+		});
 		cbDevice.setBounds(0, 3, 218, 22);
-		cbDevice.setModel(new DefaultComboBoxModel<TSDRSource>(TSDRSource.getAvailableSources()));
 		frmTempestSdr.getContentPane().add(cbDevice);
 		
-		textArgs = new JTextField(COMMAND);
+		textArgs = new JTextField(prefs.get(PREF_COMMAND_PREFIX+current_plugin_name, ""));
+		textArgs.addFocusListener(new FocusAdapter() {
+			@Override
+			public void focusLost(FocusEvent arg0) {
+				prefs.put(PREF_COMMAND_PREFIX+current_plugin_name, textArgs.getText());
+			}
+		});
 		textArgs.setBounds(223, 3, 340, 22);
 		frmTempestSdr.getContentPane().add(textArgs);
 		textArgs.setColumns(10);
@@ -184,13 +220,13 @@ public class Main implements TSDRLibrary.FrameReadyCallback {
 		
 		cbVideoModes = new JComboBox<VideoMode>();
 		cbVideoModes.setBounds(568, 32, 159, 22);
+		cbVideoModes.setModel(new DefaultComboBoxModel<VideoMode>(videomodes));
+		if (closest_videomode_id != -1) cbVideoModes.setSelectedIndex(closest_videomode_id);
 		cbVideoModes.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent arg0) {
 				onVideoModeSelected((VideoMode) cbVideoModes.getSelectedItem());
 			}
 		});
-		final VideoMode[] videomodes = VideoMode.getVideoModes();
-		cbVideoModes.setModel(new DefaultComboBoxModel<VideoMode>(videomodes));
 		frmTempestSdr.getContentPane().add(cbVideoModes);
 		
 		JLabel lblWidth = new JLabel("Width:");
@@ -205,7 +241,7 @@ public class Main implements TSDRLibrary.FrameReadyCallback {
 			}
 		});
 		spWidth.setBounds(638, 59, 89, 22);
-		spWidth.setModel(new SpinnerNumberModel(576, 1, 10000, 1));
+		spWidth.setModel(new SpinnerNumberModel(width_initial, 1, 10000, 1));
 		frmTempestSdr.getContentPane().add(spWidth);
 		
 		JLabel lblHeight = new JLabel("Height:");
@@ -220,7 +256,7 @@ public class Main implements TSDRLibrary.FrameReadyCallback {
 			}
 		});
 		spHeight.setBounds(638, 86, 89, 22);
-		spHeight.setModel(new SpinnerNumberModel(625, 1, 10000, 1));
+		spHeight.setModel(new SpinnerNumberModel(height_initial, 1, 10000, 1));
 		frmTempestSdr.getContentPane().add(spHeight);
 		
 		JLabel lblFramerate = new JLabel("Framerate:");
@@ -234,6 +270,7 @@ public class Main implements TSDRLibrary.FrameReadyCallback {
 		frmTempestSdr.getContentPane().add(lblGain);
 		
 		slGain = new JSlider();
+		slGain.setValue((int) (prefs.getFloat(PREF_GAIN, 0.5f) * (slGain.getMaximum() - slGain.getMinimum()) + slGain.getMinimum()));
 		slGain.addChangeListener(new ChangeListener() {
 			public void stateChanged(ChangeEvent e) {
 				onGainLevelChanged();
@@ -304,6 +341,8 @@ public class Main implements TSDRLibrary.FrameReadyCallback {
 		frmTempestSdr.getContentPane().add(btnDown);
 		
 		txtFramerate = new JTextField();
+		txtFramerate.setText(String.format(FRAMERATE_FORMAT, framerate_initial));
+		framerate = framerate_initial;
 		txtFramerate.addFocusListener(new FocusAdapter() {
 			@Override
 			public void focusLost(FocusEvent e) {
@@ -340,7 +379,7 @@ public class Main implements TSDRLibrary.FrameReadyCallback {
 		frmTempestSdr.getContentPane().add(btnHigherFramerate);
 		
 		slMotionBlur = new JSlider();
-		slMotionBlur.setValue(0);
+		slMotionBlur.setValue((int) (prefs.getFloat(PREF_MOTIONBLUR, 0.0f) * (slMotionBlur.getMaximum() - slMotionBlur.getMinimum()) + slMotionBlur.getMinimum()));
 		slMotionBlur.setBounds(638, 201, 89, 22);
 		slMotionBlur.addChangeListener(new ChangeListener() {
 			public void stateChanged(ChangeEvent e) {
@@ -357,7 +396,6 @@ public class Main implements TSDRLibrary.FrameReadyCallback {
 		frmTempestSdr.setFocusableWindowState(true);
 		frmTempestSdr.requestFocus();
 		
-		onVideoModeSelected(videomodes[0]);
 		onGainLevelChanged();
 		onMotionBlurLevelChanged();
 		
@@ -373,7 +411,25 @@ public class Main implements TSDRLibrary.FrameReadyCallback {
 		fullscreenframe.setLocation(0, 0);
 	}
 	
+	private int findClosestVideoModeId(final int width, final int height, final double framerate, final VideoMode[] modes) {
+		int mode = -1;
+		double diff = -1;
+		for (int i = 0; i < modes.length; i++) {
+			final VideoMode m = modes[i];
+			if (m.height == height && m.width == width) {
+				final double delta = Math.abs(m.refreshrate-framerate);
+				if (diff == -1 || delta < diff) {
+					diff = delta;
+					mode = i;
+				}
+			}
+		}
+		return mode;
+	}
+	
 	private void onVideoModeSelected(final VideoMode m) {
+		if (video_mode_change_manually_triggered) return;
+		
 		spWidth.setValue(m.width);
 		spHeight.setValue(m.height);
 		framerate = m.refreshrate;
@@ -432,7 +488,18 @@ public class Main implements TSDRLibrary.FrameReadyCallback {
 	
 	private void onResolutionChange() {
 		try {
-			mSdrlib.setResolution((Integer) spWidth.getValue(), (Integer) spHeight.getValue(), framerate);
+			final int width = (Integer) spWidth.getValue();
+			final int height = (Integer) spHeight.getValue();
+			mSdrlib.setResolution(width, height, framerate);
+			
+			prefs.putInt(PREF_WIDTH, width);
+			prefs.putInt(PREF_HEIGHT, height);
+			prefs.putDouble(PREF_FRAMERATE, framerate);
+			
+			final int closest_videomode_id = findClosestVideoModeId(width, height, framerate, videomodes);
+			video_mode_change_manually_triggered = true;
+			if (closest_videomode_id != -1) cbVideoModes.setSelectedIndex(closest_videomode_id);
+			video_mode_change_manually_triggered = false;
 		} catch (TSDRException e) {
 			displayException(frmTempestSdr, e);
 		}
@@ -446,6 +513,7 @@ public class Main implements TSDRLibrary.FrameReadyCallback {
 		try {
 			mSdrlib.setBaseFreq(newfreq);
 			visualizer.setOSD("Freq: "+newfreq+" Hz", OSD_TIME);
+			prefs.putLong(PREF_FREQ, newfreq);
 		} catch (TSDRException e) {
 			displayException(frmTempestSdr, e);
 		}
@@ -457,6 +525,7 @@ public class Main implements TSDRLibrary.FrameReadyCallback {
 		
 		try {
 			mSdrlib.setGain(gain);
+			prefs.putFloat(PREF_GAIN, gain);
 		} catch (TSDRException e) {
 			displayException(frmTempestSdr, e);
 		}
@@ -467,6 +536,7 @@ public class Main implements TSDRLibrary.FrameReadyCallback {
 		
 		try {
 			mSdrlib.setMotionBlur(mblur);
+			prefs.putFloat(PREF_MOTIONBLUR, mblur);
 		} catch (TSDRException e) {
 			displayException(frmTempestSdr, e);
 		}
@@ -484,8 +554,19 @@ public class Main implements TSDRLibrary.FrameReadyCallback {
 		final String frameratetext = String.format(FRAMERATE_FORMAT, val);
 		txtFramerate.setText(frameratetext);
 		try {
-			mSdrlib.setResolution((Integer) spWidth.getValue(), (Integer) spHeight.getValue(), val);
+			final int width = (Integer) spWidth.getValue();
+			final int height = (Integer) spHeight.getValue();
+			mSdrlib.setResolution(width, height, val);
 			visualizer.setOSD("Framerate: "+frameratetext+" fps", OSD_TIME);
+			
+			prefs.putInt(PREF_WIDTH, width);
+			prefs.putInt(PREF_HEIGHT, height);
+			prefs.putDouble(PREF_FRAMERATE, val);
+			
+			final int closest_videomode_id = findClosestVideoModeId(width, height, val, videomodes);
+			video_mode_change_manually_triggered = true;
+			if (closest_videomode_id != -1) cbVideoModes.setSelectedIndex(closest_videomode_id);
+			video_mode_change_manually_triggered = false;
 		} catch (TSDRException e) {
 			displayException(frmTempestSdr, e);
 		}
@@ -573,6 +654,13 @@ public class Main implements TSDRLibrary.FrameReadyCallback {
 		else if (!left)
 			framerate += amount;
 		setFrameRate(framerate);
+	}
+	
+	private void onPluginSelected() {
+		final int id = cbDevice.getSelectedIndex();
+		prefs.putInt(PREF_SOURCE_ID, id);
+		current_plugin_name = souces[id].descr;
+		textArgs.setText(prefs.get(PREF_COMMAND_PREFIX+current_plugin_name, ""));
 	}
 
 	@Override
