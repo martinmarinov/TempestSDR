@@ -33,6 +33,7 @@ int tsdrplug_load(pluginsource_t * plugin, const char *dlname)
     if ((plugin->tsdrplugin_stop = tsdrplug_getfunction(plugin, "tsdrplugin_stop")) == 0) return TSDR_ERR_PLUGIN;
     if ((plugin->tsdrplugin_setgain = tsdrplug_getfunction(plugin, "tsdrplugin_setgain")) == 0) return TSDR_ERR_PLUGIN;
     if ((plugin->tsdrplugin_readasync = tsdrplug_getfunction(plugin, "tsdrplugin_readasync")) == 0) return TSDR_ERR_PLUGIN;
+    if ((plugin->tsdrplugin_getlasterrortext = tsdrplug_getfunction(plugin, "tsdrplugin_getlasterrortext")) == 0) return TSDR_ERR_PLUGIN;
 
     return TSDR_OK;
 }

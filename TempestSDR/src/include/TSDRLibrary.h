@@ -26,6 +26,9 @@
 		float gain;
 		float motionblur;
 		volatile int syncoffset;
+		char * errormsg;
+		int errormsg_size;
+		int errormsg_code;
 	} typedef tsdr_lib_t;
 
 	typedef void(*tsdr_readasync_function)(float *buf, int width, int height, void *ctx);
@@ -41,5 +44,6 @@
 	int tsdr_isrunning(tsdr_lib_t * tsdr);
 	int tsdr_sync(tsdr_lib_t * tsdr, int pixels, int direction);
 	int tsdr_motionblur(tsdr_lib_t * tsdr, float coeff);
+	char * tsdr_getlasterrortext(tsdr_lib_t * tsdr);
 
 #endif

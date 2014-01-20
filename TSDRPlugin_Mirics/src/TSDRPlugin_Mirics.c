@@ -18,6 +18,34 @@ volatile int desiredgainred = 40;
 
 #define SAMPLES_TO_PROCESS_AT_ONCE (20)
 
+int errormsg_code;
+char * errormsg;
+int errormsg_size = 0;
+#define RETURN_EXCEPTION(message, status) {announceexception(message, status); return status;}
+#define RETURN_OK() {errormsg_code = TSDR_OK; return TSDR_OK;}
+
+static inline void announceexception(const char * message, int status) {
+	errormsg_code = status;
+	if (status == TSDR_OK) return;
+
+	const int length = strlen(message);
+	if (errormsg_size == 0) {
+			errormsg_size = length;
+			errormsg = (char *) malloc(length+1);
+		} else if (length > errormsg_size) {
+			errormsg_size = length;
+			errormsg = (char *) realloc((void*) errormsg, length+1);
+		}
+	strcpy(errormsg, message);
+}
+
+char * tsdrplugin_getlasterrortext(void) {
+	if (errormsg_code == TSDR_OK)
+		return NULL;
+	else
+		return errormsg;
+}
+
 void tsdrplugin_getName(char * name) {
 	strcpy(name, "TSDR Mirics SDR Plugin");
 }
@@ -32,23 +60,23 @@ uint32_t tsdrplugin_getsamplerate() {
 
 int tsdrplugin_setbasefreq(uint32_t freq) {
 	desiredfreq = freq;
-	return TSDR_OK;
+	RETURN_OK();
 }
 
 int tsdrplugin_stop(void) {
 	working = 0;
-	return TSDR_OK;
+	RETURN_OK();
 }
 
 int tsdrplugin_setgain(float gain) {
 	desiredgainred = 102 - (int) (gain * 102);
 	if (desiredgainred < 0) desiredgainred = 0;
 	else if (desiredgainred > 102) desiredgainred = 102;
-	return TSDR_OK;
+	RETURN_OK();
 }
 
 int tsdrplugin_setParams(const char * params) {
-	return TSDR_OK;
+	RETURN_OK();
 }
 
 int tsdrplugin_readasync(tsdrplugin_readasync_function cb, void *ctx) {
@@ -57,14 +85,16 @@ int tsdrplugin_readasync(tsdrplugin_readasync_function cb, void *ctx) {
 	int err, sps, grc, rfc, fsc, i, id;
 	unsigned int fs;
 	unsigned int frame = 0;
+	int inited = 0 ;
 
 	double freq = desiredfreq;
 	double gainred = desiredgainred;
 	err = mir_sdr_Init(gainred, 8, freq / 1000000.0, mir_sdr_BW_8_000, mir_sdr_IF_Zero, &sps);
 	if (err != 0) {
 		mir_sdr_Uninit();
-		return TSDR_CANNOT_OPEN_DEVICE;
-	}
+		RETURN_EXCEPTION("Can't access the Mirics SDR dongle. Make sure it is properly plugged in, drivers are installed and the mir_sdr_api.dll is in the executable's folder and try again. Please, refer to the TSDRPlugin_Miricis readme file for more information.", TSDR_CANNOT_OPEN_DEVICE);
+	} else
+		inited = 1;
 
 	short * xi = (short *)malloc(sps * SAMPLES_TO_PROCESS_AT_ONCE * sizeof(short));
 	short * xq = (short *)malloc(sps * SAMPLES_TO_PROCESS_AT_ONCE * sizeof(short));
@@ -89,46 +119,55 @@ int tsdrplugin_readasync(tsdrplugin_readasync_function cb, void *ctx) {
 		}
 
 		// if desired frequency is different and valid
-		if (freq != desiredfreq && !(desiredfreq < 60e6 || (desiredfreq > 245e6 && desiredfreq < 420e6) || desiredfreq > 1000e6)) {
+		if (err == 0 && freq != desiredfreq && !(desiredfreq < 60e6 || (desiredfreq > 245e6 && desiredfreq < 420e6) || desiredfreq > 1000e6)) {
 
 			err = mir_sdr_SetRf(desiredfreq, 1, 0);
 			if (err == 0)
 				freq = desiredfreq; // if OK, frequency has been changed
 			else if (err == mir_sdr_RfUpdateError) {
 				// if an error occurs, try to reset the device
-				mir_sdr_Uninit();
+				if (mir_sdr_Uninit() == 0) inited = 0;
 				gainred = desiredgainred;
-				err = mir_sdr_Init(gainred, 8, desiredfreq / 1000000.0, mir_sdr_BW_8_000, mir_sdr_IF_Zero, &sps);
-				if (err == 3) {
+				if ((err = mir_sdr_Init(gainred, 8, desiredfreq / 1000000.0, mir_sdr_BW_8_000, mir_sdr_IF_Zero, &sps))==0) inited = 1;
+				if (err == mir_sdr_OutOfRange) {
 					// if the desired frequency is outside operational range, go back to the working frequency
-					mir_sdr_Uninit();
-					mir_sdr_Init(gainred, 8, freq / 1000000.0, mir_sdr_BW_8_000, mir_sdr_IF_Zero, &sps);
+					if (mir_sdr_Uninit() == 0) inited = 0;
+					if (mir_sdr_Init(gainred, 8, freq / 1000000.0, mir_sdr_BW_8_000, mir_sdr_IF_Zero, &sps) == 0) inited = 1;
 					desiredfreq = freq;
 					err = 0;
-				}
-				else
+				} else if (err == 0)
 					freq = desiredfreq;
+			} else if (err == mir_sdr_OutOfRange) {
+				mir_sdr_SetRf(freq, 1, 0);
+				desiredfreq = freq;
+				err = 0;
 			}
 		}
 
-		if (gainred != desiredgainred) {
+		if (err == 0 && gainred != desiredgainred) {
 			gainred = desiredgainred;
 			mir_sdr_SetGr(gainred, 1, 0);
 		}
 
+		if (err == 0)
 		for (i = 0; i < outbufsize; i++) {
 			const short val = (i & 1) ? (xq[i >> 1]) : (xi[i >> 1]);
 			outbuf[i] = val / 32767.0;
 		}
 
-		cb(outbuf, outbufsize, ctx, dropped);
+		if (err != 0)
+			{ working = 0; break; }
+		else
+			cb(outbuf, outbufsize, ctx, dropped);
 	}
+
+
 
 	free(outbuf);
 	free(xi);
 	free(xq);
 
-	if (mir_sdr_Uninit() != 0) return TSDR_ERR_PLUGIN;
+	if (inited && mir_sdr_Uninit() != 0) RETURN_EXCEPTION("Cannot properly close the Mirics USB dongle. If you experience any further issues, please disconnect it and reconnect it again.", TSDR_CANNOT_OPEN_DEVICE);
 
-	return (err == 0) ? TSDR_OK : TSDR_ERR_PLUGIN;
+	RETURN_EXCEPTION("The Mirics SDR dongle stopped responding.", (err == 0) ? TSDR_OK : TSDR_ERR_PLUGIN);
 }

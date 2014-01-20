@@ -36,11 +36,42 @@ struct tsdr_context {
 	} typedef tsdr_context_t;
 
 
+#define RETURN_EXCEPTION(tsdr, message, status) {announceexception(tsdr, message, status); return status;}
+#define RETURN_OK(tsdr) {tsdr->errormsg_code = TSDR_OK; return TSDR_OK;}
+#define RETURN_PLUGIN_RESULT(tsdr,plugin,result) {if (result == TSDR_OK) RETURN_OK(tsdr) else RETURN_EXCEPTION(tsdr,plugin->tsdrplugin_getlasterrortext(),result);}
+
+static inline void announceexception(tsdr_lib_t * tsdr, const char * message, int status) {
+	tsdr->errormsg_code = status;
+	if (status == TSDR_OK) return;
+
+	if (message == NULL)
+		message = "An exception with no detailed explanation cause has occurred. This could as well be a bug in the TSDRlibrary or in one of its plugins.";
+
+	const int length = strlen(message);
+	if (tsdr->errormsg_size == 0) {
+		tsdr->errormsg_size = length;
+		tsdr->errormsg = (char *) malloc(length+1);
+	} else if (length > tsdr->errormsg_size) {
+		tsdr->errormsg_size = length;
+		tsdr->errormsg = (char *) realloc((void*) tsdr->errormsg, length+1);
+	}
+	strcpy(tsdr->errormsg, message);
+}
+
+char * tsdr_getlasterrortext(tsdr_lib_t * tsdr) {
+	if (tsdr->errormsg_code == TSDR_OK)
+		return NULL;
+	else
+		return tsdr->errormsg;
+}
+
 void tsdr_init(tsdr_lib_t * tsdr) {
 	tsdr->nativerunning = 0;
 	tsdr->plugin = NULL;
 	tsdr->centfreq = 0;
 	tsdr->syncoffset = 0;
+	tsdr->errormsg_size = 0;
+	tsdr->errormsg_code = TSDR_OK;
 }
 
 int tsdr_isrunning(tsdr_lib_t * tsdr) {
@@ -48,27 +79,31 @@ int tsdr_isrunning(tsdr_lib_t * tsdr) {
 }
 
 int tsdr_setsamplerate(tsdr_lib_t * tsdr, uint32_t rate) {
+	if (tsdr->plugin == NULL) RETURN_EXCEPTION(tsdr, "Cannot change sample rate. Plugin not loaded yet.", TSDR_ERR_PLUGIN);
+
 	pluginsource_t * plugin = (pluginsource_t *)(tsdr->plugin);
 	tsdr->samplerate = plugin->tsdrplugin_setsamplerate(rate);
-	if (tsdr->samplerate == 0 || tsdr->samplerate > 500e6) return TSDR_SAMPLE_RATE_WRONG;
+	if (tsdr->samplerate == 0 || tsdr->samplerate > MAX_SAMP_RATE) RETURN_EXCEPTION(tsdr, "Invalid/unsupported value for sample rate.", TSDR_SAMPLE_RATE_WRONG);
 
 	tsdr->sampletime = 1.0f / (float) tsdr->samplerate;
 	if (tsdr->sampletime != 0)
 		tsdr->pixeltimeoversampletime = tsdr->pixeltime /  tsdr->sampletime;
 
-	return TSDR_OK;
+	RETURN_OK(tsdr);
 }
 
 int tsdr_getsamplerate(tsdr_lib_t * tsdr) {
+	if (tsdr->plugin == NULL) RETURN_EXCEPTION(tsdr, "Cannot change sample rate. Plugin not loaded yet.", TSDR_ERR_PLUGIN);
+
 	pluginsource_t * plugin = (pluginsource_t *)(tsdr->plugin);
 	tsdr->samplerate = plugin->tsdrplugin_getsamplerate();
-	if (tsdr->samplerate == 0 || tsdr->samplerate > 500e6) return TSDR_SAMPLE_RATE_WRONG;
+	if (tsdr->samplerate == 0 || tsdr->samplerate > 500e6) RETURN_EXCEPTION(tsdr, "Invalid/unsupported value for sample rate.", TSDR_SAMPLE_RATE_WRONG);
 
 	tsdr->sampletime = 1.0f / (float) tsdr->samplerate;
 	if (tsdr->sampletime != 0)
 		tsdr->pixeltimeoversampletime = tsdr->pixeltime /  tsdr->sampletime;
 
-	return TSDR_OK;
+	RETURN_OK(tsdr);
 }
 
 int tsdr_setbasefreq(tsdr_lib_t * tsdr, uint32_t freq) {
@@ -76,13 +111,13 @@ int tsdr_setbasefreq(tsdr_lib_t * tsdr, uint32_t freq) {
 
 	if (tsdr->plugin != NULL) {
 		pluginsource_t * plugin = (pluginsource_t *)(tsdr->plugin);
-		return plugin->tsdrplugin_setbasefreq(tsdr->centfreq);
+		RETURN_PLUGIN_RESULT(tsdr, plugin, plugin->tsdrplugin_setbasefreq(tsdr->centfreq));
 	} else
-		return TSDR_OK;
+		RETURN_OK(tsdr);
 }
 
 int tsdr_stop(tsdr_lib_t * tsdr) {
-	if (!tsdr->running) return TSDR_OK;
+	if (!tsdr->running) RETURN_OK(tsdr);
 
 	pluginsource_t * plugin = (pluginsource_t *)(tsdr->plugin);
 
@@ -92,7 +127,7 @@ int tsdr_stop(tsdr_lib_t * tsdr) {
 
 	mutex_free((mutex_t *) tsdr->mutex_sync_unload);
 	free(tsdr->mutex_sync_unload);
-	return status;
+	RETURN_PLUGIN_RESULT(tsdr, plugin, status);
 }
 
 int tsdr_setgain(tsdr_lib_t * tsdr, float gain) {
@@ -100,9 +135,9 @@ int tsdr_setgain(tsdr_lib_t * tsdr, float gain) {
 
 	if (tsdr->plugin != NULL) {
 		pluginsource_t * plugin = (pluginsource_t *)(tsdr->plugin);
-		return plugin->tsdrplugin_setgain(gain);
+		RETURN_PLUGIN_RESULT(tsdr, plugin, plugin->tsdrplugin_setgain(gain));
 	} else
-		return TSDR_OK;
+		RETURN_OK(tsdr);
 }
 
 // bresenham algorithm
@@ -315,7 +350,7 @@ void process(float *buf, uint32_t len, void *ctx, int dropped) {
 
 int tsdr_readasync(tsdr_lib_t * tsdr, const char * pluginfilepath, tsdr_readasync_function cb, void *ctx, const char * params) {
 	if (tsdr->nativerunning || tsdr->running)
-		return TSDR_ALREADY_RUNNING;
+		RETURN_EXCEPTION(tsdr, "The library is already running in async mode. Stop it first!", TSDR_ALREADY_RUNNING);
 
 	tsdr->nativerunning = 1;
 
@@ -326,16 +361,17 @@ int tsdr_readasync(tsdr_lib_t * tsdr, const char * pluginfilepath, tsdr_readasyn
 	const int size = width * height;
 
 	if (width <= 0 || height <= 0 || size > MAX_ARR_SIZE)
-		return TSDR_WRONG_VIDEOPARAMS;
+		RETURN_EXCEPTION(tsdr, "The supplied height and the width are invalid!", TSDR_WRONG_VIDEOPARAMS);
 
 	tsdr->plugin = malloc(sizeof(pluginsource_t));
 
+	int pluginsfault = 0;
 	int status = tsdrplug_load((pluginsource_t *)(tsdr->plugin), pluginfilepath);
-	if (status != TSDR_OK) goto end;
+	if (status != TSDR_OK) {announceexception(tsdr, "The plugin cannot be loaded. It is incompatible or there are depending libraries missing. Please check the readme file that comes with the plugin.", status); goto end;};
 
 	pluginsource_t * plugin = (pluginsource_t *)(tsdr->plugin);
 
-	if ((status = plugin->tsdrplugin_setParams(params)) != TSDR_OK) goto end;
+	if ((status = plugin->tsdrplugin_setParams(params)) != TSDR_OK) {pluginsfault =1; goto end;};
 	if ((status = tsdr_getsamplerate(tsdr)) != TSDR_OK) goto end;
 	if ((status = tsdr_setbasefreq(tsdr, tsdr->centfreq)) != TSDR_OK) goto end;
 	if ((status = tsdr_setgain(tsdr, tsdr->gain)) != TSDR_OK) goto end;
@@ -362,6 +398,8 @@ int tsdr_readasync(tsdr_lib_t * tsdr, const char * pluginfilepath, tsdr_readasyn
 
 	thread_start(videodecodingthread, (void *) context);
 	status = plugin->tsdrplugin_readasync(process, (void *) context);
+	if (status != TSDR_OK) pluginsfault =1;
+
 	tsdr->running = 0;
 
 	mutex_wait((mutex_t *) tsdr->mutex_video_stopped);
@@ -377,6 +415,8 @@ int tsdr_readasync(tsdr_lib_t * tsdr, const char * pluginfilepath, tsdr_readasyn
 	mutex_signal((mutex_t *) tsdr->mutex_sync_unload);
 
 end:
+	if (pluginsfault) announceexception(tsdr,plugin->tsdrplugin_getlasterrortext(),status);
+
 	tsdrplug_close((pluginsource_t *)(tsdr->plugin));
 	free(tsdr->plugin);
 	tsdr->plugin = NULL;
@@ -388,7 +428,7 @@ end:
 
 int tsdr_setresolution(tsdr_lib_t * tsdr, int width, int height, double refreshrate) {
 	if (width <= 0 || height <= 0 || width*height > MAX_ARR_SIZE || refreshrate <= 0)
-				return TSDR_WRONG_VIDEOPARAMS;
+		RETURN_EXCEPTION(tsdr, "The supplied height and the width are invalid or refreshrate is negative!", TSDR_WRONG_VIDEOPARAMS);
 
 	tsdr->width = width;
 	tsdr->height = height;
@@ -397,13 +437,13 @@ int tsdr_setresolution(tsdr_lib_t * tsdr, int width, int height, double refreshr
 	if (tsdr->sampletime != 0)
 		tsdr->pixeltimeoversampletime = tsdr->pixeltime /  tsdr->sampletime;
 
-	return TSDR_OK;
+	RETURN_OK(tsdr);
 }
 
 int tsdr_motionblur(tsdr_lib_t * tsdr, float coeff) {
 	if (coeff < 0.0f || coeff > 1.0f) return TSDR_WRONG_VIDEOPARAMS;
 	tsdr->motionblur = coeff;
-	return TSDR_OK;
+	RETURN_OK(tsdr);
 }
 
 int tsdr_sync(tsdr_lib_t * tsdr, int pixels, int direction) {
@@ -413,22 +453,22 @@ int tsdr_sync(tsdr_lib_t * tsdr, int pixels, int direction) {
 		tsdr->syncoffset += pixels;
 		break;
 	case DIRECTION_UP:
-		if (pixels > tsdr->height || pixels < 0) return TSDR_WRONG_VIDEOPARAMS;
+		if (pixels > tsdr->height || pixels < 0) RETURN_EXCEPTION(tsdr, "Cannot shift up with more pixels than the height of the image or shift is negative!", TSDR_WRONG_VIDEOPARAMS);
 		tsdr->syncoffset += pixels * tsdr->width;
 		break;
 	case DIRECTION_DOWN:
-		if (pixels > tsdr->height || pixels < 0) return TSDR_WRONG_VIDEOPARAMS;
+		if (pixels > tsdr->height || pixels < 0) RETURN_EXCEPTION(tsdr, "Cannot shift down with more pixels than the height of the image or shift is negative!", TSDR_WRONG_VIDEOPARAMS);
 		tsdr->syncoffset -= pixels * tsdr->width;
 		break;
 	case DIRECTION_LEFT:
-		if (pixels > tsdr->width || pixels < 0) return TSDR_WRONG_VIDEOPARAMS;
+		if (pixels > tsdr->width || pixels < 0) RETURN_EXCEPTION(tsdr, "Cannot shift to the left with more pixels than the width of the image or shift is negative!", TSDR_WRONG_VIDEOPARAMS);
 		tsdr->syncoffset+=pixels;
 		break;
 	case DIRECTION_RIGHT:
-		if (pixels > tsdr->width || pixels < 0) return TSDR_WRONG_VIDEOPARAMS;
+		if (pixels > tsdr->width || pixels < 0) RETURN_EXCEPTION(tsdr, "Cannot shift to the right with more pixels than the width of the image or shift is negative!", TSDR_WRONG_VIDEOPARAMS);
 		tsdr->syncoffset-=pixels;
 		break;
 	}
-	return TSDR_OK;
+	RETURN_OK(tsdr);
 }
 

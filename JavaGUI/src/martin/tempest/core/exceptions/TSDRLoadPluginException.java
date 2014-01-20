@@ -6,4 +6,8 @@ public class TSDRLoadPluginException extends TSDRException {
 	public TSDRLoadPluginException(final String msg) {
 		super(msg);
 	}
+	
+	public TSDRLoadPluginException() {
+		super();
+	}
 }

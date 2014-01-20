@@ -9,7 +9,7 @@
 
 tsdr_lib_t tsdr_instance;
 
-#define THROW(x) error(env, x, "")
+#define THROW(x) error(env, x)
 
 struct java_context {
 		jobject obj;
@@ -58,19 +58,14 @@ void error_translate (int exception_code, char * exceptionclass) {
 		}
 }
 
-void error(JNIEnv * env, int exception_code, const char *inmsg, ...)
+void error(JNIEnv * env, int exception_code)
 {
 	if (exception_code == TSDR_OK) return;
 
 	char exceptionclass[256];
 	error_translate(exception_code, exceptionclass);
 
-	char msg[256];
-
-	va_list argptr;
-	va_start(argptr, inmsg);
-	vsprintf(msg, inmsg, argptr);
-	va_end(argptr);
+	char * msg = tsdr_getlasterrortext(&tsdr_instance);
 
     jclass cls = (*env)->FindClass(env, exceptionclass);
     /* if cls is NULL, an exception has already been thrown */

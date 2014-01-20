@@ -43,6 +43,34 @@ void thread_sleep(uint32_t milliseconds) {
 #endif
 }
 
+int errormsg_code;
+char * errormsg;
+int errormsg_size = 0;
+#define RETURN_EXCEPTION(message, status) {announceexception(message, status); return status;}
+#define RETURN_OK() {errormsg_code = TSDR_OK; return TSDR_OK;}
+
+static inline void announceexception(const char * message, int status) {
+	errormsg_code = status;
+	if (status == TSDR_OK) return;
+
+	const int length = strlen(message);
+	if (errormsg_size == 0) {
+			errormsg_size = length;
+			errormsg = (char *) malloc(length+1);
+		} else if (length > errormsg_size) {
+			errormsg_size = length;
+			errormsg = (char *) realloc((void*) errormsg, length+1);
+		}
+	strcpy(errormsg, message);
+}
+
+char * tsdrplugin_getlasterrortext(void) {
+	if (errormsg_code == TSDR_OK)
+		return NULL;
+	else
+		return errormsg;
+}
+
 void tsdrplugin_getName(char * name) {
 	strcpy(name, "TSDR Raw File Source Plugin");
 }
@@ -56,16 +84,16 @@ uint32_t tsdrplugin_getsamplerate() {
 }
 
 int tsdrplugin_setbasefreq(uint32_t freq) {
-	return TSDR_OK;
+	RETURN_OK();
 }
 
 int tsdrplugin_stop(void) {
 	working = 0;
-	return TSDR_OK;
+	RETURN_OK();
 }
 
 int tsdrplugin_setgain(float gain) {
-	return TSDR_OK;
+	RETURN_OK();
 }
 
 char * strtoken = NULL;
@@ -115,13 +143,13 @@ char * nexttoken(char * input) {
 
 int tsdrplugin_setParams(const char * params) {
 	char * fname = nexttoken((char *) params);
-	if (fname == NULL) return TSDR_PLUGIN_PARAMETERS_WRONG;
+	if (fname == NULL) RETURN_EXCEPTION("File name was not specified. Commands should be: filename samplerate sampleformat. Format could be float, int8, uint8, int16 or uint16.", TSDR_PLUGIN_PARAMETERS_WRONG);
 	char * samplerate_s = nexttoken(NULL);
-	if (samplerate_s == NULL) return TSDR_SAMPLE_RATE_WRONG;
+	if (samplerate_s == NULL) RETURN_EXCEPTION("Sample rate was not specified. Commands should be: filename samplerate sampleformat. Format could be float, int8, uint8, int16 or uint16.", TSDR_PLUGIN_PARAMETERS_WRONG);
 	long samplerate_l = atol(samplerate_s);
-	if (samplerate_l > MAX_SAMP_RATE || samplerate_l <= 0) return TSDR_SAMPLE_RATE_WRONG;
+	if (samplerate_l > MAX_SAMP_RATE || samplerate_l <= 0) RETURN_EXCEPTION("Samplerate is invalid. Please specify the samplerate the original recording was done with.", TSDR_PLUGIN_PARAMETERS_WRONG);
 	char * type_s = nexttoken(NULL);
-	if (type_s == NULL) return TSDR_PLUGIN_PARAMETERS_WRONG;
+	if (type_s == NULL) RETURN_EXCEPTION("Sample type is not specified. Pick one between float, int8, uint8, int16 or uint16.", TSDR_PLUGIN_PARAMETERS_WRONG);
 
 	if (str_eq(type_s,"float")) {
 		type = TYPE_FLOAT;
@@ -139,12 +167,12 @@ int tsdrplugin_setParams(const char * params) {
 		type = TYPE_USHORT;
 		sizepersample = 2;
 	} else
-		return TSDR_PLUGIN_PARAMETERS_WRONG;
+		RETURN_EXCEPTION("Sample type is invalid. Pick one between float, int8, uint8, int16 or uint16.", TSDR_PLUGIN_PARAMETERS_WRONG);
 
 	strcpy(filename, fname);
 	samplerate = (uint32_t) samplerate_l;
 
-	return TSDR_OK;
+	RETURN_OK();
 }
 
 int tsdrplugin_readasync(tsdrplugin_readasync_function cb, void *ctx) {
@@ -154,11 +182,11 @@ int tsdrplugin_readasync(tsdrplugin_readasync_function cb, void *ctx) {
 	int counter;
 
 	if (sizepersample == -1)
-		return TSDR_PLUGIN_PARAMETERS_WRONG;
+		RETURN_EXCEPTION("Plugin was not initialized properly.", TSDR_PLUGIN_PARAMETERS_WRONG);
 
 	FILE * file=fopen(filename,"rb");
-	if (file == NULL) return TSDR_PLUGIN_PARAMETERS_WRONG;
-	if (samplerate > MAX_SAMP_RATE || samplerate <= 0) return TSDR_SAMPLE_RATE_WRONG;
+	if (file == NULL) RETURN_EXCEPTION("Cannot open the required file.", TSDR_PLUGIN_PARAMETERS_WRONG);
+	if (samplerate > MAX_SAMP_RATE || samplerate <= 0) RETURN_EXCEPTION("The samplerate the plugin was initialized with is invalid.", TSDR_SAMPLE_RATE_WRONG);
 
 	const size_t bytestoread = SAMPLES_TO_READ_AT_ONCE * sizepersample;
 	char * buf = (char *) malloc(bytestoread);
@@ -227,5 +255,5 @@ int tsdrplugin_readasync(tsdrplugin_readasync_function cb, void *ctx) {
 	free(outbuf);
 	fclose(file);
 
-	return TSDR_OK;
+	RETURN_OK();
 }
