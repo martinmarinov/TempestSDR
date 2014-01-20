@@ -193,6 +193,7 @@ void videodecodingthread(void * ctx) {
 			for (i = 0; i < sizetopoll; i++)
 				sendbuffer[i] = (screenbuffer[i] - min) / span;
 
+			static i = 0;
 			context->cb(sendbuffer, width, height, context->ctx);
 		}
 	}
@@ -423,6 +424,7 @@ end:
 
 	tsdr->running = 0;
 	tsdr->nativerunning = 0;
+
 	return status;
 }
 

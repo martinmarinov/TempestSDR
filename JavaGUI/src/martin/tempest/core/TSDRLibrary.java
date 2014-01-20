@@ -25,10 +25,7 @@ import martin.tempest.sources.TSDRSource;
 public class TSDRLibrary {
 	
 	private BufferedImage bimage;
-	private int[] pixels;
-	
-	private int width;
-	private int height;
+	private volatile int[] pixels;
 	
 	public enum SYNC_DIRECTION {ANY, UP, DOWN, LEFT, RIGHT};
 	
@@ -209,10 +206,12 @@ public class TSDRLibrary {
 	 */
 	private void fixSize(final int x, final int y) {
 		if (bimage == null || bimage.getWidth() != x || bimage.getHeight() != y) {
-			bimage = new BufferedImage(x, y, BufferedImage.TYPE_INT_RGB);
-			pixels = ((DataBufferInt) bimage.getRaster().getDataBuffer()).getData();
-			width = x;
-			height = y;
+			try {
+				bimage = new BufferedImage(x, y, BufferedImage.TYPE_INT_RGB);
+				pixels = ((DataBufferInt) bimage.getRaster().getDataBuffer()).getData();
+			} catch (Throwable t) {
+				t.printStackTrace();
+			}
 		}
 	}
 	
@@ -221,8 +220,6 @@ public class TSDRLibrary {
 	 * This method writes the result into the bitmap
 	 */
 	private void notifyCallbacks() {
-		assert(bimage != null && pixels != null);
-		
 		for (final FrameReadyCallback callback : callbacks) callback.onFrameReady(this, bimage);
 	}
 	

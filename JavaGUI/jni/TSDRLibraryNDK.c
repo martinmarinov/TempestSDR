@@ -13,10 +13,11 @@ tsdr_lib_t tsdr_instance;
 
 struct java_context {
 		jobject obj;
+		jobject obj_pixels;
 		jclass cls;
 		jfieldID fid_pixels;
-		jfieldID fid_width;
-		jfieldID fid_height;
+		int pic_width;
+		int pic_height;
 		jmethodID fixSize;
 		jmethodID notifyCallbacks;
 		jint * pixels;
@@ -97,15 +98,17 @@ void read_async(float *buf, int width, int height, void *ctx) {
 	if ((*jvm)->GetEnv(jvm, (void **)&env, javaversion) == JNI_EDETACHED)
 		(*jvm)->AttachCurrentThread(jvm, (void **) &env, 0);
 
-	jint i_width = (*env)->GetIntField(env, context->obj, context->fid_width);
-	jint i_height = (*env)->GetIntField(env, context->obj, context->fid_height);
+	if (context->pic_width != width || context->pic_height != height) {
+		(*env)->DeleteLocalRef(env, context->obj_pixels);
 
-	if (i_width != width || i_height != height) {
-		// fixSize(200, 200);
 		(*env)->CallVoidMethod(env, context->obj, context->fixSize, width, height);
+
+		context->obj_pixels = (*env)->GetObjectField(env, context->obj, context->fid_pixels);
 
 		context->pixelsize = width * height;
 		context->pixels = (jint *) realloc((void *) context->pixels, sizeof(jint) * context->pixelsize);
+		context->pic_width = width;
+		context->pic_height = height;
 	}
 
 	jint * data = context->pixels;
@@ -118,7 +121,7 @@ void read_async(float *buf, int width, int height, void *ctx) {
 	}
 
 	// release elements
-	(*env)->SetIntArrayRegion(env, (*env)->GetObjectField(env, context->obj, context->fid_pixels), 0, context->pixelsize, context->pixels);
+	(*env)->SetIntArrayRegion(env, context->obj_pixels, 0, context->pixelsize, context->pixels);
 
 	// notifyCallbacks();
 	(*env)->CallVoidMethod(env, context->obj, context->notifyCallbacks);
@@ -132,15 +135,12 @@ JNIEXPORT void JNICALL Java_martin_tempest_core_TSDRLibrary_nativeStart (JNIEnv 
 	(*env)->DeleteLocalRef(env, obj);
 	context->cls = (jclass) (*env)->NewGlobalRef(env, (*env)->GetObjectClass(env, context->obj));
 	context->fid_pixels = (*env)->GetFieldID(env, context->cls, "pixels", "[I");
-	context->fid_width = (*env)->GetFieldID(env, context->cls, "width", "I");
-	context->fid_height = (*env)->GetFieldID(env, context->cls, "height", "I");
 	context->fixSize = (*env)->GetMethodID(env, context->cls, "fixSize", "(II)V");
 	context->notifyCallbacks = (*env)->GetMethodID(env, context->cls, "notifyCallbacks", "()V");
 
-	jint i_width = (*env)->GetIntField(env, context->obj, context->fid_width);
-	jint i_height = (*env)->GetIntField(env, context->obj, context->fid_height);
-
-	context->pixelsize = i_width * i_height;
+	context->pic_width = 0;
+	context->pic_height = 0;
+	context->pixelsize = 1;
 	context->pixels = (jint *) malloc(sizeof(jint) * context->pixelsize);
 
 	const char *npath = (*env)->GetStringUTFChars(env, path, 0);
@@ -152,6 +152,7 @@ JNIEXPORT void JNICALL Java_martin_tempest_core_TSDRLibrary_nativeStart (JNIEnv 
 	(*env)->ReleaseStringUTFChars(env, params, nparams);
 	(*env)->DeleteGlobalRef(env, context->obj);
 	(*env)->DeleteGlobalRef(env, context->cls);
+
 	free(context);
 	free(context->pixels);
 }
