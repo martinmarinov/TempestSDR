@@ -74,7 +74,7 @@ public class ImageVisualizer extends JPanel {
 				todraw_width = width;
 				todraw_height = height;
 				
-				if (im_width > im_height)
+				if (width * im_height < im_width * height)
 					todraw_height = (width * im_height) / im_width;
 				else
 					todraw_width = (height * im_width) / im_height;
