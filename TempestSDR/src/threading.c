@@ -3,12 +3,12 @@
 #include <stdlib.h>
 
 // A platform independent threading library with mutexes
-// source: http://www.cs.wustl.edu/~schmidt/win32-cv-1.html
-
-#include <windows.h>
+// based on: http://www.cs.wustl.edu/~schmidt/win32-cv-1.html
 
 
 #if WINHEAD
+	#include <windows.h>
+
 	#define ETIMEDOUT WAIT_TIMEOUT
 
 	typedef CRITICAL_SECTION pthread_mutex_t;
@@ -26,7 +26,10 @@
 		f(ctx);
 		return 0;
 	}
-
+#else
+	#include <errno.h>
+	#include <pthread.h>
+	#include <unistd.h>
 #endif
 
 	void thread_sleep(uint32_t milliseconds) {
@@ -44,10 +47,8 @@
 		args->ctx = ctx;
 		CreateThread(NULL,0,threadFunc,(LPVOID) args,0,NULL);
 #else
-		// TODO! IS THIS CORRECT?!? TODO! CEHCK IT!
-		printf("Start the thread\n");
 		pthread_t thread;
-		pthread_create (&thread, NULL, (void *) &f, ctx);
+		pthread_create (&thread, NULL, (void *) f, ctx);
 #endif
 	}
 
@@ -69,7 +70,7 @@
 #if WINHEAD
 		EnterCriticalSection((CRITICAL_SECTION *) mutex->thing2);
 #else
-		pthread_mutex_lock((pthread_mutex_t *) imutex->thing1);
+		pthread_mutex_lock((pthread_mutex_t *) mutex->thing1);
 #endif
 	}
 
@@ -77,7 +78,7 @@
 #if WINHEAD
 		LeaveCriticalSection((CRITICAL_SECTION *) mutex->thing2);
 #else
-		pthread_mutex_unlock((pthread_mutex_t *) imutex->thing1);
+		pthread_mutex_unlock((pthread_mutex_t *) mutex->thing1);
 #endif
 	}
 
@@ -122,11 +123,11 @@
 #endif
 	}
 
-	void mutex_free(mutex_t * mutex) {
+	void mutex_free(mutex_t * imutex) {
 #if WINHEAD
-		CloseHandle ((HANDLE) mutex->thing1);
-		DeleteCriticalSection((CRITICAL_SECTION *) mutex->thing2);
-		free(mutex->thing2);
+		CloseHandle ((HANDLE) imutex->thing1);
+		DeleteCriticalSection((CRITICAL_SECTION *) imutex->thing2);
+		free(imutex->thing2);
 #else
 		pthread_mutex_t * mutex = (pthread_mutex_t *) imutex->thing1;
 		pthread_cond_t * cond = (pthread_cond_t *) imutex->thing2;

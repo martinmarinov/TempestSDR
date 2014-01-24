@@ -45,7 +45,7 @@ public class TSDRLibrary {
 		final String rawOSNAME = System.getProperty("os.name").toLowerCase();
 		final String rawARCHNAME = System.getProperty("os.arch").toLowerCase();
 
-		String OSNAME = null, EXT = null, ARCHNAME = null;
+		String OSNAME = null, EXT = null, ARCHNAME = null, LIBPREFIX = "";
 
 		if (rawOSNAME.contains("win")) {
 			OSNAME = "WINDOWS";
@@ -53,6 +53,7 @@ public class TSDRLibrary {
 		} else if (rawOSNAME.contains("nix") || rawOSNAME.contains("nux") || rawOSNAME.contains("aix")) {
 			OSNAME = "LINUX";
 			EXT = ".so";
+			LIBPREFIX = "lib";
 		} else if (rawOSNAME.contains("mac")) {
 			OSNAME = "MAC";
 			EXT = ".a";
@@ -68,7 +69,7 @@ public class TSDRLibrary {
 		if (OSNAME == null || EXT == null || ARCHNAME == null)
 			throw new TSDRLibraryNotCompatible("Your OS or CPU is not yet supported, sorry.");
 
-		final String relative_path = "lib/"+OSNAME+"/"+ARCHNAME+"/"+name+EXT;
+		final String relative_path = "lib/"+OSNAME+"/"+ARCHNAME+"/"+LIBPREFIX+name+EXT;
 
 		InputStream in = TSDRLibrary.class.getClassLoader().getResourceAsStream(relative_path);
 
@@ -84,7 +85,7 @@ public class TSDRLibrary {
 			byte[] buffer = new byte[in.available()];
 
 			int read = -1;
-			temp = new File(System.getProperty("java.io.tmpdir"), name+EXT);
+			temp = new File(System.getProperty("java.io.tmpdir"), LIBPREFIX+name+EXT);
 			temp.deleteOnExit();
 			final FileOutputStream fos = new FileOutputStream(temp);
 
@@ -93,6 +94,9 @@ public class TSDRLibrary {
 			}
 			fos.close();
 			in.close();
+			
+			if (!temp.exists())
+				throw new TSDRLibraryNotCompatible("Cannot extract library files to temporary directory.");
 		} catch (IOException e) {
 			throw new TSDRLibraryNotCompatible(e);
 		}
@@ -111,6 +115,7 @@ public class TSDRLibrary {
 			System.loadLibrary(name); 
 		} catch (Throwable t) {
 				final File library = extractLibrary(name);
+				System.out.println("File exists "+library.exists());
 				System.load(library.getAbsolutePath());
 				library.delete();
 		}

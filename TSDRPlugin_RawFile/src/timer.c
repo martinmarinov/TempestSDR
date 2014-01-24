@@ -1,4 +1,5 @@
 #include "timer.h"
+#include <stdlib.h>
 
 #if WINHEAD
 int gettimeofday(struct timeval *tv, void * ignoreme)

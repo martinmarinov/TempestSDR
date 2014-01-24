@@ -2,6 +2,8 @@
 #include "include/TSDRLibrary.h"
 #include "include/TSDRCodes.h"
 
+#include <stdlib.h>
+
 // A platform independent dynamic library loader
 
 void *tsdrplug_getfunction(pluginsource_t * plugin, char *functname)

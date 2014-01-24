@@ -51,6 +51,10 @@ This is the Java wrapper and GUI. It builds all projects and supported plugins i
 On Windows 8 x64 this could look like
 
     make all JAVA_HOME=C:/PROGRA~2/Java/jdk1.7.0_45
+
+On Ubuntu with openjdk it could look like
+
+    make all JAVA_HOME=/usr/lib/jvm/java-6-openjdk-amd64
 	
 ### Mirics Plugin
 

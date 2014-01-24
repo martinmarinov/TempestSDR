@@ -1,22 +1,3 @@
-# USER CONFIGURATION STARTS HERE
-
-# Define the plugins that you like to compile with the library. They need to be in a folder
-# in the parent directory with the exact same name as the plugin names. The library files
-# produced need to have the name of the plugin folder and need to be in the bin directory.
-# The default plugin file will make sure this is compatible.
-PLUGINS=TSDRPlugin_RawFile TSDRPlugin_Mirics
-
-# USER CONFIGURATION ENDS HERE
-
-# Define a recursive wildcard function
-rwildcard=$(foreach d,$(wildcard $1*),$(call rwildcard,$d/,$2) $(filter $(subst *,%,$2),$d))
-
-# Discover all the java sources
-JAVAFILES:=$(call rwildcard,src/,*.java)
-
-# Create the class dependencies
-CLASSFILES:=$(patsubst %,bin/%,$(addsuffix .class,$(basename $(foreach jfile,$(JAVAFILES), $(subst src/,,$(jfile)) ))))
-
 # Detect shared library extension based on OS
 ifeq ($(OS),Windows_NT)
 	EXT=.dll
@@ -32,6 +13,7 @@ else
 	ifeq ($(UNAME_S),Linux)
 		EXT=.so
 		OSNAME = LINUX
+		LIBPREFIX=lib
 	endif
 	ifeq ($(UNAME_S),Darwin)
 		EXT=.a
@@ -49,11 +31,35 @@ else
 	endif
 endif
 
+# USER CONFIGURATION STARTS HERE
+
+# Define the plugins that you like to compile with the library. They need to be in a folder
+# in the parent directory with the exact same name as the plugin names. The library files
+# produced need to have the name of the plugin folder and need to be in the bin directory.
+# The default plugin file will make sure this is compatible.
+PLUGINS=TSDRPlugin_RawFile
+
+ifeq ($(OSNAME),WINDOWS)
+# Windows only plugins
+PLUGINS += TSDRPlugin_Mirics
+endif
+
+# USER CONFIGURATION ENDS HERE
+
+# Define a recursive wildcard function
+rwildcard=$(foreach d,$(wildcard $1*),$(call rwildcard,$d/,$2) $(filter $(subst *,%,$2),$d))
+
+# Discover all the java sources
+JAVAFILES:=$(call rwildcard,src/,*.java)
+
+# Create the class dependencies
+CLASSFILES:=$(patsubst %,bin/%,$(addsuffix .class,$(basename $(foreach jfile,$(JAVAFILES), $(subst src/,,$(jfile)) ))))
+
 # The folder that will contain the libraries
 OUTPUTFOLDER=lib/$(OSNAME)/$(ARCHNAME)
 
 # Build the file names of the plugin files
-PLUGINS_FILES=$(addsuffix $(EXT),$(PLUGINS))
+PLUGINS_FILES=$(addprefix $(PREFIX),$(addsuffix $(EXT),$(PLUGINS)))
 
 # Build the directory names of the plugins
 PLUGINS_DIRS=$(addprefix ../,$(addsuffix /,$(PLUGINS)))

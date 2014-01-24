@@ -1,8 +1,8 @@
 #include <jni.h>
 #include <stdio.h>
 #include "TSDRLibraryNDK.h"
-#include "include\TSDRLibrary.h"
-#include "include\TSDRCodes.h"
+#include "include/TSDRLibrary.h"
+#include "include/TSDRCodes.h"
 #include <stdint.h>
 #include <string.h>
 #include <stdlib.h>

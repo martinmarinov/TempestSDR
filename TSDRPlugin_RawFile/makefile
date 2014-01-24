@@ -26,6 +26,7 @@ else
 	ifeq ($(UNAME_S),Linux)
 		EXT=.so
 		OSNAME = LINUX
+		LIBPREFIX=lib
 	endif
 	ifeq ($(UNAME_S),Darwin)
 		EXT=.a
@@ -56,7 +57,7 @@ _OBJS = $(patsubst %,$(OBJFOLDER)/%,$(OBJS))
 _DEPS = $(patsubst %,$(SOURCEFOLDER)/%,$(DEPS))
 
 # Generate the library
-all : $(OUTPUTFOLDER)/$(PLUGNAME)$(EXT)
+all : $(OUTPUTFOLDER)/$(LIBPREFIX)$(PLUGNAME)$(EXT)
 
 # Copy over a fresh version of the TSDRPlugin.h
 copyoverheaderfile:
@@ -64,14 +65,14 @@ copyoverheaderfile:
 	@cp -f $(HEADLOCATION)/TSDRCodes.h $(SOURCEFOLDER)/
 
 # Link
-$(OUTPUTFOLDER)/$(PLUGNAME)$(EXT): copyoverheaderfile $(_OBJS)
-	gcc -Wl,--add-stdcall-alias -shared -o $@ $(_OBJS)
+$(OUTPUTFOLDER)/$(LIBPREFIX)$(PLUGNAME)$(EXT): copyoverheaderfile $(_OBJS)
+	gcc -Wl -shared -o $@ $(_OBJS)  -fPIC
 
 # Make dirs and compile
 $(OBJFOLDER)/%.o : $(SOURCEFOLDER)/%.c $(_DEPS)
 	mkdir -p $(OUTPUTFOLDER)
 	mkdir -p $(OBJFOLDER)
-	gcc $(foreach d, $(INC), -I$d) $(CFLAGS) -c $< -o $@
+	gcc $(foreach d, $(INC), -I$d) $(CFLAGS) -c $< -o $@  -fPIC
 
 .PHONY: clean
 

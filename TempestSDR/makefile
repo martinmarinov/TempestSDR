@@ -21,6 +21,7 @@ else
 	ifeq ($(UNAME_S),Linux)
 		EXT=.so
 		OSNAME = LINUX
+		LIBPREFIX=lib
 	endif
 	ifeq ($(UNAME_S),Darwin)
 		EXT=.a
@@ -44,7 +45,8 @@ OUTPUTFOLDER=bin/$(OSNAME)/$(ARCHNAME)
 OBJFOLDER=obj
 
 # Flags
-CPPFLAGS=-O3
+CFLAGS=
+LDFLAGS = -fPIC
 
 # The obj files reside in the bin/obj directory
 _OBJS = $(patsubst %,$(OBJFOLDER)/%,$(OBJS))
@@ -53,17 +55,17 @@ _OBJS = $(patsubst %,$(OBJFOLDER)/%,$(OBJS))
 _DEPS = $(patsubst %,$(SOURCEFOLDER)/%,$(DEPS))
 
 # Build library
-all : $(OUTPUTFOLDER)/TSDRLibrary$(EXT)
+all : $(OUTPUTFOLDER)/$(LIBPREFIX)TSDRLibrary$(EXT)
 
 # Link
-$(OUTPUTFOLDER)/TSDRLibrary$(EXT) : $(_OBJS)
-	gcc -Wl,--add-stdcall-alias -shared -o $@ $(_OBJS)
+$(OUTPUTFOLDER)/$(LIBPREFIX)TSDRLibrary$(EXT) : $(_OBJS)
+	gcc -shared -Wl -o $@ $(_OBJS) $(LDFLAGS)
 
 # Create folders if needed and compile
 $(OBJFOLDER)/%.o : src/%.c $(_DEPS)
 	mkdir -p $(OUTPUTFOLDER)
 	mkdir -p $(OBJFOLDER)
-	gcc $(foreach d, $(INC), -I$d) $(CFLAGS) -c $< -o $@
+	gcc $(foreach d, $(INC), -I$d) $(CFLAGS) -c $< -o $@ $(LDFLAGS)
 	
 .PHONY: clean
 

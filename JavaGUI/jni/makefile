@@ -4,7 +4,7 @@ $(warning JAVA_HOME should be set so it points to your jdk installation dir)
 endif
 
 # Flags
-CPPFLAGS=-O3
+CFLAGS=-O3
 
 # Define all of the C files here
 OBJS = TSDRLibraryNDK.o
@@ -30,6 +30,7 @@ else
 	ifeq ($(UNAME_S),Linux)
 		EXT=.so
 		OSNAME = LINUX
+		LIBPREFIX=lib
 	endif
 	ifeq ($(UNAME_S),Darwin)
 		EXT=.a
@@ -61,13 +62,13 @@ all : rebuildtempestsdr library
 	
 # Linking
 library : $(_OBJS)
-	gcc -L../../TempestSDR/bin/$(OSNAME)/$(ARCHNAME)/ -lTSDRLibrary -Wl,--add-stdcall-alias -shared -o $(OUTPUTFOLDER)/TSDRLibraryNDK$(EXT) $<
+	gcc -L../../TempestSDR/bin/$(OSNAME)/$(ARCHNAME)/ -lTSDRLibrary -Wl -shared -o $(OUTPUTFOLDER)/$(LIBPREFIX)TSDRLibraryNDK$(EXT) $< -fPIC
 
 # Rebuild the main library so that we have the most up-to-date version
 # The main library is assumed to be two levels below this jni folder
 rebuildtempestsdr :
 	@$(MAKE) -C ../../TempestSDR all
-	@cp -f ../../TempestSDR/bin/$(OSNAME)/$(ARCHNAME)/TSDRLibrary$(EXT) $(OUTPUTFOLDER)/TSDRLibrary$(EXT)
+	@cp -f ../../TempestSDR/bin/$(OSNAME)/$(ARCHNAME)/$(LIBPREFIX)TSDRLibrary$(EXT) $(OUTPUTFOLDER)/$(LIBPREFIX)TSDRLibrary$(EXT)
 	mkdir -p include
 	@cp -f ../../TempestSDR/src/include/TSDRCodes.h include/
 	@cp -f ../../TempestSDR/src/include/TSDRLibrary.h include/
@@ -76,7 +77,7 @@ rebuildtempestsdr :
 
 # Compile the sources to obj files
 $(OBJFOLDER)/%.o : %.c $(DEPS)
-	gcc $(foreach d, $(INC), -I$d) $(CFLAGS) -c $< -o $@
+	gcc $(foreach d, $(INC), -I$d) $(CFLAGS) -c $< -o $@ -fPIC
 
 # Generate the java header based on the class
 TSDRLibraryNDK.h : ../bin/martin/tempest/core/TSDRLibrary.class 
@@ -89,5 +90,5 @@ TSDRLibraryNDK.h : ../bin/martin/tempest/core/TSDRLibrary.class
 
 # Remove any compiled artifacts
 clean :
-	rm -f TSDRLibraryNDK.h ../TSDRLibraryNDK$(EXT) ../TSDRLibrary$(EXT)
+	rm -f TSDRLibraryNDK.h ../$(LIBPREFIX)TSDRLibraryNDK$(EXT) ../$(LIBPREFIX)TSDRLibrary$(EXT)
 	rm -rf $(OBJFOLDER)/
