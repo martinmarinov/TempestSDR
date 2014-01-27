@@ -51,6 +51,10 @@ This is the Java wrapper and GUI. It builds all projects and supported plugins i
 On Windows 8 x64 this could look like
 
     make all JAVA_HOME=C:/PROGRA~2/Java/jdk1.7.0_45
+	
+To force compilation for X64 or X32, do the following
+
+    make all JAVA_HOME=C:/PROGRA~2/Java/jdk1.7.0_45 ARCHNAME=X64
 
 On Ubuntu with openjdk it could look like
 

@@ -6,6 +6,9 @@ PLUGNAME=TSDRPlugin_Mirics
 OBJS=$(PLUGNAME).o
 DEPS=TSDRPlugin.h TSDRCodes.h
 
+# Flags
+CFLAGS+=-O3
+
 # Headers
 INC = "$(MIRICS_HOME)/API/inc"
 
@@ -16,43 +19,58 @@ HEADLOCATION=../TempestSDR/src/include/
 
 # Discover the library extension for each OS
 ifeq ($(OS),Windows_NT)
+	
 	EXT=.dll
 	OSNAME = WINDOWS
-	ifeq ($(PROCESSOR_ARCHITECTURE),AMD64)
-		ARCHNAME = X64
-	endif
-	ifeq ($(PROCESSOR_ARCHITECTURE),x86)
-		ARCHNAME = X86
+	
+	ifndef $(ARCHNAME)
+	
+		ifeq ($(PROCESSOR_ARCHITECTURE),AMD64)
+			ARCHNAME = X64
+		endif
+		ifeq ($(PROCESSOR_ARCHITECTURE),x86)
+			ARCHNAME = X86
+		endif
+	
 	endif
 else
 	UNAME_S := $(shell uname -s)
 	ifeq ($(UNAME_S),Linux)
 		EXT=.so
 		OSNAME = LINUX
+		LIBPREFIX=lib
 	endif
 	ifeq ($(UNAME_S),Darwin)
 		EXT=.a
 		OSNAME = OSX
 	endif
-	UNAME_P := $(shell uname -p)
-	ifeq ($(UNAME_P),x86_64)
-		ARCHNAME = X64
+	
+	ifndef $(ARCHNAME)
+	
+		UNAME_P := $(shell uname -p)
+		ifeq ($(UNAME_P),x86_64)
+			ARCHNAME = X64
+		endif
+		ifneq ($(filter %86,$(UNAME_P)),)
+			ARCHNAME = X86
+		endif
+		ifneq ($(filter arm%,$(UNAME_P)),)
+			ARCHNAME = ARM
+		endif
+	
 	endif
-	ifneq ($(filter %86,$(UNAME_P)),)
-		ARCHNAME = X86
-	endif
-	ifneq ($(filter arm%,$(UNAME_P)),)
-		ARCHNAME = ARM
-	endif
+endif
+
+ifeq ($(ARCHNAME),X86)
+	COMPILATION_TYPE=-m32
+else ifeq ($(ARCHNAME),X64)
+	COMPILATION_TYPE=-m64
 endif
 
 # If you need a different directory structure. Don't change that unless you really want to.
 SOURCEFOLDER=src
 OUTPUTFOLDER=bin/$(OSNAME)/$(ARCHNAME)
 OBJFOLDER=obj
-
-# Flags
-CPPFLAGS=-O3
 
 # Calculate the path to dependencies
 _OBJS = $(patsubst %,$(OBJFOLDER)/%,$(OBJS))
@@ -65,16 +83,23 @@ all : $(OUTPUTFOLDER)/$(PLUGNAME)$(EXT)
 copyoverheaderfile:
 	@cp -f $(HEADLOCATION)/TSDRPlugin.h $(SOURCEFOLDER)/
 	@cp -f $(HEADLOCATION)/TSDRCodes.h $(SOURCEFOLDER)/
+	
+# OS specific flags
+ifeq ($(OSNAME),LINUX)
+	CFLAGS+=-fPIC
+else ifeq ($(OSNAME),WINDOWS)
+	LDFLAGS+=-Wl,--add-stdcall-alias
+endif
 
 # Link
 $(OUTPUTFOLDER)/$(PLUGNAME)$(EXT): copyoverheaderfile $(_OBJS)
-	gcc -L"$(MIRICS_HOME)/API/$(ARCHNAME)/" -lmir_sdr_api -Wl,--add-stdcall-alias -shared -o $@ $(_OBJS)
+	gcc -L"$(MIRICS_HOME)/API/$(ARCHNAME)/" -lmir_sdr_api $(LDFLAGS) -shared $(COMPILATION_TYPE) -o $@ $(_OBJS)
 
 # Make dirs and compile
 $(OBJFOLDER)/%.o : $(SOURCEFOLDER)/%.c $(_DEPS)
 	mkdir -p $(OUTPUTFOLDER)
 	mkdir -p $(OBJFOLDER)
-	gcc $(foreach d, $(INC), -I$d) $(CFLAGS) -c $< -o $@
+	gcc $(foreach d, $(INC), -I$d) $(CFLAGS) $(COMPILATION_TYPE) -c $< -o $@
 
 .PHONY: clean
 

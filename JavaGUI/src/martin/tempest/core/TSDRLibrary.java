@@ -115,7 +115,6 @@ public class TSDRLibrary {
 			System.loadLibrary(name); 
 		} catch (Throwable t) {
 				final File library = extractLibrary(name);
-				System.out.println("File exists "+library.exists());
 				System.load(library.getAbsolutePath());
 				library.delete();
 		}

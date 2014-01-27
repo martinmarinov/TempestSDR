@@ -6,6 +6,9 @@ PLUGNAME=TSDRPlugin_RawFile
 OBJS=$(PLUGNAME).o timer.o
 DEPS=TSDRPlugin.h TSDRCodes.h timer.h osdetect.h
 
+# Flags
+CFLAGS+=-O3
+
 # END OF CONFIGURATION IF STANDARD DIR STRUCTURE IS USED
 
 # Where the TSDRPlugin.h of the TempestSDR library resides (so it will be copied over)
@@ -13,13 +16,19 @@ HEADLOCATION=../TempestSDR/src/include/
 
 # Discover the library extension for each OS
 ifeq ($(OS),Windows_NT)
+	
 	EXT=.dll
 	OSNAME = WINDOWS
-	ifeq ($(PROCESSOR_ARCHITECTURE),AMD64)
-		ARCHNAME = X64
-	endif
-	ifeq ($(PROCESSOR_ARCHITECTURE),x86)
-		ARCHNAME = X86
+	
+	ifndef $(ARCHNAME)
+	
+		ifeq ($(PROCESSOR_ARCHITECTURE),AMD64)
+			ARCHNAME = X64
+		endif
+		ifeq ($(PROCESSOR_ARCHITECTURE),x86)
+			ARCHNAME = X86
+		endif
+	
 	endif
 else
 	UNAME_S := $(shell uname -s)
@@ -32,16 +41,27 @@ else
 		EXT=.a
 		OSNAME = OSX
 	endif
-	UNAME_P := $(shell uname -p)
-	ifeq ($(UNAME_P),x86_64)
-		ARCHNAME = X64
+	
+	ifndef $(ARCHNAME)
+	
+		UNAME_P := $(shell uname -p)
+		ifeq ($(UNAME_P),x86_64)
+			ARCHNAME = X64
+		endif
+		ifneq ($(filter %86,$(UNAME_P)),)
+			ARCHNAME = X86
+		endif
+		ifneq ($(filter arm%,$(UNAME_P)),)
+			ARCHNAME = ARM
+		endif
+	
 	endif
-	ifneq ($(filter %86,$(UNAME_P)),)
-		ARCHNAME = X86
-	endif
-	ifneq ($(filter arm%,$(UNAME_P)),)
-		ARCHNAME = ARM
-	endif
+endif
+
+ifeq ($(ARCHNAME),X86)
+	COMPILATION_TYPE=-m32
+else ifeq ($(ARCHNAME),X64)
+	COMPILATION_TYPE=-m64
 endif
 
 # If you need a different directory structure. Don't change that unless you really want to.
@@ -49,8 +69,12 @@ SOURCEFOLDER=src
 OUTPUTFOLDER=bin/$(OSNAME)/$(ARCHNAME)
 OBJFOLDER=obj
 
-# Flags
-CPPFLAGS=-O3
+# OS specific flags
+ifeq ($(OSNAME),LINUX)
+	CFLAGS+=-fPIC
+else ifeq ($(OSNAME),WINDOWS)
+	LDFLAGS+=-Wl,--add-stdcall-alias
+endif
 
 # Calculate the path to dependencies
 _OBJS = $(patsubst %,$(OBJFOLDER)/%,$(OBJS))
@@ -66,13 +90,13 @@ copyoverheaderfile:
 
 # Link
 $(OUTPUTFOLDER)/$(LIBPREFIX)$(PLUGNAME)$(EXT): copyoverheaderfile $(_OBJS)
-	gcc -Wl -shared -o $@ $(_OBJS)  -fPIC
+	gcc -shared $(LDFLAGS) $(COMPILATION_TYPE) -o $@ $(_OBJS)
 
 # Make dirs and compile
 $(OBJFOLDER)/%.o : $(SOURCEFOLDER)/%.c $(_DEPS)
 	mkdir -p $(OUTPUTFOLDER)
 	mkdir -p $(OBJFOLDER)
-	gcc $(foreach d, $(INC), -I$d) $(CFLAGS) -c $< -o $@  -fPIC
+	gcc $(foreach d, $(INC), -I$d) $(CFLAGS) $(COMPILATION_TYPE) -c $< -o $@
 
 .PHONY: clean
 

@@ -3,27 +3,33 @@ ifndef JAVA_HOME
 $(warning JAVA_HOME should be set so it points to your jdk installation dir)
 endif
 
-# Flags
-CFLAGS=-O3
-
 # Define all of the C files here
 OBJS = TSDRLibraryNDK.o
 
 # Define all of the dependencies here
 DEPS = TSDRLibraryNDK.h include/TSDRLibrary.h include/TSDRCodes.h
 
+# Flags
+CFLAGS+=-O3
+
 # Headers
 INC = "$(JAVA_HOME)/include" "$(JAVA_HOME)/include/win32"
 
 # Detect library extension depending on OS
 ifeq ($(OS),Windows_NT)
+	
 	EXT=.dll
 	OSNAME = WINDOWS
-	ifeq ($(PROCESSOR_ARCHITECTURE),AMD64)
-		ARCHNAME = X64
-	endif
-	ifeq ($(PROCESSOR_ARCHITECTURE),x86)
-		ARCHNAME = X86
+	
+	ifndef $(ARCHNAME)
+	
+		ifeq ($(PROCESSOR_ARCHITECTURE),AMD64)
+			ARCHNAME = X64
+		endif
+		ifeq ($(PROCESSOR_ARCHITECTURE),x86)
+			ARCHNAME = X86
+		endif
+	
 	endif
 else
 	UNAME_S := $(shell uname -s)
@@ -36,16 +42,34 @@ else
 		EXT=.a
 		OSNAME = OSX
 	endif
-	UNAME_P := $(shell uname -p)
-	ifeq ($(UNAME_P),x86_64)
-		ARCHNAME = X64
+	
+	ifndef $(ARCHNAME)
+	
+		UNAME_P := $(shell uname -p)
+		ifeq ($(UNAME_P),x86_64)
+			ARCHNAME = X64
+		endif
+		ifneq ($(filter %86,$(UNAME_P)),)
+			ARCHNAME = X86
+		endif
+		ifneq ($(filter arm%,$(UNAME_P)),)
+			ARCHNAME = ARM
+		endif
+	
 	endif
-	ifneq ($(filter %86,$(UNAME_P)),)
-		ARCHNAME = X86
-	endif
-	ifneq ($(filter arm%,$(UNAME_P)),)
-		ARCHNAME = ARM
-	endif
+endif
+
+ifeq ($(ARCHNAME),X86)
+	COMPILATION_TYPE=-m32
+else ifeq ($(ARCHNAME),X64)
+	COMPILATION_TYPE=-m64
+endif
+
+# OS specific flags
+ifeq ($(OSNAME),LINUX)
+	CFLAGS+=-fPIC
+else ifeq ($(OSNAME),WINDOWS)
+	LDFLAGS+=-Wl,--add-stdcall-alias
 endif
 
 # The folder that will contain the libraries
@@ -62,7 +86,7 @@ all : rebuildtempestsdr library
 	
 # Linking
 library : $(_OBJS)
-	gcc -L../../TempestSDR/bin/$(OSNAME)/$(ARCHNAME)/ -lTSDRLibrary -Wl -shared -o $(OUTPUTFOLDER)/$(LIBPREFIX)TSDRLibraryNDK$(EXT) $< -fPIC
+	gcc -L../../TempestSDR/bin/$(OSNAME)/$(ARCHNAME)/ -lTSDRLibrary -shared $(LDFLAGS) $(COMPILATION_TYPE) -o $(OUTPUTFOLDER)/$(LIBPREFIX)TSDRLibraryNDK$(EXT) $<
 
 # Rebuild the main library so that we have the most up-to-date version
 # The main library is assumed to be two levels below this jni folder
@@ -77,7 +101,7 @@ rebuildtempestsdr :
 
 # Compile the sources to obj files
 $(OBJFOLDER)/%.o : %.c $(DEPS)
-	gcc $(foreach d, $(INC), -I$d) $(CFLAGS) -c $< -o $@ -fPIC
+	gcc $(foreach d, $(INC), -I$d) $(CFLAGS) $(COMPILATION_TYPE) -c $< -o $@
 
 # Generate the java header based on the class
 TSDRLibraryNDK.h : ../bin/martin/tempest/core/TSDRLibrary.class 
