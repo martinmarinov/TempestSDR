@@ -125,12 +125,15 @@ TSDR_PUBLIC int tsdr_stop(tsdr_lib_t * tsdr) {
 
 	mutex_wait((mutex_t *) tsdr->mutex_sync_unload);
 
-	mutex_free((mutex_t *) tsdr->mutex_sync_unload);
+	mutex_t * msu_ref = (mutex_t *) tsdr->mutex_sync_unload;
+	tsdr->mutex_sync_unload = NULL;
+	mutex_free(msu_ref);
 	free(tsdr->mutex_sync_unload);
 	RETURN_PLUGIN_RESULT(tsdr, plugin, status);
 }
 
 TSDR_PUBLIC int tsdr_setgain(tsdr_lib_t * tsdr, float gain) {
+
 	tsdr->gain = gain;
 
 	if (tsdr->plugin != NULL) {
@@ -400,6 +403,7 @@ TSDR_PUBLIC int tsdr_readasync(tsdr_lib_t * tsdr, const char * pluginfilepath, t
 
 	tsdr->running = 0;
 
+
 	mutex_wait((mutex_t *) tsdr->mutex_video_stopped);
 
 	mutex_free((mutex_t *) tsdr->mutex_video_stopped);
@@ -410,8 +414,7 @@ TSDR_PUBLIC int tsdr_readasync(tsdr_lib_t * tsdr, const char * pluginfilepath, t
 
 	cb_free(&context->circbuf);
 
-	mutex_signal((mutex_t *) tsdr->mutex_sync_unload);
-
+	if (tsdr->mutex_sync_unload != NULL) mutex_signal((mutex_t *) tsdr->mutex_sync_unload);
 end:
 	if (pluginsfault) announceexception(tsdr,plugin->tsdrplugin_getlasterrortext(),status);
 

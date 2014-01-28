@@ -9,7 +9,7 @@
 
 tsdr_lib_t tsdr_instance;
 
-#define THROW(x) error(env, x)
+#define THROW(x) announce_jni_error(env, x)
 
 struct java_context {
 		jobject obj;
@@ -59,7 +59,7 @@ void error_translate (int exception_code, char * exceptionclass) {
 		}
 }
 
-void error(JNIEnv * env, int exception_code)
+void announce_jni_error(JNIEnv * env, int exception_code)
 {
 	if (exception_code == TSDR_OK) return;
 
