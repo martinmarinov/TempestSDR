@@ -59,7 +59,7 @@ CLASSFILES:=$(patsubst %,bin/%,$(addsuffix .class,$(basename $(foreach jfile,$(J
 OUTPUTFOLDER=lib/$(OSNAME)/$(ARCHNAME)
 
 # Build the file names of the plugin files
-PLUGINS_FILES=$(addprefix $(PREFIX),$(addsuffix $(EXT),$(PLUGINS)))
+PLUGINS_FILES=$(addprefix $(LIBPREFIX),$(addsuffix $(EXT),$(PLUGINS)))
 
 # Build the directory names of the plugins
 PLUGINS_DIRS=$(addprefix ../,$(addsuffix /,$(PLUGINS)))
@@ -102,4 +102,5 @@ cleanplugins:
 
 # Clean the java classes as well
 clean : cleanjni
+	rm -rf $(OUTPUTFOLDER)/
 	rm -rf bin/ JTempestSDR.jar

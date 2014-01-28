@@ -1,20 +1,7 @@
 #ifndef _TSDRLibrary
 #define _TSDRLibrary
 
-	#if defined _WIN32 || defined __CYGWIN__
-  #ifdef BUILDING_STATIC
-	#ifdef __GNUC__
-      #define TSDR_PUBLIC __attribute__ ((dllimport))
-    #else
-      #define TSDR_PUBLIC __declspec(dllimport) // Note: actually gcc seems to also supports this syntax.
-    #endif
-  #else
-    #ifdef __GNUC__
-      #define TSDR_PUBLIC __attribute__ ((dllexport))
-    #else
-      #define TSDR_PUBLIC __declspec(dllexport) // Note: actually gcc seems to also supports this syntax.
-    #endif
-  #endif
+#if defined _WIN32 || defined __CYGWIN__
   #define TSDR_LOCAL
 #else
   #if __GNUC__ >= 4

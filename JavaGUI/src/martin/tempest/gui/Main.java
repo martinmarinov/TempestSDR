@@ -78,8 +78,10 @@ public class Main implements TSDRLibrary.FrameReadyCallback {
 	private JTextField textArgs;
 	private JSpinner spWidth;
 	private JSpinner spHeight;
-	private JComboBox<VideoMode> cbVideoModes;
-	private JComboBox<TSDRSource> cbDevice;
+	@SuppressWarnings("rawtypes")
+	private JComboBox cbVideoModes;
+	@SuppressWarnings("rawtypes")
+	private JComboBox cbDevice;
 	private JSpinner spFrequency;
 	private JLabel lblFrequency;
 	private JSlider slGain;
@@ -135,6 +137,7 @@ public class Main implements TSDRLibrary.FrameReadyCallback {
 	/**
 	 * Initialize the contents of the frame.
 	 */
+	@SuppressWarnings({ "rawtypes", "unchecked" })
 	private void initialize() {
 		final int width_initial = prefs.getInt(PREF_WIDTH, 576);
 		final int height_initial = prefs.getInt(PREF_HEIGHT, 625);
@@ -185,10 +188,10 @@ public class Main implements TSDRLibrary.FrameReadyCallback {
 		visualizer.setBounds(0, 32, 563, 433);
 		frmTempestSdr.getContentPane().add(visualizer);
 		
-		cbDevice = new JComboBox<TSDRSource>();
+		cbDevice = new JComboBox();
 		final int cbDeviceIndex = prefs.getInt(PREF_SOURCE_ID, 0);
 		current_plugin_name = souces[cbDeviceIndex].descr;
-		cbDevice.setModel(new DefaultComboBoxModel<TSDRSource>(souces));
+		cbDevice.setModel(new DefaultComboBoxModel(souces));
 		cbDevice.setSelectedIndex(cbDeviceIndex);
 		cbDevice.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent arg0) {
@@ -218,9 +221,9 @@ public class Main implements TSDRLibrary.FrameReadyCallback {
 		});
 		frmTempestSdr.getContentPane().add(btnStartStop);
 		
-		cbVideoModes = new JComboBox<VideoMode>();
+		cbVideoModes = new JComboBox();
 		cbVideoModes.setBounds(568, 32, 159, 22);
-		cbVideoModes.setModel(new DefaultComboBoxModel<VideoMode>(videomodes));
+		cbVideoModes.setModel(new DefaultComboBoxModel(videomodes));
 		if (closest_videomode_id != -1) cbVideoModes.setSelectedIndex(closest_videomode_id);
 		cbVideoModes.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent arg0) {

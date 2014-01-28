@@ -113,6 +113,7 @@ public class TSDRLibrary {
 		try {
 			// try traditional method
 			System.loadLibrary(name); 
+			System.out.println(name+" loaded from library");
 		} catch (Throwable t) {
 				final File library = extractLibrary(name);
 				System.load(library.getAbsolutePath());
@@ -125,9 +126,7 @@ public class TSDRLibrary {
 	 */
 	static {
 		try {
-			loadLibrary("TSDRLibrary");
 			loadLibrary("TSDRLibraryNDK");
-			
 		} catch (TSDRLibraryNotCompatible e) {
 			m_e = e;
 		} 

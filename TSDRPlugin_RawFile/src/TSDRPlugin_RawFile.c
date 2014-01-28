@@ -180,8 +180,6 @@ int tsdrplugin_readasync(tsdrplugin_readasync_function cb, void *ctx) {
 	working = 1;
 	int i;
 
-	int counter;
-
 	if (sizepersample == -1)
 		RETURN_EXCEPTION("Plugin was not initialized properly.", TSDR_PLUGIN_PARAMETERS_WRONG);
 

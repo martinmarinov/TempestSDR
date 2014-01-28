@@ -83,16 +83,17 @@ all : $(OUTPUTFOLDER)/$(LIBPREFIX)TSDRLibrary$(EXT)
 
 # Link
 $(OUTPUTFOLDER)/$(LIBPREFIX)TSDRLibrary$(EXT) : $(_OBJS)
-	gcc -shared $(LDFLAGS) $(COMPILATION_TYPE) -o $@ $(_OBJS)
+	gcc -Wall -shared $(LDFLAGS) $(COMPILATION_TYPE) -o $@ $(_OBJS)
+	ar rcs -o $(OUTPUTFOLDER)/$(LIBPREFIX)TSDRLibrary.a $(_OBJS)
 
 # Create folders if needed and compile
 $(OBJFOLDER)/%.o : src/%.c $(_DEPS)
 	mkdir -p $(OUTPUTFOLDER)
 	mkdir -p $(OBJFOLDER)
-	gcc $(foreach d, $(INC), -I$d) $(CFLAGS) $(COMPILATION_TYPE) -c $< -o $@
+	gcc -Wall $(foreach d, $(INC), -I$d) $(CFLAGS) $(COMPILATION_TYPE) -c $< -o $@
 	
 .PHONY: clean
 
 # Clean artifacts
 clean :
-	rm -f $(OBJFOLDER)/*.o $(OUTPUTFOLDER)/*.*
+	rm -f $(OBJFOLDER)/*.o $(OUTPUTFOLDER)/*.* $(OUTPUTFOLDER)/$(LIBPREFIX)TSDRLibrary$(EXT) $(OUTPUTFOLDER)/$(LIBPREFIX)TSDRLibrary.a

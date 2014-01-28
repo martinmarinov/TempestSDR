@@ -30,6 +30,8 @@
 	#include <errno.h>
 	#include <pthread.h>
 	#include <unistd.h>
+	#include <sys/time.h>
+
 #endif
 
 	void thread_sleep(uint32_t milliseconds) {

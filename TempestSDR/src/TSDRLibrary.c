@@ -148,7 +148,6 @@ void videodecodingthread(void * ctx) {
 
 	tsdr_context_t * context = (tsdr_context_t *) ctx;
 
-	const uint32_t samplerate = context->this->samplerate;
 	int height = context->this->height;
 	int width = context->this->width;
 
@@ -193,7 +192,6 @@ void videodecodingthread(void * ctx) {
 			for (i = 0; i < sizetopoll; i++)
 				sendbuffer[i] = (screenbuffer[i] - min) / span;
 
-			static i = 0;
 			context->cb(sendbuffer, width, height, context->ctx);
 		}
 	}
@@ -258,7 +256,6 @@ void process(float *buf, uint32_t len, void *ctx, int dropped) {
 	int pid = 0;
 	int i = 0;
 	int id;
-	int j;
 
 	for (id = 0; id < size; id++) {
 		const float I = buf[i++];

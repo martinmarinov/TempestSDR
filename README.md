@@ -52,7 +52,7 @@ On Windows 8 x64 this could look like
 
     make all JAVA_HOME=C:/PROGRA~2/Java/jdk1.7.0_45
 	
-To force compilation for X64 or X32, do the following
+To force compilation for X64 or X32 (in case your compiler supports it), do the following
 
     make all JAVA_HOME=C:/PROGRA~2/Java/jdk1.7.0_45 ARCHNAME=X64
 

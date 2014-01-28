@@ -93,16 +93,16 @@ endif
 
 # Link
 $(OUTPUTFOLDER)/$(PLUGNAME)$(EXT): copyoverheaderfile $(_OBJS)
-	gcc -L"$(MIRICS_HOME)/API/$(ARCHNAME)/" -lmir_sdr_api $(LDFLAGS) -shared $(COMPILATION_TYPE) -o $@ $(_OBJS)
+	gcc -Wall -L"$(MIRICS_HOME)/API/$(ARCHNAME)/" -lmir_sdr_api $(LDFLAGS) -shared $(COMPILATION_TYPE) -o $@ $(_OBJS)
 
 # Make dirs and compile
 $(OBJFOLDER)/%.o : $(SOURCEFOLDER)/%.c $(_DEPS)
 	mkdir -p $(OUTPUTFOLDER)
 	mkdir -p $(OBJFOLDER)
-	gcc $(foreach d, $(INC), -I$d) $(CFLAGS) $(COMPILATION_TYPE) -c $< -o $@
+	gcc -Wall $(foreach d, $(INC), -I$d) $(CFLAGS) $(COMPILATION_TYPE) -c $< -o $@
 
 .PHONY: clean
 
 # Clean artifacts
 clean :
-	rm -f $(OBJFOLDER)/*.o $(OUTPUTFOLDER)/*.*
+	rm -f $(OBJFOLDER)/*.o $(OUTPUTFOLDER)/*.* $(OUTPUTFOLDER)/$(PLUGNAME)$(EXT)
