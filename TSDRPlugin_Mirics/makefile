@@ -70,8 +70,10 @@ endif
 
 ifeq ($(ARCHNAME),X86)
 	COMPILATION_TYPE=-m32
+	ARCHNAME_LOWER=x86
 else ifeq ($(ARCHNAME),X64)
 	COMPILATION_TYPE=-m64
+	ARCHNAME_LOWER=x64
 endif
 
 
@@ -84,6 +86,9 @@ OBJFOLDER=obj
 _OBJS = $(patsubst %,$(OBJFOLDER)/%,$(OBJS))
 _DEPS = $(patsubst %,$(SOURCEFOLDER)/%,$(DEPS))
 
+# OS specific flags
+LDFLAGS+=-Wl,--add-stdcall-alias
+
 # Generate the library
 all : $(OUTPUTFOLDER)/$(PLUGNAME)$(EXT)
 
@@ -91,17 +96,10 @@ all : $(OUTPUTFOLDER)/$(PLUGNAME)$(EXT)
 copyoverheaderfile:
 	@cp -f $(HEADLOCATION)/TSDRPlugin.h $(SOURCEFOLDER)/
 	@cp -f $(HEADLOCATION)/TSDRCodes.h $(SOURCEFOLDER)/
-	
-# OS specific flags
-ifeq ($(OSNAME),LINUX)
-	CFLAGS+=-fPIC
-else ifeq ($(OSNAME),WINDOWS)
-	LDFLAGS+=-Wl,--add-stdcall-alias
-endif
 
 # Link
 $(OUTPUTFOLDER)/$(PLUGNAME)$(EXT): copyoverheaderfile $(_OBJS)
-	$(CC) -Wall -L"$(MIRICS_HOME)/API/$(ARCHNAME)/" -lmir_sdr_api $(LDFLAGS) -shared $(COMPILATION_TYPE) -o $@ $(_OBJS)
+	$(CC) -Wall -L"$(MIRICS_HOME)/API/$(ARCHNAME_LOWER)/" -lmir_sdr_api $(LDFLAGS) -shared $(COMPILATION_TYPE) -o $@ $(_OBJS)
 
 # Make dirs and compile
 $(OBJFOLDER)/%.o : $(SOURCEFOLDER)/%.c $(_DEPS)

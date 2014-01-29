@@ -132,5 +132,5 @@ cleandependent :
 	@$(MAKE) -C ../TempestSDR/ clean
 
 # Clean the java classes as well
-clean : cleanjni
+clean : cleanjni cleandependent
 	rm -rf bin/ JTempestSDR.jar

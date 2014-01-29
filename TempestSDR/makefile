@@ -67,6 +67,7 @@ else ifeq ($(ARCHNAME),X64)
 	COMPILATION_TYPE=-m64
 endif
 
+AR?=ar
 
 # If you need a different directory structure. Don't change that unless you really want to.
 SOURCEFOLDER=src
@@ -92,7 +93,7 @@ all : $(OUTPUTFOLDER)/$(LIBPREFIX)TSDRLibrary$(EXT)
 # Link
 $(OUTPUTFOLDER)/$(LIBPREFIX)TSDRLibrary$(EXT) : $(_OBJS)
 	$(CC) -Wall -shared $(LDFLAGS) $(COMPILATION_TYPE) -o $@ $(_OBJS)
-	ar rcs -o $(OUTPUTFOLDER)/$(LIBPREFIX)TSDRLibrary.a $(_OBJS)
+	$(AR) rcs -o $(OUTPUTFOLDER)/$(LIBPREFIX)TSDRLibrary.a $(_OBJS)
 
 # Create folders if needed and compile
 $(OBJFOLDER)/%.o : src/%.c $(_DEPS)

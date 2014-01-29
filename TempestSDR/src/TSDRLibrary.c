@@ -58,14 +58,14 @@ static inline void announceexception(tsdr_lib_t * tsdr, const char * message, in
 	strcpy(tsdr->errormsg, message);
 }
 
-TSDR_PUBLIC char * tsdr_getlasterrortext(tsdr_lib_t * tsdr) {
+ char * tsdr_getlasterrortext(tsdr_lib_t * tsdr) {
 	if (tsdr->errormsg_code == TSDR_OK)
 		return NULL;
 	else
 		return tsdr->errormsg;
 }
 
-TSDR_PUBLIC void tsdr_init(tsdr_lib_t * tsdr) {
+ void tsdr_init(tsdr_lib_t * tsdr) {
 	tsdr->nativerunning = 0;
 	tsdr->plugin = NULL;
 	tsdr->centfreq = 0;
@@ -74,11 +74,11 @@ TSDR_PUBLIC void tsdr_init(tsdr_lib_t * tsdr) {
 	tsdr->errormsg_code = TSDR_OK;
 }
 
-TSDR_PUBLIC int tsdr_isrunning(tsdr_lib_t * tsdr) {
+ int tsdr_isrunning(tsdr_lib_t * tsdr) {
 	return tsdr->nativerunning;
 }
 
-TSDR_PUBLIC int tsdr_setsamplerate(tsdr_lib_t * tsdr, uint32_t rate) {
+ int tsdr_setsamplerate(tsdr_lib_t * tsdr, uint32_t rate) {
 	if (tsdr->plugin == NULL) RETURN_EXCEPTION(tsdr, "Cannot change sample rate. Plugin not loaded yet.", TSDR_ERR_PLUGIN);
 
 	pluginsource_t * plugin = (pluginsource_t *)(tsdr->plugin);
@@ -92,7 +92,7 @@ TSDR_PUBLIC int tsdr_setsamplerate(tsdr_lib_t * tsdr, uint32_t rate) {
 	RETURN_OK(tsdr);
 }
 
-TSDR_PUBLIC int tsdr_getsamplerate(tsdr_lib_t * tsdr) {
+ int tsdr_getsamplerate(tsdr_lib_t * tsdr) {
 	if (tsdr->plugin == NULL) RETURN_EXCEPTION(tsdr, "Cannot change sample rate. Plugin not loaded yet.", TSDR_ERR_PLUGIN);
 
 	pluginsource_t * plugin = (pluginsource_t *)(tsdr->plugin);
@@ -106,7 +106,7 @@ TSDR_PUBLIC int tsdr_getsamplerate(tsdr_lib_t * tsdr) {
 	RETURN_OK(tsdr);
 }
 
-TSDR_PUBLIC int tsdr_setbasefreq(tsdr_lib_t * tsdr, uint32_t freq) {
+ int tsdr_setbasefreq(tsdr_lib_t * tsdr, uint32_t freq) {
 	tsdr->centfreq = freq;
 
 	if (tsdr->plugin != NULL) {
@@ -116,7 +116,7 @@ TSDR_PUBLIC int tsdr_setbasefreq(tsdr_lib_t * tsdr, uint32_t freq) {
 		RETURN_OK(tsdr);
 }
 
-TSDR_PUBLIC int tsdr_stop(tsdr_lib_t * tsdr) {
+ int tsdr_stop(tsdr_lib_t * tsdr) {
 	if (!tsdr->running) RETURN_OK(tsdr);
 
 	pluginsource_t * plugin = (pluginsource_t *)(tsdr->plugin);
@@ -132,7 +132,7 @@ TSDR_PUBLIC int tsdr_stop(tsdr_lib_t * tsdr) {
 	RETURN_PLUGIN_RESULT(tsdr, plugin, status);
 }
 
-TSDR_PUBLIC int tsdr_setgain(tsdr_lib_t * tsdr, float gain) {
+ int tsdr_setgain(tsdr_lib_t * tsdr, float gain) {
 
 	tsdr->gain = gain;
 
@@ -349,7 +349,7 @@ void process(float *buf, uint32_t len, void *ctx, int dropped) {
 
 }
 
-TSDR_PUBLIC int tsdr_readasync(tsdr_lib_t * tsdr, const char * pluginfilepath, tsdr_readasync_function cb, void *ctx, const char * params) {
+ int tsdr_readasync(tsdr_lib_t * tsdr, const char * pluginfilepath, tsdr_readasync_function cb, void *ctx, const char * params) {
 	if (tsdr->nativerunning || tsdr->running)
 		RETURN_EXCEPTION(tsdr, "The library is already running in async mode. Stop it first!", TSDR_ALREADY_RUNNING);
 
@@ -428,7 +428,7 @@ end:
 	return status;
 }
 
-TSDR_PUBLIC int tsdr_setresolution(tsdr_lib_t * tsdr, int width, int height, double refreshrate) {
+ int tsdr_setresolution(tsdr_lib_t * tsdr, int width, int height, double refreshrate) {
 	if (width <= 0 || height <= 0 || width*height > MAX_ARR_SIZE || refreshrate <= 0)
 		RETURN_EXCEPTION(tsdr, "The supplied height and the width are invalid or refreshrate is negative!", TSDR_WRONG_VIDEOPARAMS);
 
@@ -442,13 +442,13 @@ TSDR_PUBLIC int tsdr_setresolution(tsdr_lib_t * tsdr, int width, int height, dou
 	RETURN_OK(tsdr);
 }
 
-TSDR_PUBLIC int tsdr_motionblur(tsdr_lib_t * tsdr, float coeff) {
+ int tsdr_motionblur(tsdr_lib_t * tsdr, float coeff) {
 	if (coeff < 0.0f || coeff > 1.0f) return TSDR_WRONG_VIDEOPARAMS;
 	tsdr->motionblur = coeff;
 	RETURN_OK(tsdr);
 }
 
-TSDR_PUBLIC int tsdr_sync(tsdr_lib_t * tsdr, int pixels, int direction) {
+ int tsdr_sync(tsdr_lib_t * tsdr, int pixels, int direction) {
 	if (pixels == 0) return TSDR_OK;
 	switch(direction) {
 	case DIRECTION_CUSTOM:
