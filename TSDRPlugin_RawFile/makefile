@@ -17,8 +17,7 @@ HEADLOCATION=../TempestSDR/src/include/
 # Discover the library extension for each OS
 ifeq ($(OS),Windows_NT)
 	
-	EXT=.dll
-	OSNAME = WINDOWS
+	OSNAME ?= WINDOWS
 	
 	ifndef $(ARCHNAME)
 	
@@ -31,15 +30,14 @@ ifeq ($(OS),Windows_NT)
 	
 	endif
 else
-	UNAME_S := $(shell uname -s)
-	ifeq ($(UNAME_S),Linux)
-		EXT=.so
-		OSNAME = LINUX
-		LIBPREFIX=lib
-	endif
-	ifeq ($(UNAME_S),Darwin)
-		EXT=.a
-		OSNAME = OSX
+
+	ifndef $(OSNAME)
+	
+		UNAME_S := $(shell uname -s)
+		ifeq ($(UNAME_S),Linux)
+			OSNAME = LINUX
+		endif
+	
 	endif
 	
 	ifndef $(ARCHNAME)
@@ -56,6 +54,15 @@ else
 		endif
 	
 	endif
+endif
+
+ifeq ($(OSNAME),WINDOWS)
+	EXT=.dll
+	LIBPREFIX=
+endif
+ifeq ($(OSNAME),LINUX)
+	EXT=.so
+	LIBPREFIX=lib
 endif
 
 ifeq ($(ARCHNAME),X86)
@@ -90,13 +97,13 @@ copyoverheaderfile:
 
 # Link
 $(OUTPUTFOLDER)/$(LIBPREFIX)$(PLUGNAME)$(EXT): copyoverheaderfile $(_OBJS)
-	gcc -Wall -shared $(LDFLAGS) $(COMPILATION_TYPE) -o $@ $(_OBJS)
+	$(CC) -Wall -shared $(LDFLAGS) $(COMPILATION_TYPE) -o $@ $(_OBJS)
 
 # Make dirs and compile
 $(OBJFOLDER)/%.o : $(SOURCEFOLDER)/%.c $(_DEPS)
 	mkdir -p $(OUTPUTFOLDER)
 	mkdir -p $(OBJFOLDER)
-	gcc -Wall $(foreach d, $(INC), -I$d) $(CFLAGS) $(COMPILATION_TYPE) -c $< -o $@
+	$(CC) -Wall $(foreach d, $(INC), -I$d) $(CFLAGS) $(COMPILATION_TYPE) -c $< -o $@
 
 .PHONY: clean
 

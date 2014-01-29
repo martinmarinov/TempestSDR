@@ -10,11 +10,10 @@ CFLAGS+=-O3
 # USER CONFIGURATION ENDS HERE
 
 
-# Detect library extension based on OS
+# Discover the library extension for each OS
 ifeq ($(OS),Windows_NT)
 	
-	EXT=.dll
-	OSNAME = WINDOWS
+	OSNAME ?= WINDOWS
 	
 	ifndef $(ARCHNAME)
 	
@@ -27,15 +26,14 @@ ifeq ($(OS),Windows_NT)
 	
 	endif
 else
-	UNAME_S := $(shell uname -s)
-	ifeq ($(UNAME_S),Linux)
-		EXT=.so
-		OSNAME = LINUX
-		LIBPREFIX=lib
-	endif
-	ifeq ($(UNAME_S),Darwin)
-		EXT=.a
-		OSNAME = OSX
+
+	ifndef $(OSNAME)
+	
+		UNAME_S := $(shell uname -s)
+		ifeq ($(UNAME_S),Linux)
+			OSNAME = LINUX
+		endif
+	
 	endif
 	
 	ifndef $(ARCHNAME)
@@ -54,11 +52,21 @@ else
 	endif
 endif
 
+ifeq ($(OSNAME),WINDOWS)
+	EXT=.dll
+	LIBPREFIX=
+endif
+ifeq ($(OSNAME),LINUX)
+	EXT=.so
+	LIBPREFIX=lib
+endif
+
 ifeq ($(ARCHNAME),X86)
 	COMPILATION_TYPE=-m32
 else ifeq ($(ARCHNAME),X64)
 	COMPILATION_TYPE=-m64
 endif
+
 
 # If you need a different directory structure. Don't change that unless you really want to.
 SOURCEFOLDER=src
@@ -83,14 +91,14 @@ all : $(OUTPUTFOLDER)/$(LIBPREFIX)TSDRLibrary$(EXT)
 
 # Link
 $(OUTPUTFOLDER)/$(LIBPREFIX)TSDRLibrary$(EXT) : $(_OBJS)
-	gcc -Wall -shared $(LDFLAGS) $(COMPILATION_TYPE) -o $@ $(_OBJS)
+	$(CC) -Wall -shared $(LDFLAGS) $(COMPILATION_TYPE) -o $@ $(_OBJS)
 	ar rcs -o $(OUTPUTFOLDER)/$(LIBPREFIX)TSDRLibrary.a $(_OBJS)
 
 # Create folders if needed and compile
 $(OBJFOLDER)/%.o : src/%.c $(_DEPS)
 	mkdir -p $(OUTPUTFOLDER)
 	mkdir -p $(OBJFOLDER)
-	gcc -Wall $(foreach d, $(INC), -I$d) $(CFLAGS) $(COMPILATION_TYPE) -c $< -o $@
+	$(CC) -Wall $(foreach d, $(INC), -I$d) $(CFLAGS) $(COMPILATION_TYPE) -c $< -o $@
 	
 .PHONY: clean
 

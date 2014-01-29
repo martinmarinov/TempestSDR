@@ -15,11 +15,10 @@ CFLAGS+=-O3
 # Headers
 INC = "$(JAVA_HOME)/include" "$(JAVA_HOME)/include/win32"
 
-# Detect library extension depending on OS
+# Discover the library extension for each OS
 ifeq ($(OS),Windows_NT)
 	
-	EXT=.dll
-	OSNAME = WINDOWS
+	OSNAME ?= WINDOWS
 	
 	ifndef $(ARCHNAME)
 	
@@ -32,15 +31,14 @@ ifeq ($(OS),Windows_NT)
 	
 	endif
 else
-	UNAME_S := $(shell uname -s)
-	ifeq ($(UNAME_S),Linux)
-		EXT=.so
-		OSNAME = LINUX
-		LIBPREFIX=lib
-	endif
-	ifeq ($(UNAME_S),Darwin)
-		EXT=.a
-		OSNAME = OSX
+
+	ifndef $(OSNAME)
+	
+		UNAME_S := $(shell uname -s)
+		ifeq ($(UNAME_S),Linux)
+			OSNAME = LINUX
+		endif
+	
 	endif
 	
 	ifndef $(ARCHNAME)
@@ -59,11 +57,21 @@ else
 	endif
 endif
 
+ifeq ($(OSNAME),WINDOWS)
+	EXT=.dll
+	LIBPREFIX=
+endif
+ifeq ($(OSNAME),LINUX)
+	EXT=.so
+	LIBPREFIX=lib
+endif
+
 ifeq ($(ARCHNAME),X86)
 	COMPILATION_TYPE=-m32
 else ifeq ($(ARCHNAME),X64)
 	COMPILATION_TYPE=-m64
 endif
+
 
 # OS specific flags
 ifeq ($(OSNAME),LINUX)
@@ -86,7 +94,7 @@ all : rebuildtempestsdr library
 	
 # Linking
 library : $(_OBJS)
-	gcc -Wall -shared $(LDFLAGS) $(COMPILATION_TYPE) -o $(OUTPUTFOLDER)/$(LIBPREFIX)TSDRLibraryNDK$(EXT) $< ../../TempestSDR/bin/$(OSNAME)/$(ARCHNAME)/$(LIBPREFIX)TSDRLibrary.a
+	$(CC) -Wall -shared $(LDFLAGS) $(COMPILATION_TYPE) -o $(OUTPUTFOLDER)/$(LIBPREFIX)TSDRLibraryNDK$(EXT) $< ../../TempestSDR/bin/$(OSNAME)/$(ARCHNAME)/$(LIBPREFIX)TSDRLibrary.a
 
 # Rebuild the main library so that we have the most up-to-date version
 # The main library is assumed to be two levels below this jni folder
@@ -100,7 +108,7 @@ rebuildtempestsdr :
 
 # Compile the sources to obj files
 $(OBJFOLDER)/%.o : %.c $(DEPS)
-	gcc -Wall $(foreach d, $(INC), -I$d) $(CFLAGS) $(COMPILATION_TYPE) -c $< -o $@
+	$(CC) -Wall $(foreach d, $(INC), -I$d) $(CFLAGS) $(COMPILATION_TYPE) -c $< -o $@
 
 # Generate the java header based on the class
 TSDRLibraryNDK.h : ../bin/martin/tempest/core/TSDRLibrary.class 
@@ -111,7 +119,8 @@ TSDRLibraryNDK.h : ../bin/martin/tempest/core/TSDRLibrary.class
 	mkdir -p include ../bin/martin/tempest/core/
 	javac $< -d ../bin/ -cp ../src/
 
+
 # Remove any compiled artifacts
 clean :
-	rm -f TSDRLibraryNDK.h ../lib/$(OSNAME)/$(ARCHNAME)/$(LIBPREFIX)TSDRLibraryNDK$(EXT)
+	rm -f TSDRLibraryNDK.h
 	rm -rf $(OBJFOLDER)/

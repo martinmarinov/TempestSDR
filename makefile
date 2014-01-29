@@ -2,14 +2,11 @@
 
 # Detect library extension depending on OS
 ifeq ($(OS),Windows_NT)
-	OSNAME = WINDOWS
+	OSNAME ?= WINDOWS
 else
 	UNAME_S := $(shell uname -s)
 	ifeq ($(UNAME_S),Linux)
-		OSNAME = LINUX
-	endif
-	ifeq ($(UNAME_S),Darwin)
-		OSNAME = OSX
+		OSNAME ?= LINUX
 	endif
 endif
 

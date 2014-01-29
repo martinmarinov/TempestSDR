@@ -20,8 +20,7 @@ HEADLOCATION=../TempestSDR/src/include/
 # Discover the library extension for each OS
 ifeq ($(OS),Windows_NT)
 	
-	EXT=.dll
-	OSNAME = WINDOWS
+	OSNAME ?= WINDOWS
 	
 	ifndef $(ARCHNAME)
 	
@@ -34,15 +33,14 @@ ifeq ($(OS),Windows_NT)
 	
 	endif
 else
-	UNAME_S := $(shell uname -s)
-	ifeq ($(UNAME_S),Linux)
-		EXT=.so
-		OSNAME = LINUX
-		LIBPREFIX=lib
-	endif
-	ifeq ($(UNAME_S),Darwin)
-		EXT=.a
-		OSNAME = OSX
+
+	ifndef $(OSNAME)
+	
+		UNAME_S := $(shell uname -s)
+		ifeq ($(UNAME_S),Linux)
+			OSNAME = LINUX
+		endif
+	
 	endif
 	
 	ifndef $(ARCHNAME)
@@ -61,11 +59,21 @@ else
 	endif
 endif
 
+ifeq ($(OSNAME),WINDOWS)
+	EXT=.dll
+	LIBPREFIX=
+endif
+ifeq ($(OSNAME),LINUX)
+	EXT=.so
+	LIBPREFIX=lib
+endif
+
 ifeq ($(ARCHNAME),X86)
 	COMPILATION_TYPE=-m32
 else ifeq ($(ARCHNAME),X64)
 	COMPILATION_TYPE=-m64
 endif
+
 
 # If you need a different directory structure. Don't change that unless you really want to.
 SOURCEFOLDER=src
@@ -93,13 +101,13 @@ endif
 
 # Link
 $(OUTPUTFOLDER)/$(PLUGNAME)$(EXT): copyoverheaderfile $(_OBJS)
-	gcc -Wall -L"$(MIRICS_HOME)/API/$(ARCHNAME)/" -lmir_sdr_api $(LDFLAGS) -shared $(COMPILATION_TYPE) -o $@ $(_OBJS)
+	$(CC) -Wall -L"$(MIRICS_HOME)/API/$(ARCHNAME)/" -lmir_sdr_api $(LDFLAGS) -shared $(COMPILATION_TYPE) -o $@ $(_OBJS)
 
 # Make dirs and compile
 $(OBJFOLDER)/%.o : $(SOURCEFOLDER)/%.c $(_DEPS)
 	mkdir -p $(OUTPUTFOLDER)
 	mkdir -p $(OBJFOLDER)
-	gcc -Wall $(foreach d, $(INC), -I$d) $(CFLAGS) $(COMPILATION_TYPE) -c $< -o $@
+	$(CC) -Wall $(foreach d, $(INC), -I$d) $(CFLAGS) $(COMPILATION_TYPE) -c $< -o $@
 
 .PHONY: clean
 

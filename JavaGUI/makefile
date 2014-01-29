@@ -1,35 +1,60 @@
-# Detect shared library extension based on OS
+# Discover the library extension for each OS
 ifeq ($(OS),Windows_NT)
-	EXT=.dll
-	OSNAME = WINDOWS
-	ifeq ($(PROCESSOR_ARCHITECTURE),AMD64)
-		ARCHNAME = X64
-	endif
-	ifeq ($(PROCESSOR_ARCHITECTURE),x86)
-		ARCHNAME = X86
+	
+	OSNAME ?= WINDOWS
+	
+	ifndef $(ARCHNAME)
+	
+		ifeq ($(PROCESSOR_ARCHITECTURE),AMD64)
+			ARCHNAME = X64
+		endif
+		ifeq ($(PROCESSOR_ARCHITECTURE),x86)
+			ARCHNAME = X86
+		endif
+	
 	endif
 else
-	UNAME_S := $(shell uname -s)
-	ifeq ($(UNAME_S),Linux)
-		EXT=.so
-		OSNAME = LINUX
-		LIBPREFIX=lib
+
+	ifndef $(OSNAME)
+	
+		UNAME_S := $(shell uname -s)
+		ifeq ($(UNAME_S),Linux)
+			OSNAME = LINUX
+		endif
+	
 	endif
-	ifeq ($(UNAME_S),Darwin)
-		EXT=.a
-		OSNAME = OSX
-	endif
-	UNAME_P := $(shell uname -p)
-	ifeq ($(UNAME_P),x86_64)
-		ARCHNAME = X64
-	endif
-	ifneq ($(filter %86,$(UNAME_P)),)
-		ARCHNAME = X86
-	endif
-	ifneq ($(filter arm%,$(UNAME_P)),)
-		ARCHNAME = ARM
+	
+	ifndef $(ARCHNAME)
+	
+		UNAME_P := $(shell uname -p)
+		ifeq ($(UNAME_P),x86_64)
+			ARCHNAME = X64
+		endif
+		ifneq ($(filter %86,$(UNAME_P)),)
+			ARCHNAME = X86
+		endif
+		ifneq ($(filter arm%,$(UNAME_P)),)
+			ARCHNAME = ARM
+		endif
+	
 	endif
 endif
+
+ifeq ($(OSNAME),WINDOWS)
+	EXT=.dll
+	LIBPREFIX=
+endif
+ifeq ($(OSNAME),LINUX)
+	EXT=.so
+	LIBPREFIX=lib
+endif
+
+ifeq ($(ARCHNAME),X86)
+	COMPILATION_TYPE=-m32
+else ifeq ($(ARCHNAME),X64)
+	COMPILATION_TYPE=-m64
+endif
+
 
 # USER CONFIGURATION STARTS HERE
 
@@ -100,7 +125,12 @@ cleanjni: cleanplugins
 cleanplugins:
 	$(foreach pfile, $(PLUGINS_FILES), rm -rf $(pfile);)	
 
+# Clean the TempestSDR and plugins
+cleandependent :
+	@$(MAKE) -C jni/ clean
+	$(foreach pdir, $(PLUGINS_DIRS), $(MAKE) -C $(pdir) clean;)
+	@$(MAKE) -C ../TempestSDR/ clean
+
 # Clean the java classes as well
 clean : cleanjni
-	rm -rf $(OUTPUTFOLDER)/
 	rm -rf bin/ JTempestSDR.jar
