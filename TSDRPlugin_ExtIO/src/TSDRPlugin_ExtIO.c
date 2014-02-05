@@ -4,63 +4,78 @@
 
 #include "TSDRPlugin.h"
 #include "TSDRCodes.h"
+#include "ExtIOPluginLoader.h"
 
-int errormsg_code;
-char * errormsg;
-int errormsg_size = 0;
-#define RETURN_EXCEPTION(message, status) {announceexception(message, status); return status;}
-#define RETURN_OK() {errormsg_code = TSDR_OK; return TSDR_OK;}
+#include "errors.h"
 
-static inline void announceexception(const char * message, int status) {
-	errormsg_code = status;
-	if (status == TSDR_OK) return;
-
-	const int length = strlen(message);
-	if (errormsg_size == 0) {
-			errormsg_size = length;
-			errormsg = (char *) malloc(length+1);
-		} else if (length > errormsg_size) {
-			errormsg_size = length;
-			errormsg = (char *) realloc((void*) errormsg, length+1);
-		}
-	strcpy(errormsg, message);
-}
-
-char * tsdrplugin_getlasterrortext(void) {
-	if (errormsg_code == TSDR_OK)
-		return NULL;
-	else
-		return errormsg;
-}
+extiosource_t * source = NULL;
+uint32_t init_freq = 100000000;
 
 void tsdrplugin_getName(char * name) {
 	strcpy(name, "TSDR ExtIO Plugin");
 }
 
 uint32_t tsdrplugin_setsamplerate(uint32_t rate) {
-	return TSDR_NOT_IMPLEMENTED;
+	return 1024000;
 }
 
 uint32_t tsdrplugin_getsamplerate() {
-	return TSDR_NOT_IMPLEMENTED;
+	return 1024000;
 }
 
 int tsdrplugin_setbasefreq(uint32_t freq) {
-	RETURN_EXCEPTION("Not implemented", TSDR_NOT_IMPLEMENTED);
+
+	if (source == NULL) {
+		init_freq = freq;
+	}
+
+	RETURN_OK();
 }
 
 int tsdrplugin_stop(void) {
-	RETURN_EXCEPTION("Not implemented", TSDR_NOT_IMPLEMENTED);
+	RETURN_OK();
 }
 
 int tsdrplugin_setgain(float gain) {
-	RETURN_EXCEPTION("Not implemented", TSDR_NOT_IMPLEMENTED);
+	// TODO! can we really set the gain?
+	RETURN_OK();
 }
 
 int tsdrplugin_setParams(const char * params) {
-	RETURN_EXCEPTION("Not implemented", TSDR_NOT_IMPLEMENTED);
+
+	// if an extio was already initialized before, now change
+	if (source != NULL) {
+		extio_close(source);
+		free (source);
+		source = NULL;
+	}
+
+	// inititalize source
+	source = (extiosource_t *) malloc(sizeof(extiosource_t));
+	if (extio_load(source, params) == TSDR_OK) {
+		// TODO! get samplerate?
+		if (source->ShowGUI != NULL)
+			source->ShowGUI();
+
+		RETURN_OK();
+	} else {
+		free (source);
+		source = NULL;
+		RETURN_EXCEPTION("Cannot load the specified ExtIO dll file. Please check the filename is correct and the file is a valid ExtIO dll file and try again.", TSDR_PLUGIN_PARAMETERS_WRONG);
+	}
+
 }
 
 int tsdrplugin_readasync(tsdrplugin_readasync_function cb, void *ctx) {
-	RETURN_EXCEPTION("Not implemented", TSDR_NOT_IMPLEMENTED);
+	RETURN_OK();
+}
+
+void tsdrplugin_cleanup(void) {
+	if (source == NULL) return;
+
+	//if (source->pfnHideGUI != NULL) source->pfnHideGUI();
+
+	extio_close(source);
+	free (source);
+	source = NULL;
 }

@@ -171,3 +171,7 @@ int tsdrplugin_readasync(tsdrplugin_readasync_function cb, void *ctx) {
 
 	RETURN_EXCEPTION("The Mirics SDR dongle stopped responding.", (err == 0) ? TSDR_OK : TSDR_ERR_PLUGIN);
 }
+
+void tsdrplugin_cleanup(void) {
+
+}

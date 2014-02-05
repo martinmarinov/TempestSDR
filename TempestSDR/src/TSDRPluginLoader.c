@@ -36,6 +36,7 @@ int tsdrplug_load(pluginsource_t * plugin, const char *dlname)
     if ((plugin->tsdrplugin_setgain = tsdrplug_getfunction(plugin, "tsdrplugin_setgain")) == 0) return TSDR_ERR_PLUGIN;
     if ((plugin->tsdrplugin_readasync = tsdrplug_getfunction(plugin, "tsdrplugin_readasync")) == 0) return TSDR_ERR_PLUGIN;
     if ((plugin->tsdrplugin_getlasterrortext = tsdrplug_getfunction(plugin, "tsdrplugin_getlasterrortext")) == 0) return TSDR_ERR_PLUGIN;
+    if ((plugin->tsdrplugin_cleanup = tsdrplug_getfunction(plugin, "tsdrplugin_cleanup")) == 0) return TSDR_ERR_PLUGIN;
 
     return TSDR_OK;
 }
@@ -44,6 +45,7 @@ int tsdrplug_load(pluginsource_t * plugin, const char *dlname)
 void tsdrplug_close(pluginsource_t * plugin)
 {
 	if (plugin->fd == NULL) return;
+	plugin->tsdrplugin_cleanup(); // cleanup before closing
 #if WINHEAD
     FreeLibrary((HINSTANCE)plugin->fd);
 #else

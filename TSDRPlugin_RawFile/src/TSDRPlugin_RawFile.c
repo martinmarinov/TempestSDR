@@ -256,3 +256,7 @@ int tsdrplugin_readasync(tsdrplugin_readasync_function cb, void *ctx) {
 
 	RETURN_OK();
 }
+
+void tsdrplugin_cleanup(void) {
+
+}

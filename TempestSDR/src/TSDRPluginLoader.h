@@ -25,6 +25,8 @@
 		int (*tsdrplugin_setgain)(float);
 		int (*tsdrplugin_readasync)(tsdrplugin_readasync_function, void *);
 		char * (*tsdrplugin_getlasterrortext) (void);
+		void * (*tsdrplugin_cleanup) (void);
+
 	} typedef pluginsource_t;
 
 	int tsdrplug_load(pluginsource_t * plugin, const char * dlname);

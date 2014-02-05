@@ -3,8 +3,8 @@
 PLUGNAME=TSDRPlugin_ExtIO
 
 # Dependencies
-OBJS=$(PLUGNAME).o
-DEPS=TSDRPlugin.h TSDRCodes.h
+OBJS=$(PLUGNAME).o ExtIOPluginLoader.o
+DEPS=TSDRPlugin.h TSDRCodes.h ExtIOPluginLoader.h osdetect.h errors.h
 
 # Flags
 CFLAGS+=-O3

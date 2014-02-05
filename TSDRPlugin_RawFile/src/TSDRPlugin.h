@@ -14,5 +14,6 @@
 	int tsdrplugin_setgain(float gain);
 	char * tsdrplugin_getlasterrortext(void);
 	int tsdrplugin_readasync(tsdrplugin_readasync_function cb, void *ctx);
+	void tsdrplugin_cleanup(void);
 
 #endif

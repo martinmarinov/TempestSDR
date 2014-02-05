@@ -190,7 +190,7 @@ public class Main implements TSDRLibrary.FrameReadyCallback {
 		
 		cbDevice = new JComboBox();
 		final int cbDeviceIndex = prefs.getInt(PREF_SOURCE_ID, 0);
-		current_plugin_name = souces[cbDeviceIndex].descr;
+		current_plugin_name = souces[cbDeviceIndex < souces.length ? cbDeviceIndex : 0].descr;
 		cbDevice.setModel(new DefaultComboBoxModel(souces));
 		cbDevice.setSelectedIndex(cbDeviceIndex);
 		cbDevice.addActionListener(new ActionListener() {
