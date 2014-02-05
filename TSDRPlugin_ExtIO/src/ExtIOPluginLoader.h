@@ -31,6 +31,9 @@
 		// mandatory functions that tsdrrequires
 		long (__stdcall * GetHWSR) (void);
 
+		// completely optional functions
+		int (__stdcall * SetAttenuator) ( int atten_idx );
+		int (__stdcall * GetAttenuators) ( int atten_idx, float * attenuation );
 
 	} typedef extiosource_t;
 

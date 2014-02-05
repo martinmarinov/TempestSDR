@@ -49,5 +49,9 @@ int extio_load(extiosource_t * plugin, const char *dlname)
     // mandatory functions that rtlsdr expects
     if ((plugin->GetHWSR = extio_getfunction(plugin, "GetHWSR")) == 0) return TSDR_ERR_PLUGIN;
 
+    // completely optional functions
+    if ((plugin->SetAttenuator = extio_getfunction(plugin, "SetAttenuator")) == 0) plugin->SetAttenuator = NULL;
+    if ((plugin->GetAttenuators = extio_getfunction(plugin, "GetAttenuators")) == 0) plugin->GetAttenuators = NULL;
+
     return TSDR_OK;
 }

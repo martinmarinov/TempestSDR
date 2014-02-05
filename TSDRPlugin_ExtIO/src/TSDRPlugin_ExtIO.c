@@ -5,7 +5,6 @@
 #include "TSDRPlugin.h"
 #include "TSDRCodes.h"
 #include "ExtIOPluginLoader.h"
-#include "threading.h"
 
 #include "errors.h"
 
@@ -14,15 +13,27 @@
 #define EXTIO_HWTYPE_32B	6
 #define EXTIO_HWTYPE_FLOAT	7
 
-mutex_t * running = NULL;
+void thread_sleep(uint32_t milliseconds) {
+#if WINHEAD
+	Sleep(milliseconds);
+#else
+	usleep(1000 * milliseconds);
+#endif
+}
+
 extiosource_t * source = NULL;
-uint32_t init_freq = 100000000;
 int hwtype;
 tsdrplugin_readasync_function tsdr_cb;
 void * tsdr_ctx;
 volatile int is_running = 0;
 float * outbuf = NULL;
 int outbuf_size = 0;
+int max_att_id = -1;
+
+uint32_t req_freq = 100000000;
+uint32_t act_freq = -1;
+float req_gain = 0.5;
+float act_gain = -1;
 
 void closeextio(void) {
 	if (source == NULL) return;
@@ -47,27 +58,20 @@ uint32_t tsdrplugin_getsamplerate() {
 }
 
 int tsdrplugin_setbasefreq(uint32_t freq) {
-
-	init_freq = freq;
-	if (source != NULL)
-		source -> SetHWLO(freq);
+	req_freq = freq;
 
 	RETURN_OK();
 }
 
 int tsdrplugin_stop(void) {
-
-	if (source != NULL) {
-		is_running = 0;
-		source->StopHW();
-		if (running != NULL) mutex_signal(running);
-	}
+	is_running = 0;
 
 	RETURN_OK();
 }
 
 int tsdrplugin_setgain(float gain) {
-	// TODO! can we really set the gain?
+	req_gain = gain;
+
 	RETURN_OK();
 }
 
@@ -124,11 +128,6 @@ int tsdrplugin_init(const char * params) {
 		outbuf_size = 1;
 	}
 
-	if (running == NULL) {
-		running = (mutex_t *) malloc(sizeof(mutex_t));
-		mutex_init(running);
-	}
-
 	// if an extio was already initialized before, now change
 	if (source != NULL)
 		closeextio();
@@ -147,9 +146,16 @@ int tsdrplugin_init(const char * params) {
 				RETURN_EXCEPTION("The sample format of the ExtIO plugin is not supported.", TSDR_CANNOT_OPEN_DEVICE);
 			}
 
-			if (source->OpenHW())
-				RETURN_OK()
-			else {
+			if (source->OpenHW()) {
+				// list attenuators
+				if (source->GetAttenuators != NULL) {
+					max_att_id = 0;
+					float att;
+					while (source->GetAttenuators(max_att_id++,&att) == 0) {};
+				}
+
+				RETURN_OK();
+			} else {
 				closeextio();
 				RETURN_EXCEPTION("The ExtIO driver failed to open a device. Make sure your device is plugged in and its drivers are installed correctly.", TSDR_CANNOT_OPEN_DEVICE);
 			}
@@ -164,6 +170,15 @@ int tsdrplugin_init(const char * params) {
 	}
 }
 
+void attenuate(float gain) {
+	if (max_att_id > 0 && source->SetAttenuator != NULL) {
+		int att_id = gain * max_att_id;
+		if (att_id >= max_att_id) att_id = max_att_id - 1;
+		if (att_id < 0) att_id = 0;
+		source->SetAttenuator(att_id);
+	}
+}
+
 int tsdrplugin_readasync(tsdrplugin_readasync_function cb, void *ctx) {
 	if (source == NULL)
 		RETURN_EXCEPTION("Please provide a full path to a valid ExtIO dll.", TSDR_PLUGIN_PARAMETERS_WRONG);
@@ -173,21 +188,31 @@ int tsdrplugin_readasync(tsdrplugin_readasync_function cb, void *ctx) {
 	tsdr_ctx = ctx;
 	is_running = 1;
 
-	source -> StartHW(init_freq);
+	act_freq = req_freq;
+	source -> StartHW(act_freq);
+	act_gain = req_gain;
+	attenuate(act_gain);
 
-	while (is_running)
-		mutex_wait(running);
+	while (is_running) {
+		thread_sleep(50);
+
+		if (req_freq != act_freq) {
+			act_freq = req_freq;
+			source -> SetHWLO(act_freq);
+		}
+
+		if (req_gain != act_gain) {
+			act_gain = req_gain;
+			attenuate(act_gain);
+		}
+	}
+
+	source->StopHW();
 
 	RETURN_OK();
 }
 
 void tsdrplugin_cleanup(void) {
-
-	if (running != NULL) {
-		mutex_free(running);
-		free (running);
-		running = NULL;
-	}
 
 	if (outbuf != NULL) {
 		free (outbuf);
