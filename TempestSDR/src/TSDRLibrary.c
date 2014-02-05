@@ -399,11 +399,10 @@ void process(float *buf, uint32_t len, void *ctx, int dropped) {
 
 	thread_start(videodecodingthread, (void *) context);
 	status = plugin->tsdrplugin_readasync(process, (void *) context);
+
 	if (status != TSDR_OK) pluginsfault =1;
 
 	tsdr->running = 0;
-
-
 	mutex_wait((mutex_t *) tsdr->mutex_video_stopped);
 
 	mutex_free((mutex_t *) tsdr->mutex_video_stopped);

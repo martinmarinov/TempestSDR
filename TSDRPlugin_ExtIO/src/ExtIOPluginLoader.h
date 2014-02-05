@@ -13,7 +13,7 @@
 	#include <dlfcn.h>
 #endif
 
-	typedef int (* pfnExtIOCallback) (int cnt, int status, float IQoffs, void *IQdata);
+	typedef void (* pfnExtIOCallback) (int cnt, int status, float IQoffs, void *IQdata);
 
 	struct extiosource {
 		void * fd;
@@ -28,10 +28,9 @@
 		int (__stdcall * SetHWLO) (long extLOfreq);   // see also SetHWLO64
 		int (__stdcall * GetStatus) (void);
 
-		// optional functions
-		void (__stdcall * RawDataReady) (long samprate, void *Ldata, void *Rdata, int numsamples);
-		void (__stdcall * ShowGUI) (void);
-		void (__stdcall * HideGUI)  (void);
+		// mandatory functions that tsdrrequires
+		long (__stdcall * GetHWSR) (void);
+
 
 	} typedef extiosource_t;
 

@@ -46,10 +46,8 @@ int extio_load(extiosource_t * plugin, const char *dlname)
     if ((plugin->SetHWLO = extio_getfunction(plugin, "SetHWLO")) == 0) return TSDR_ERR_PLUGIN;
     if ((plugin->GetStatus = extio_getfunction(plugin, "GetStatus")) == 0) return TSDR_ERR_PLUGIN;
 
-    // optional
-    if ((plugin->RawDataReady = extio_getfunction(plugin, "RawDataReady")) == 0) plugin->RawDataReady = NULL;
-    if ((plugin->ShowGUI = extio_getfunction(plugin, "ShowGUI")) == 0) plugin->ShowGUI = NULL;
-    if ((plugin->HideGUI = extio_getfunction(plugin, "HideGUI")) == 0) plugin->HideGUI = NULL;
+    // mandatory functions that rtlsdr expects
+    if ((plugin->GetHWSR = extio_getfunction(plugin, "GetHWSR")) == 0) return TSDR_ERR_PLUGIN;
 
     return TSDR_OK;
 }
