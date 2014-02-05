@@ -61,3 +61,6 @@ local.properties
 *.mf
 *.war
 *.ear
+
+# Java crash log files
+*.log
