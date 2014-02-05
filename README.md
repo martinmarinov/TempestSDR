@@ -2,6 +2,14 @@ TempestSDR
 =============
 
 This project is in its infancy and is not operational! Please come back in Q2 of 2014 for more information about what it is and how to use :)
+Keep in mind the project will be licensed under GNU GPL!!! So consider any of the binaries and source under the GNU GPL license until a formal notification is added.
+
+Release
+------------
+
+ * [JTempestSDR.jar](https://raw.github.com/martinmarinov/TempestSDR/master/Release/JavaGUI/JTempestSDR.jar) is the self contained multi platform GUI executable. It should work with just a double click on most Windows/Linux x86/x64 based machines.
+ * [Download dlls] (https://github.com/martinmarinov/TempestSDR/tree/master/Release/dlls) contains the precompiled dll files for Linux/Windows x86/x64 which you can use in your own project under the GNU GPL license.
+
 
 Folder Structure
 ------------
