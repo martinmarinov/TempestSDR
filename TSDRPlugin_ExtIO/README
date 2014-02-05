@@ -1,0 +1,7 @@
+This plugin supports ExtIO dll files to be utilized as inputs for TSDR. It takes the location of the ExtIO dll as an command.
+
+In order to compile the plugin:
+
+	make all
+
+This plugin is only for Windows.

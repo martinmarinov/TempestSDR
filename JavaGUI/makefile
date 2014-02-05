@@ -66,7 +66,7 @@ PLUGINS=TSDRPlugin_RawFile
 
 ifeq ($(OSNAME),WINDOWS)
 # Windows only plugins
-PLUGINS += TSDRPlugin_Mirics
+PLUGINS += TSDRPlugin_Mirics TSDRPlugin_ExtIO
 endif
 
 # USER CONFIGURATION ENDS HERE
