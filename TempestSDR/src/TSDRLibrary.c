@@ -372,7 +372,7 @@ void process(float *buf, uint32_t len, void *ctx, int dropped) {
 
 	pluginsource_t * plugin = (pluginsource_t *)(tsdr->plugin);
 
-	if ((status = plugin->tsdrplugin_setParams(params)) != TSDR_OK) {pluginsfault =1; goto end;};
+	if ((status = plugin->tsdrplugin_init(params)) != TSDR_OK) {pluginsfault =1; goto end;};
 	if ((status = tsdr_getsamplerate(tsdr)) != TSDR_OK) goto end;
 	if ((status = tsdr_setbasefreq(tsdr, tsdr->centfreq)) != TSDR_OK) goto end;
 	if ((status = tsdr_setgain(tsdr, tsdr->gain)) != TSDR_OK) goto end;

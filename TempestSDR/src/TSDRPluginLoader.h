@@ -16,7 +16,7 @@
 
 	struct pluginsource {
 		void * fd;
-		int (*tsdrplugin_setParams)(const char * params);
+		int (*tsdrplugin_init)(const char * params);
 		void (*tsdrplugin_getName)(char *);
 		uint32_t (*tsdrplugin_setsamplerate)(uint32_t);
 		uint32_t (*tsdrplugin_getsamplerate)(void);

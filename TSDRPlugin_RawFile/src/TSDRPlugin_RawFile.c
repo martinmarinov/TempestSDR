@@ -142,7 +142,7 @@ char * nexttoken(char * input) {
     }
 }
 
-int tsdrplugin_setParams(const char * params) {
+int tsdrplugin_init(const char * params) {
 	char * fname = nexttoken((char *) params);
 	if (fname == NULL) RETURN_EXCEPTION("File name was not specified. Commands should be: filename samplerate sampleformat. Format could be float, int8, uint8, int16 or uint16.", TSDR_PLUGIN_PARAMETERS_WRONG);
 	char * samplerate_s = nexttoken(NULL);

@@ -75,7 +75,7 @@ int tsdrplugin_setgain(float gain) {
 	RETURN_OK();
 }
 
-int tsdrplugin_setParams(const char * params) {
+int tsdrplugin_init(const char * params) {
 	RETURN_OK();
 }
 

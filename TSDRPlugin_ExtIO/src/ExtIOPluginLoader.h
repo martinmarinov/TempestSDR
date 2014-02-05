@@ -19,19 +19,19 @@
 		void * fd;
 
 		// mandatory functions that the dll must implement
-		bool (* InitHW) (char *name, char *model, int *hwtype); // for hwtype see enum extHWtypeT
-		bool (* OpenHW) (void);
-		void (* CloseHW) (void);
-		int (* StartHW) (long extLOfreq);
-		void (* StopHW) (void);
-		void (* SetCallback) (pfnExtIOCallback funcptr);
-		int (* SetHWLO) (long extLOfreq);   // see also SetHWLO64
-		int (* GetStatus) (void);
+		bool (__stdcall * InitHW) (char *name, char *model, int *hwtype); // for hwtype see enum extHWtypeT
+		bool (__stdcall * OpenHW) (void);
+		void (__stdcall * CloseHW) (void);
+		int (__stdcall * StartHW) (long extLOfreq);
+		void (__stdcall * StopHW) (void);
+		void (__stdcall * SetCallback) (pfnExtIOCallback funcptr);
+		int (__stdcall * SetHWLO) (long extLOfreq);   // see also SetHWLO64
+		int (__stdcall * GetStatus) (void);
 
 		// optional functions
-		void (* RawDataReady) (long samprate, void *Ldata, void *Rdata, int numsamples);
-		void (* ShowGUI) (void);
-		void (* HideGUI)  (void);
+		void (__stdcall * RawDataReady) (long samprate, void *Ldata, void *Rdata, int numsamples);
+		void (__stdcall * ShowGUI) (void);
+		void (__stdcall * HideGUI)  (void);
 
 	} typedef extiosource_t;
 
