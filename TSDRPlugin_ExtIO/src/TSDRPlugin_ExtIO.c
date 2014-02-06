@@ -122,7 +122,10 @@ void callback(int cnt, int status, float IQoffs, void *IQdata) {
 	tsdr_cb(outbuf, cntvalues, tsdr_ctx, 0);
 }
 
+char test[200];
 int tsdrplugin_init(const char * params) {
+	strcpy(test, params);
+
 	if (outbuf == NULL) {
 		outbuf = malloc(sizeof(float));
 		outbuf_size = 1;
@@ -147,7 +150,9 @@ int tsdrplugin_init(const char * params) {
 			}
 
 			if (source->OpenHW()) {
-				printf("Opened %s model %s!\n", name, model); fflush(stdout);
+				//printf("Opened %s model %s!\n", name, model); fflush(stdout);
+
+				//if (source->ShowGUI != NULL) source->ShowGUI();
 
 				// list attenuators
 				if (source->GetAttenuators != NULL) {

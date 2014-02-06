@@ -354,8 +354,6 @@ void unloadplugin(tsdr_lib_t * tsdr) {
 		tsdrplug_close((pluginsource_t *)(tsdr->plugin));
 		free(tsdr->plugin);
 		tsdr->plugin = NULL;
-		printf("Unloaded plugin\n"); fflush(stdout);
-
 	}
 }
 
@@ -374,7 +372,7 @@ int tsdr_loadplugin(tsdr_lib_t * tsdr, const char * pluginfilepath, const char *
 
 	tsdr->plugin = malloc(sizeof(pluginsource_t));
 	int status = tsdrplug_load((pluginsource_t *)(tsdr->plugin), pluginfilepath);
-	printf("Loaded plugin\n"); fflush(stdout);
+
 	if (status != TSDR_OK) {
 		unloadplugin(tsdr);
 		RETURN_EXCEPTION(tsdr, "The plugin cannot be loaded. It is incompatible or there are depending libraries missing. Please check the readme file that comes with the plugin.", status);

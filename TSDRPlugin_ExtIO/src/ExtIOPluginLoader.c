@@ -2,6 +2,7 @@
 #include "TSDRCodes.h"
 
 #include <stdlib.h>
+#include <stdio.h>
 
 // A platform independent dynamic library loader
 
