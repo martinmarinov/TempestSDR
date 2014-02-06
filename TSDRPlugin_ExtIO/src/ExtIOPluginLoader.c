@@ -52,6 +52,8 @@ int extio_load(extiosource_t * plugin, const char *dlname)
     // completely optional functions
     if ((plugin->SetAttenuator = extio_getfunction(plugin, "SetAttenuator")) == 0) plugin->SetAttenuator = NULL;
     if ((plugin->GetAttenuators = extio_getfunction(plugin, "GetAttenuators")) == 0) plugin->GetAttenuators = NULL;
+    if ((plugin->ShowGUI = extio_getfunction(plugin, "ShowGUI")) == 0) plugin->ShowGUI = NULL;
+    if ((plugin->HideGUI = extio_getfunction(plugin, "HideGUI")) == 0) plugin->HideGUI = NULL;
 
     return TSDR_OK;
 }

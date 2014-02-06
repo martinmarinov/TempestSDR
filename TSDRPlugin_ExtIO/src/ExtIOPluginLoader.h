@@ -34,6 +34,8 @@
 		// completely optional functions
 		int (__stdcall * SetAttenuator) ( int atten_idx );
 		int (__stdcall * GetAttenuators) ( int atten_idx, float * attenuation );
+		int (__stdcall * ShowGUI) ( void );
+		int (__stdcall * HideGUI) ( void );
 
 	} typedef extiosource_t;
 
