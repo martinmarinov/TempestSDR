@@ -349,9 +349,55 @@ void process(float *buf, uint32_t len, void *ctx, int dropped) {
 
 }
 
- int tsdr_readasync(tsdr_lib_t * tsdr, const char * pluginfilepath, tsdr_readasync_function cb, void *ctx, const char * params) {
+void unloadplugin(tsdr_lib_t * tsdr) {
+	if (tsdr->plugin != NULL) {
+		tsdrplug_close((pluginsource_t *)(tsdr->plugin));
+		free(tsdr->plugin);
+		tsdr->plugin = NULL;
+		printf("Unloaded plugin\n"); fflush(stdout);
+
+	}
+}
+
+int tsdr_unloadplugin(tsdr_lib_t * tsdr) {
+	if (tsdr->plugin == NULL) RETURN_EXCEPTION(tsdr, "No plugin has been loaded so it can't be unloaded", TSDR_ERR_PLUGIN);
+
+	unloadplugin(tsdr);
+	RETURN_OK(tsdr);
+}
+
+int tsdr_loadplugin(tsdr_lib_t * tsdr, const char * pluginfilepath, const char * params) {
+	if (tsdr->nativerunning || tsdr->running)
+			RETURN_EXCEPTION(tsdr, "The library is already running in async mode. Stop it first!", TSDR_ALREADY_RUNNING);
+
+	unloadplugin(tsdr);
+
+	tsdr->plugin = malloc(sizeof(pluginsource_t));
+	int status = tsdrplug_load((pluginsource_t *)(tsdr->plugin), pluginfilepath);
+	printf("Loaded plugin\n"); fflush(stdout);
+	if (status != TSDR_OK) {
+		unloadplugin(tsdr);
+		RETURN_EXCEPTION(tsdr, "The plugin cannot be loaded. It is incompatible or there are depending libraries missing. Please check the readme file that comes with the plugin.", status);
+	}
+
+	pluginsource_t * plugin = (pluginsource_t *)(tsdr->plugin);
+	if ((status = plugin->tsdrplugin_init(params)) != TSDR_OK) {
+		announceexception(tsdr,plugin->tsdrplugin_getlasterrortext(),status);
+		unloadplugin(tsdr);
+		return status;
+	}
+
+	RETURN_OK(tsdr);
+}
+
+ int tsdr_readasync(tsdr_lib_t * tsdr, tsdr_readasync_function cb, void * ctx) {
+	 int pluginsfault = 0;
+
 	if (tsdr->nativerunning || tsdr->running)
 		RETURN_EXCEPTION(tsdr, "The library is already running in async mode. Stop it first!", TSDR_ALREADY_RUNNING);
+
+	if (tsdr->plugin == NULL)
+		RETURN_EXCEPTION(tsdr, "Please load a working plugin first!", TSDR_ERR_PLUGIN);
 
 	tsdr->nativerunning = 1;
 
@@ -364,15 +410,9 @@ void process(float *buf, uint32_t len, void *ctx, int dropped) {
 	if (width <= 0 || height <= 0 || size > MAX_ARR_SIZE)
 		RETURN_EXCEPTION(tsdr, "The supplied height and the width are invalid!", TSDR_WRONG_VIDEOPARAMS);
 
-	tsdr->plugin = malloc(sizeof(pluginsource_t));
-
-	int pluginsfault = 0;
-	int status = tsdrplug_load((pluginsource_t *)(tsdr->plugin), pluginfilepath);
-	if (status != TSDR_OK) {announceexception(tsdr, "The plugin cannot be loaded. It is incompatible or there are depending libraries missing. Please check the readme file that comes with the plugin.", status); goto end;};
-
 	pluginsource_t * plugin = (pluginsource_t *)(tsdr->plugin);
 
-	if ((status = plugin->tsdrplugin_init(params)) != TSDR_OK) {pluginsfault =1; goto end;};
+	int status;
 	if ((status = tsdr_getsamplerate(tsdr)) != TSDR_OK) goto end;
 	if ((status = tsdr_setbasefreq(tsdr, tsdr->centfreq)) != TSDR_OK) goto end;
 	if ((status = tsdr_setgain(tsdr, tsdr->gain)) != TSDR_OK) goto end;
@@ -398,6 +438,7 @@ void process(float *buf, uint32_t len, void *ctx, int dropped) {
 	cb_init(&context->circbuf);
 
 	thread_start(videodecodingthread, (void *) context);
+
 	status = plugin->tsdrplugin_readasync(process, (void *) context);
 
 	if (status != TSDR_OK) pluginsfault =1;
@@ -416,10 +457,6 @@ void process(float *buf, uint32_t len, void *ctx, int dropped) {
 	if (tsdr->mutex_sync_unload != NULL) mutex_signal((mutex_t *) tsdr->mutex_sync_unload);
 end:
 	if (pluginsfault) announceexception(tsdr,plugin->tsdrplugin_getlasterrortext(),status);
-
-	tsdrplug_close((pluginsource_t *)(tsdr->plugin));
-	free(tsdr->plugin);
-	tsdr->plugin = NULL;
 
 	tsdr->running = 0;
 	tsdr->nativerunning = 0;
@@ -472,4 +509,11 @@ end:
 	}
 	RETURN_OK(tsdr);
 }
+
+ void tsdr_free(tsdr_lib_t * tsdr) {
+	 unloadplugin(tsdr);
+
+	 free(tsdr->errormsg);
+	 tsdr->errormsg_size = 0;
+ }
 

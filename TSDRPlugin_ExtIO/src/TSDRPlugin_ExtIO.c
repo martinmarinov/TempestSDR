@@ -147,6 +147,8 @@ int tsdrplugin_init(const char * params) {
 			}
 
 			if (source->OpenHW()) {
+				printf("Opened %s model %s!\n", name, model); fflush(stdout);
+
 				// list attenuators
 				if (source->GetAttenuators != NULL) {
 					max_att_id = 0;
@@ -189,7 +191,9 @@ int tsdrplugin_readasync(tsdrplugin_readasync_function cb, void *ctx) {
 	is_running = 1;
 
 	act_freq = req_freq;
+
 	source -> StartHW(act_freq);
+
 	act_gain = req_gain;
 	attenuate(act_gain);
 

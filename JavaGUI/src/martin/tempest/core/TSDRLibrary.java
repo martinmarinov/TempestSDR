@@ -41,7 +41,7 @@ public class TSDRLibrary {
 	 * @return
 	 * @throws IOException
 	 */
-	private static final File extractLibrary(final String name) throws TSDRLibraryNotCompatible {
+	public static final File extractLibrary(final String name) throws TSDRLibraryNotCompatible {
 		final String rawOSNAME = System.getProperty("os.name").toLowerCase();
 		final String rawARCHNAME = System.getProperty("os.arch").toLowerCase();
 
@@ -140,35 +140,41 @@ public class TSDRLibrary {
 	private native void init();
 	public native void setSampleRate(long rate) throws TSDRException;
 	public native void setBaseFreq(long freq) throws TSDRException;
-	private native void nativeStart(String pluginfilepath, String params) throws TSDRException;
+	private native void loadPlugin(String pluginfilepath, String params) throws TSDRException;
+	private native void nativeStart() throws TSDRException;
 	public native void stop() throws TSDRException;
+	public native void unloadPlugin() throws TSDRException;
 	public native void setGain(float gain) throws TSDRException;
 	public native boolean isRunning();
 	public native void setInvertedColors(boolean invertedEnabled);
 	public native void sync(int pixels, SYNC_DIRECTION dir);
 	public native void setResolution(int width, int height, double refreshrate) throws TSDRException;
 	public native void setMotionBlur(float gain) throws TSDRException;
+	public native void free();
 	
-	public void startAsync(final TSDRSource plugin, int width, int height, double refreshrate) throws TSDRException {
+	public void loadPlugin(final TSDRSource plugin) throws TSDRLibraryNotCompatible, TSDRException {
+		loadPlugin(plugin.getAbsolutePathToLibrary(), plugin.getParams());
+	}
+	
+	public void startAsync(int width, int height, double refreshrate) throws TSDRException {
 		if (nativerunning) throw new TSDRAlreadyRunningException("");
-		
-		final String absolute_path = plugin.absolute ? plugin.libname : (extractLibrary(plugin.libname).getAbsolutePath());
 		
 		setResolution(width, height, refreshrate);
 		
 		new Thread() {
 			public void run() {
 				nativerunning = true;
+				try {
+				Runtime.getRuntime().removeShutdownHook(unloaderhook);
+				} catch (Throwable e) {};
+				
 				Runtime.getRuntime().addShutdownHook(unloaderhook);
 				try {
-					nativeStart(absolute_path, plugin.getParams());
+					nativeStart();
 				} catch (TSDRException e) {
 					for (final FrameReadyCallback callback : callbacks) callback.onException(TSDRLibrary.this, e);
-				} finally {
-					try {
-							Runtime.getRuntime().removeShutdownHook(unloaderhook);
-					} catch (Throwable e) {};
 				}
+				
 				for (final FrameReadyCallback callback : callbacks) callback.onClosed(TSDRLibrary.this);
 				nativerunning = false;
 			};
@@ -181,6 +187,7 @@ public class TSDRLibrary {
 		public void run() {
 			try {
 				TSDRLibrary.this.stop();
+				TSDRLibrary.this.free();
 			} catch (Throwable e) {}
 		}
 	};

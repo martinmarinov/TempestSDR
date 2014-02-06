@@ -5,6 +5,7 @@ import java.awt.EventQueue;
 import java.awt.Rectangle;
 import java.awt.Toolkit;
 
+import javax.swing.JDialog;
 import javax.swing.JFrame;
 import javax.swing.JComboBox;
 import javax.swing.JButton;
@@ -21,6 +22,7 @@ import martin.tempest.core.TSDRLibrary.SYNC_DIRECTION;
 import martin.tempest.core.exceptions.TSDRException;
 import martin.tempest.gui.HoldButton.HoldListener;
 import martin.tempest.sources.TSDRSource;
+import martin.tempest.sources.TSDRSource.TSDRSourceParamChangedListener;
 
 import javax.swing.JSlider;
 
@@ -41,7 +43,7 @@ import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.util.prefs.Preferences;
 
-public class Main implements TSDRLibrary.FrameReadyCallback {
+public class Main implements TSDRLibrary.FrameReadyCallback, TSDRSourceParamChangedListener {
 	
 	private final static int OSD_TIME = 2000;
 	
@@ -75,7 +77,6 @@ public class Main implements TSDRLibrary.FrameReadyCallback {
 	
 	private JFrame frmTempestSdr;
 	private JFrame fullscreenframe;
-	private JTextField textArgs;
 	private JSpinner spWidth;
 	private JSpinner spHeight;
 	@SuppressWarnings("rawtypes")
@@ -95,6 +96,7 @@ public class Main implements TSDRLibrary.FrameReadyCallback {
 	private JTextField txtFramerate;
 	private HoldButton btnLowerFramerate, btnHigherFramerate, btnUp, btnDown, btnLeft, btnRight;
 	private String current_plugin_name = "";
+	private JDialog plugindialog = null;
 	
 	private final TSDRSource[] souces = TSDRSource.getAvailableSources();
 	private final VideoMode[] videomodes = VideoMode.getVideoModes();
@@ -201,18 +203,8 @@ public class Main implements TSDRLibrary.FrameReadyCallback {
 		cbDevice.setBounds(0, 3, 218, 22);
 		frmTempestSdr.getContentPane().add(cbDevice);
 		
-		textArgs = new JTextField(prefs.get(PREF_COMMAND_PREFIX+current_plugin_name, ""));
-		textArgs.addFocusListener(new FocusAdapter() {
-			@Override
-			public void focusLost(FocusEvent arg0) {
-				prefs.put(PREF_COMMAND_PREFIX+current_plugin_name, textArgs.getText());
-			}
-		});
-		textArgs.setBounds(223, 3, 340, 22);
-		frmTempestSdr.getContentPane().add(textArgs);
-		textArgs.setColumns(10);
-		
 		btnStartStop = new JButton("Start");
+		btnStartStop.setEnabled(false);
 		btnStartStop.setBounds(568, 2, 159, 25);
 		btnStartStop.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
@@ -456,9 +448,8 @@ public class Main implements TSDRLibrary.FrameReadyCallback {
 			}.start();
 			
 		} else {
-			final TSDRSource src = (TSDRSource) cbDevice.getSelectedItem();
+
 			try {
-				src.setParams(textArgs.getText());
 
 				final Long newfreq = (Long) spFrequency.getValue();
 				if (newfreq != null && newfreq > 0)
@@ -474,13 +465,15 @@ public class Main implements TSDRLibrary.FrameReadyCallback {
 			}
 
 			try {
-				mSdrlib.startAsync(src, (Integer) spWidth.getValue(), (Integer) spHeight.getValue(), framerate);
+				mSdrlib.startAsync((Integer) spWidth.getValue(), (Integer) spHeight.getValue(), framerate);
 			} catch (TSDRException e1) {
 				displayException(frmTempestSdr, e1);
 				btnStartStop.setText("Start");
+				return;
 			}
 
 			btnStartStop.setText("Stop");
+			cbDevice.setEnabled(false);
 		}
 		
 	}
@@ -663,7 +656,14 @@ public class Main implements TSDRLibrary.FrameReadyCallback {
 		final int id = cbDevice.getSelectedIndex();
 		prefs.putInt(PREF_SOURCE_ID, id);
 		current_plugin_name = souces[id].descr;
-		textArgs.setText(prefs.get(PREF_COMMAND_PREFIX+current_plugin_name, ""));
+		
+		final String preferences = prefs.get(PREF_COMMAND_PREFIX+current_plugin_name, "");
+		final TSDRSource current = (TSDRSource) cbDevice.getSelectedItem();
+		current.setOnParameterChangedCallback(this);
+		current.setParams(preferences);
+		
+		plugindialog = ((TSDRSource) cbDevice.getSelectedItem()).invokeGUIDialog(frmTempestSdr);
+		if (plugindialog != null) plugindialog.setVisible(true);
 	}
 
 	@Override
@@ -675,6 +675,7 @@ public class Main implements TSDRLibrary.FrameReadyCallback {
 	public void onException(TSDRLibrary lib, Exception e) {
 		btnStartStop.setEnabled(true);
 		btnStartStop.setText("Start");
+		cbDevice.setEnabled(true);
 		displayException(frmTempestSdr, e);
 	}
 
@@ -682,6 +683,7 @@ public class Main implements TSDRLibrary.FrameReadyCallback {
 	public void onClosed(TSDRLibrary lib) {
 		btnStartStop.setEnabled(true);
 		btnStartStop.setText("Start");
+		cbDevice.setEnabled(true);
 	}
 	
 	private final KeyAdapter keyhook = new KeyAdapter() {
@@ -696,4 +698,25 @@ public class Main implements TSDRLibrary.FrameReadyCallback {
 			super.keyReleased(e);
 		}
 	};
+
+	@Override
+	public void onParametersChanged(TSDRSource source) {
+		
+		try {
+			mSdrlib.unloadPlugin();
+		} catch (Throwable t) {};
+		
+		try {
+			mSdrlib.loadPlugin(source);
+		} catch (Throwable t) {
+			btnStartStop.setEnabled(false);
+			displayException(frmTempestSdr, t);
+			return;
+		}
+		cbDevice.setEnabled(true);
+		btnStartStop.setEnabled(true);
+		
+		// set the field with the text arguments
+		prefs.put(PREF_COMMAND_PREFIX+current_plugin_name, source.getParams());
+	}
  }

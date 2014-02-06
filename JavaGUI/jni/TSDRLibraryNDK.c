@@ -127,7 +127,17 @@ void read_async(float *buf, int width, int height, void *ctx) {
 	(*env)->CallVoidMethod(env, context->obj, context->notifyCallbacks);
 }
 
-JNIEXPORT void JNICALL Java_martin_tempest_core_TSDRLibrary_nativeStart (JNIEnv * env, jobject obj, jstring path, jstring params) {
+JNIEXPORT void JNICALL Java_martin_tempest_core_TSDRLibrary_loadPlugin (JNIEnv * env, jobject obj, jstring path, jstring params) {
+	const char *npath = (*env)->GetStringUTFChars(env, path, 0);
+	const char *nparams = (*env)->GetStringUTFChars(env, params, 0);
+
+	THROW(tsdr_loadplugin(&tsdr_instance, npath, nparams));
+
+	(*env)->ReleaseStringUTFChars(env, path, npath);
+	(*env)->ReleaseStringUTFChars(env, params, nparams);
+}
+
+JNIEXPORT void JNICALL Java_martin_tempest_core_TSDRLibrary_nativeStart (JNIEnv * env, jobject obj) {
 
 	java_context_t * context = (java_context_t *) malloc(sizeof(java_context_t));
 
@@ -143,13 +153,8 @@ JNIEXPORT void JNICALL Java_martin_tempest_core_TSDRLibrary_nativeStart (JNIEnv 
 	context->pixelsize = 1;
 	context->pixels = (jint *) malloc(sizeof(jint) * context->pixelsize);
 
-	const char *npath = (*env)->GetStringUTFChars(env, path, 0);
-	const char *nparams = (*env)->GetStringUTFChars(env, params, 0);
+	THROW(tsdr_readasync(&tsdr_instance, read_async, (void *) context));
 
-	THROW(tsdr_readasync(&tsdr_instance, npath, read_async, (void *) context, nparams));
-
-	(*env)->ReleaseStringUTFChars(env, path, npath);
-	(*env)->ReleaseStringUTFChars(env, params, nparams);
 	(*env)->DeleteGlobalRef(env, context->obj);
 	(*env)->DeleteGlobalRef(env, context->cls);
 
@@ -159,6 +164,14 @@ JNIEXPORT void JNICALL Java_martin_tempest_core_TSDRLibrary_nativeStart (JNIEnv 
 
 JNIEXPORT void JNICALL Java_martin_tempest_core_TSDRLibrary_stop (JNIEnv * env, jobject obj) {
 	THROW(tsdr_stop(&tsdr_instance));
+}
+
+JNIEXPORT void JNICALL Java_martin_tempest_core_TSDRLibrary_unloadPlugin (JNIEnv * env, jobject obj) {
+	THROW(tsdr_unloadplugin(&tsdr_instance));
+}
+
+JNIEXPORT void JNICALL Java_martin_tempest_core_TSDRLibrary_free (JNIEnv * env, jobject obj) {
+	tsdr_free(&tsdr_instance);
 }
 
 JNIEXPORT void JNICALL Java_martin_tempest_core_TSDRLibrary_setGain (JNIEnv * env, jobject obj, jfloat gain) {

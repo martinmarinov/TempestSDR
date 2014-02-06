@@ -33,11 +33,19 @@ JNIEXPORT void JNICALL Java_martin_tempest_core_TSDRLibrary_setBaseFreq
 
 /*
  * Class:     martin_tempest_core_TSDRLibrary
- * Method:    nativeStart
+ * Method:    loadPlugin
  * Signature: (Ljava/lang/String;Ljava/lang/String;)V
  */
-JNIEXPORT void JNICALL Java_martin_tempest_core_TSDRLibrary_nativeStart
+JNIEXPORT void JNICALL Java_martin_tempest_core_TSDRLibrary_loadPlugin
   (JNIEnv *, jobject, jstring, jstring);
+
+/*
+ * Class:     martin_tempest_core_TSDRLibrary
+ * Method:    nativeStart
+ * Signature: ()V
+ */
+JNIEXPORT void JNICALL Java_martin_tempest_core_TSDRLibrary_nativeStart
+  (JNIEnv *, jobject);
 
 /*
  * Class:     martin_tempest_core_TSDRLibrary
@@ -45,6 +53,14 @@ JNIEXPORT void JNICALL Java_martin_tempest_core_TSDRLibrary_nativeStart
  * Signature: ()V
  */
 JNIEXPORT void JNICALL Java_martin_tempest_core_TSDRLibrary_stop
+  (JNIEnv *, jobject);
+
+/*
+ * Class:     martin_tempest_core_TSDRLibrary
+ * Method:    unloadPlugin
+ * Signature: ()V
+ */
+JNIEXPORT void JNICALL Java_martin_tempest_core_TSDRLibrary_unloadPlugin
   (JNIEnv *, jobject);
 
 /*
@@ -94,6 +110,14 @@ JNIEXPORT void JNICALL Java_martin_tempest_core_TSDRLibrary_setResolution
  */
 JNIEXPORT void JNICALL Java_martin_tempest_core_TSDRLibrary_setMotionBlur
   (JNIEnv *, jobject, jfloat);
+
+/*
+ * Class:     martin_tempest_core_TSDRLibrary
+ * Method:    free
+ * Signature: ()V
+ */
+JNIEXPORT void JNICALL Java_martin_tempest_core_TSDRLibrary_free
+  (JNIEnv *, jobject);
 
 #ifdef __cplusplus
 }
