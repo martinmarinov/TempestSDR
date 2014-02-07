@@ -1,8 +1,9 @@
 package martin.tempest.core.exceptions;
 
 public class TSDRLoadPluginException extends TSDRException {
-	private static final long serialVersionUID = -8416953642010129494L;
 	
+	private static final long serialVersionUID = 5210950769308579938L;
+
 	public TSDRLoadPluginException(final String msg) {
 		super(msg);
 	}

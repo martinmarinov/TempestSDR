@@ -5,6 +5,7 @@
 
 #include <stdint.h>
 #include "osdetect.h"
+#include "include/TSDRPlugin.h"
 
 #if WINHEAD
 	#include <windows.h>
@@ -16,16 +17,16 @@
 
 	struct pluginsource {
 		void * fd;
-		int (*tsdrplugin_init)(const char * params);
-		void (*tsdrplugin_getName)(char *);
-		uint32_t (*tsdrplugin_setsamplerate)(uint32_t);
-		uint32_t (*tsdrplugin_getsamplerate)(void);
-		int (*tsdrplugin_setbasefreq)(uint32_t);
-		int (*tsdrplugin_stop)(void);
-		int (*tsdrplugin_setgain)(float);
-		int (*tsdrplugin_readasync)(tsdrplugin_readasync_function, void *);
-		char * (*tsdrplugin_getlasterrortext) (void);
-		void * (*tsdrplugin_cleanup) (void);
+		int (__stdcall *tsdrplugin_init)(const char * params);
+		void (__stdcall *tsdrplugin_getName)(char *);
+		uint32_t (__stdcall *tsdrplugin_setsamplerate)(uint32_t);
+		uint32_t (__stdcall *tsdrplugin_getsamplerate)(void);
+		int (__stdcall *tsdrplugin_setbasefreq)(uint32_t);
+		int (__stdcall *tsdrplugin_stop)(void);
+		int (__stdcall *tsdrplugin_setgain)(float);
+		int (__stdcall *tsdrplugin_readasync)(tsdrplugin_readasync_function, void *);
+		char * (__stdcall *tsdrplugin_getlasterrortext) (void);
+		void * (__stdcall *tsdrplugin_cleanup) (void);
 
 	} typedef pluginsource_t;
 

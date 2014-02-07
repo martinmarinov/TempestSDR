@@ -39,47 +39,47 @@ static inline void announceexception(const char * message, int status) {
 	strcpy(errormsg, message);
 }
 
-char * tsdrplugin_getlasterrortext(void) {
+__stdcall char * tsdrplugin_getlasterrortext(void) {
 	if (errormsg_code == TSDR_OK)
 		return NULL;
 	else
 		return errormsg;
 }
 
-void tsdrplugin_getName(char * name) {
+__stdcall void tsdrplugin_getName(char * name) {
 	strcpy(name, "TSDR Mirics SDR Plugin");
 }
 
-uint32_t tsdrplugin_setsamplerate(uint32_t rate) {
+__stdcall uint32_t tsdrplugin_setsamplerate(uint32_t rate) {
 	return SAMPLE_RATE;
 }
 
-uint32_t tsdrplugin_getsamplerate() {
+__stdcall uint32_t tsdrplugin_getsamplerate() {
 	return SAMPLE_RATE;
 }
 
-int tsdrplugin_setbasefreq(uint32_t freq) {
+__stdcall int tsdrplugin_setbasefreq(uint32_t freq) {
 	desiredfreq = freq;
 	RETURN_OK();
 }
 
-int tsdrplugin_stop(void) {
+__stdcall int tsdrplugin_stop(void) {
 	working = 0;
 	RETURN_OK();
 }
 
-int tsdrplugin_setgain(float gain) {
+__stdcall int tsdrplugin_setgain(float gain) {
 	desiredgainred = 102 - (int) (gain * 102);
 	if (desiredgainred < 0) desiredgainred = 0;
 	else if (desiredgainred > 102) desiredgainred = 102;
 	RETURN_OK();
 }
 
-int tsdrplugin_init(const char * params) {
+__stdcall int tsdrplugin_init(const char * params) {
 	RETURN_OK();
 }
 
-int tsdrplugin_readasync(tsdrplugin_readasync_function cb, void *ctx) {
+__stdcall int tsdrplugin_readasync(tsdrplugin_readasync_function cb, void *ctx) {
 	working = 1;
 
 	int err, sps, grc, rfc, fsc, i, id;
@@ -172,6 +172,6 @@ int tsdrplugin_readasync(tsdrplugin_readasync_function cb, void *ctx) {
 	RETURN_EXCEPTION("The Mirics SDR dongle stopped responding.", (err == 0) ? TSDR_OK : TSDR_ERR_PLUGIN);
 }
 
-void tsdrplugin_cleanup(void) {
+__stdcall void tsdrplugin_cleanup(void) {
 
 }

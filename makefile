@@ -15,7 +15,7 @@ all :
 	@$(MAKE) -C TSDRPlugin_RawFile/ all JAVA_HOME=$(JAVA_HOME)
 ifeq ($(OSNAME),WINDOWS)
 	@$(MAKE) -C TSDRPlugin_Mirics/ all MIRICS_HOME=$(MIRICS_HOME)
-	@$(MAKE) -C TSDRPlugin_ExtIO/ all
+# TSDRPlugin_ExtIO does not use make
 endif
 	@$(MAKE) -C TempestSDR/ all
 	@$(MAKE) -C JavaGUI/ all
@@ -24,6 +24,6 @@ endif
 clean :
 	@$(MAKE) -C TSDRPlugin_RawFile/ clean
 	@$(MAKE) -C TSDRPlugin_Mirics/ clean
-	@$(MAKE) -C TSDRPlugin_ExtIO/ clean
+# TSDRPlugin_ExtIO does not use make
 	@$(MAKE) -C TempestSDR/ clean
 	@$(MAKE) -C JavaGUI/ clean

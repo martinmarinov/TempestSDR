@@ -53,6 +53,9 @@ void error_translate (int exception_code, char * exceptionclass) {
 		case TSDR_CANNOT_OPEN_DEVICE:
 			strcpy(exceptionclass, "martin/tempest/core/exceptions/TSDRCannotOpenDeviceException");
 			return;
+		case TSDR_INCOMPATIBLE_PLUGIN:
+			strcpy(exceptionclass, "martin/tempest/core/exceptions/TSDRIncompatiblePluginException");
+			return;
 		default:
 			strcpy(exceptionclass, "java/lang/Exception");
 			return;

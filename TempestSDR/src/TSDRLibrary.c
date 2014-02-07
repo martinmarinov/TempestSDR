@@ -360,6 +360,9 @@ void unloadplugin(tsdr_lib_t * tsdr) {
 int tsdr_unloadplugin(tsdr_lib_t * tsdr) {
 	if (tsdr->plugin == NULL) RETURN_EXCEPTION(tsdr, "No plugin has been loaded so it can't be unloaded", TSDR_ERR_PLUGIN);
 
+	if (tsdr->nativerunning || tsdr->running)
+			RETURN_EXCEPTION(tsdr, "The library is already running in async mode. Stop it first!", TSDR_ALREADY_RUNNING);
+
 	unloadplugin(tsdr);
 	RETURN_OK(tsdr);
 }
@@ -372,10 +375,16 @@ int tsdr_loadplugin(tsdr_lib_t * tsdr, const char * pluginfilepath, const char *
 
 	tsdr->plugin = malloc(sizeof(pluginsource_t));
 	int status = tsdrplug_load((pluginsource_t *)(tsdr->plugin), pluginfilepath);
-
 	if (status != TSDR_OK) {
-		unloadplugin(tsdr);
-		RETURN_EXCEPTION(tsdr, "The plugin cannot be loaded. It is incompatible or there are depending libraries missing. Please check the readme file that comes with the plugin.", status);
+
+		if (status == TSDR_INCOMPATIBLE_PLUGIN) {
+			free(tsdr->plugin);
+			tsdr->plugin = NULL;
+			RETURN_EXCEPTION(tsdr, "The plugin cannot be loaded. It is incompatible or there are depending libraries missing. Please check the readme file that comes with the plugin.", status);
+		} else {
+			unloadplugin(tsdr);
+			RETURN_EXCEPTION(tsdr, "The selected library is not a valid TSDR plugin!", status);
+		}
 	}
 
 	pluginsource_t * plugin = (pluginsource_t *)(tsdr->plugin);

@@ -65,35 +65,35 @@ static inline void announceexception(const char * message, int status) {
 	strcpy(errormsg, message);
 }
 
-char * tsdrplugin_getlasterrortext(void) {
+__stdcall char * tsdrplugin_getlasterrortext(void) {
 	if (errormsg_code == TSDR_OK)
 		return NULL;
 	else
 		return errormsg;
 }
 
-void tsdrplugin_getName(char * name) {
+__stdcall void tsdrplugin_getName(char * name) {
 	strcpy(name, "TSDR Raw File Source Plugin");
 }
 
-uint32_t tsdrplugin_setsamplerate(uint32_t rate) {
+__stdcall uint32_t tsdrplugin_setsamplerate(uint32_t rate) {
 	return samplerate;
 }
 
-uint32_t tsdrplugin_getsamplerate() {
+__stdcall uint32_t tsdrplugin_getsamplerate() {
 	return samplerate;
 }
 
-int tsdrplugin_setbasefreq(uint32_t freq) {
+__stdcall int tsdrplugin_setbasefreq(uint32_t freq) {
 	RETURN_OK();
 }
 
-int tsdrplugin_stop(void) {
+__stdcall int tsdrplugin_stop(void) {
 	working = 0;
 	RETURN_OK();
 }
 
-int tsdrplugin_setgain(float gain) {
+__stdcall int tsdrplugin_setgain(float gain) {
 	RETURN_OK();
 }
 
@@ -142,7 +142,7 @@ char * nexttoken(char * input) {
     }
 }
 
-int tsdrplugin_init(const char * params) {
+__stdcall int tsdrplugin_init(const char * params) {
 	char * fname = nexttoken((char *) params);
 	if (fname == NULL) RETURN_EXCEPTION("File name was not specified. Commands should be: filename samplerate sampleformat. Format could be float, int8, uint8, int16 or uint16.", TSDR_PLUGIN_PARAMETERS_WRONG);
 	char * samplerate_s = nexttoken(NULL);
@@ -176,7 +176,7 @@ int tsdrplugin_init(const char * params) {
 	RETURN_OK();
 }
 
-int tsdrplugin_readasync(tsdrplugin_readasync_function cb, void *ctx) {
+__stdcall int tsdrplugin_readasync(tsdrplugin_readasync_function cb, void *ctx) {
 	working = 1;
 	int i;
 
@@ -257,6 +257,6 @@ int tsdrplugin_readasync(tsdrplugin_readasync_function cb, void *ctx) {
 	RETURN_OK();
 }
 
-void tsdrplugin_cleanup(void) {
+__stdcall void tsdrplugin_cleanup(void) {
 
 }
