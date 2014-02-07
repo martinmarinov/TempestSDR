@@ -126,8 +126,53 @@ extern "C" void callback(int cnt, int status, float IQoffs, void *IQdata) {
 	tsdr_cb(outbuf, cntvalues, tsdr_ctx, 0);
 }
 
+DWORD WINAPI doGuiStuff(LPVOID arg) {
+	//AFX_MANAGE_STATE(AfxGetAppModuleState());
+
+	if (source->OpenHW()) {
+		printf("Opened device yey"); fflush(stdout);
+
+		// list attenuators
+		if (source->GetAttenuators != NULL) {
+			max_att_id = 0;
+			float att;
+			while (source->GetAttenuators(max_att_id++, &att) == 0) {};
+		}
+
+		if (source->ShowGUI != NULL)
+			source->ShowGUI();
+		//RETURN_OK();
+	}
+	else {
+		closeextio();
+		//RETURN_EXCEPTION("The ExtIO driver failed to open a device. Make sure your device is plugged in and its drivers are installed correctly.", TSDR_CANNOT_OPEN_DEVICE);
+	}
+
+	
+
+		MSG msg;
+		BOOL bRet;
+
+		while ((bRet = GetMessage(&msg, NULL, 0, 0)) != 0)
+		{
+			if (bRet == -1)
+			{
+				// handle the error and possibly exit
+				printf("Errorrrr\n"); fflush(stdout);
+			}
+			else
+			{
+				printf("Sending messages\n"); fflush(stdout);
+
+				TranslateMessage(&msg);
+				DispatchMessage(&msg);
+			}
+		}
+
+	return 0;
+}
+
 extern "C" int TSDRPLUGIN_EXTIO_API __stdcall tsdrplugin_init(const char * params) {
-	AFX_MANAGE_STATE(AfxGetAppModuleState());
 
 	if (outbuf == NULL) {
 		outbuf = (float *)malloc(sizeof(float));
@@ -154,26 +199,8 @@ extern "C" int TSDRPLUGIN_EXTIO_API __stdcall tsdrplugin_init(const char * param
 				RETURN_EXCEPTION("The sample format of the ExtIO plugin is not supported.", TSDR_CANNOT_OPEN_DEVICE);
 			}
 
-			if (source->OpenHW()) {
-				//printf("Opened %s model %s!\n", name, model); fflush(stdout);
-
-				printf("Showing GUI :) \n"); fflush(stdout);
-				if (source->ShowGUI != NULL) source->ShowGUI();
-				printf("Yey! \n"); fflush(stdout);
-
-				// list attenuators
-				if (source->GetAttenuators != NULL) {
-					max_att_id = 0;
-					float att;
-					while (source->GetAttenuators(max_att_id++, &att) == 0) {};
-				}
-
-				RETURN_OK();
-			}
-			else {
-				closeextio();
-				RETURN_EXCEPTION("The ExtIO driver failed to open a device. Make sure your device is plugged in and its drivers are installed correctly.", TSDR_CANNOT_OPEN_DEVICE);
-			}
+			CreateThread(NULL, 0, doGuiStuff, NULL, 0, NULL);
+			RETURN_OK();
 		}
 		else {
 			closeextio();
