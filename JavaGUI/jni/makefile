@@ -4,10 +4,10 @@ $(warning JAVA_HOME should be set so it points to your jdk installation dir)
 endif
 
 # Define all of the C files here
-OBJS = TSDRLibraryNDK.o
+OBJS = TSDRLibraryNDK.o threading.o
 
 # Define all of the dependencies here
-DEPS = TSDRLibraryNDK.h include/TSDRLibrary.h include/TSDRCodes.h
+DEPS = TSDRLibraryNDK.h include/TSDRLibrary.h include/TSDRCodes.h threading.h
 
 # Flags
 CFLAGS+=-O3

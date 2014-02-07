@@ -86,7 +86,7 @@ public class TSDRSource {
 	    ok.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(ActionEvent arg0) {
-				if (callback != null) callback.onParametersChanged(TSDRSource.this);
+				setParams(params.getText());
 			}
 		});
 		return true;
