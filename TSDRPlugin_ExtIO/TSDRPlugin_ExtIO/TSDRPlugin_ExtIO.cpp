@@ -38,6 +38,8 @@ uint32_t act_freq = -1;
 float req_gain = 0.5;
 float act_gain = -1;
 
+HANDLE guisyncevent;
+
 extern "C" void closeextio(void) {
 	if (source == NULL) return;
 	if (source->HideGUI != NULL) source->HideGUI();
@@ -127,52 +129,7 @@ extern "C" void callback(int cnt, int status, float IQoffs, void *IQdata) {
 }
 
 DWORD WINAPI doGuiStuff(LPVOID arg) {
-	//AFX_MANAGE_STATE(AfxGetAppModuleState());
-
-	if (source->OpenHW()) {
-		printf("Opened device yey"); fflush(stdout);
-
-		// list attenuators
-		if (source->GetAttenuators != NULL) {
-			max_att_id = 0;
-			float att;
-			while (source->GetAttenuators(max_att_id++, &att) == 0) {};
-		}
-
-		if (source->ShowGUI != NULL)
-			source->ShowGUI();
-		//RETURN_OK();
-	}
-	else {
-		closeextio();
-		//RETURN_EXCEPTION("The ExtIO driver failed to open a device. Make sure your device is plugged in and its drivers are installed correctly.", TSDR_CANNOT_OPEN_DEVICE);
-	}
-
-	
-
-		MSG msg;
-		BOOL bRet;
-
-		while ((bRet = GetMessage(&msg, NULL, 0, 0)) != 0)
-		{
-			if (bRet == -1)
-			{
-				// handle the error and possibly exit
-				printf("Errorrrr\n"); fflush(stdout);
-			}
-			else
-			{
-				printf("Sending messages\n"); fflush(stdout);
-
-				TranslateMessage(&msg);
-				DispatchMessage(&msg);
-			}
-		}
-
-	return 0;
-}
-
-extern "C" int TSDRPLUGIN_EXTIO_API __stdcall tsdrplugin_init(const char * params) {
+	char * params = (char *)arg;
 
 	if (outbuf == NULL) {
 		outbuf = (float *)malloc(sizeof(float));
@@ -185,26 +142,40 @@ extern "C" int TSDRPLUGIN_EXTIO_API __stdcall tsdrplugin_init(const char * param
 
 	// inititalize source
 	source = (extiosource_t *)malloc(sizeof(extiosource_t));
-	printf("LOADING! PLUGCHOOO \n"); fflush(stdout);
+
 	int status;
 	if ((status = extio_load(source, params)) == TSDR_OK) {
 		char name[200];
 		char model[200];
-		printf("LOADED! PLUGCHOOO \n"); fflush(stdout);
+
 		if (source->InitHW(name, model, &hwtype)) {
 			source->SetCallback(&callback);
 
 			if (hwtype != EXTIO_HWTYPE_16B && hwtype != EXTIO_HWTYPE_24B && hwtype != EXTIO_HWTYPE_32B && hwtype != EXTIO_HWTYPE_FLOAT) {
 				closeextio();
-				RETURN_EXCEPTION("The sample format of the ExtIO plugin is not supported.", TSDR_CANNOT_OPEN_DEVICE);
-			}
+				announceexception("The sample format of the ExtIO plugin is not supported.", TSDR_CANNOT_OPEN_DEVICE);
+			} else if (source->OpenHW()) {
+				//printf("Opened %s model %s!\n", name, model); fflush(stdout);
 
-			CreateThread(NULL, 0, doGuiStuff, NULL, 0, NULL);
-			RETURN_OK();
+				if (source->ShowGUI != NULL) source->ShowGUI();
+
+				// list attenuators
+				if (source->GetAttenuators != NULL) {
+					max_att_id = 0;
+					float att;
+					while (source->GetAttenuators(max_att_id++, &att) == 0) {};
+				}
+
+				errormsg_code = TSDR_OK;
+			}
+			else {
+				closeextio();
+				announceexception("The ExtIO driver failed to open a device. Make sure your device is plugged in and its drivers are installed correctly.", TSDR_CANNOT_OPEN_DEVICE);
+			}
 		}
 		else {
 			closeextio();
-			RETURN_EXCEPTION("The ExtIO driver failed to initialize a device. Make sure your device is plugged in and its drivers are installed correctly.", TSDR_CANNOT_OPEN_DEVICE);
+			announceexception("The ExtIO driver failed to initialize a device. Make sure your device is plugged in and its drivers are installed correctly.", TSDR_CANNOT_OPEN_DEVICE);
 		}
 	}
 	else {
@@ -214,12 +185,55 @@ extern "C" int TSDRPLUGIN_EXTIO_API __stdcall tsdrplugin_init(const char * param
 
 		free(source);
 		source = NULL;
-		
+
 		if (status == TSDR_INCOMPATIBLE_PLUGIN)
-			RETURN_EXCEPTION("The ExtIO dll is not compatible with the current machine or does not exist. Please check the filename is correct and the file is a valid ExtIO dll file and try again.", TSDR_PLUGIN_PARAMETERS_WRONG)
-		else 
-			RETURN_EXCEPTION("The provided library is not a valid/compatible ExtIO dll. Please check the filename is correct and the file is a valid ExtIO dll file and try again.", TSDR_PLUGIN_PARAMETERS_WRONG);
+			announceexception("The ExtIO dll is not compatible with the current machine or does not exist. Please check the filename is correct and the file is a valid ExtIO dll file and try again.", TSDR_PLUGIN_PARAMETERS_WRONG);
+		else
+			announceexception("The provided library is not a valid/compatible ExtIO dll. Please check the filename is correct and the file is a valid ExtIO dll file and try again.", TSDR_PLUGIN_PARAMETERS_WRONG);
 	}
+
+	// notify we have finished loading
+	SetEvent(guisyncevent);
+
+	// do GUI handling
+	MSG msg;
+	BOOL bRet;
+
+	while ((bRet = GetMessage(&msg, NULL, 0, 0)) != 0)
+	{
+		if (bRet == -1)
+		{
+			// error!
+			return -1;
+		}
+		else
+		{
+			if (source == NULL) return 0;
+			TranslateMessage(&msg);
+			DispatchMessage(&msg);
+		}
+	}
+
+	printf("THREAD SAYS BYE BYE\n"); fflush(stdout);
+	return 0;
+}
+
+extern "C" int TSDRPLUGIN_EXTIO_API __stdcall tsdrplugin_init(const char * params) {
+	
+	// create synchronization event
+	guisyncevent = CreateEvent(0, FALSE, FALSE, 0);
+
+	// do the initialization in a GUI friendly thread
+	CreateThread(NULL, 0, doGuiStuff, (LPVOID)params, 0, NULL);
+
+	// wait for initialization to finish
+	WaitForSingleObject(guisyncevent, INFINITE);
+
+	// close synchronozation event
+	CloseHandle(guisyncevent);
+
+	// return whatever error code was generated during thread execution
+	return errormsg_code;
 }
 
 extern "C" void attenuate(float gain) {
@@ -232,7 +246,6 @@ extern "C" void attenuate(float gain) {
 }
 
 extern "C" int TSDRPLUGIN_EXTIO_API __stdcall tsdrplugin_readasync(tsdrplugin_readasync_function cb, void *ctx) {
-	AFX_MANAGE_STATE(AfxGetAppModuleState());
 
 	if (source == NULL)
 		RETURN_EXCEPTION("Please provide a full path to a valid ExtIO dll.", TSDR_PLUGIN_PARAMETERS_WRONG);
@@ -243,8 +256,6 @@ extern "C" int TSDRPLUGIN_EXTIO_API __stdcall tsdrplugin_readasync(tsdrplugin_re
 	is_running = 1;
 
 	act_freq = req_freq;
-
-	if (source->HideGUI != NULL) source->HideGUI();
 
 	if (source->StartHW(act_freq) < 0)
 		RETURN_EXCEPTION("The device has stopped responding.", TSDR_CANNOT_OPEN_DEVICE);
@@ -280,7 +291,7 @@ extern "C" void TSDRPLUGIN_EXTIO_API __stdcall tsdrplugin_cleanup(void) {
 
 	if (source == NULL) return;
 
-	//if (source->pfnHideGUI != NULL) source->pfnHideGUI();
+	if (source->HideGUI != NULL) source->HideGUI();
 
 	closeextio();
 }
