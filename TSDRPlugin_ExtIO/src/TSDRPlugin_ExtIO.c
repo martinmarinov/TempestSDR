@@ -1,19 +1,10 @@
-// TSDRPlugin_ExtIO.cpp : Defines the exported functions for the DLL application.
-//
-#include "stdafx.h"
-
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
 
 #include "TSDRCodes.h"
 #include "ExtIOPluginLoader.h"
-
-#ifdef TSDRPLUGIN_EXTIO_EXPORTS
-#define TSDRPLUGIN_EXTIO_API __declspec(dllexport)
-#else
-#define TSDRPLUGIN_EXTIO_API __declspec(dllimport)
-#endif
+#include <windows.h>
 
 #include "errors.h"
 
@@ -22,7 +13,7 @@
 #define EXTIO_HWTYPE_32B	6
 #define EXTIO_HWTYPE_FLOAT	7
 
-extern "C" typedef void(*tsdrplugin_readasync_function)(float *buf, uint32_t len, void *ctx, int dropped_samples);
+typedef void(*tsdrplugin_readasync_function)(float *buf, uint32_t len, void *ctx, int dropped_samples);
 
 extiosource_t * source = NULL;
 int hwtype;
@@ -40,7 +31,7 @@ float act_gain = -1;
 
 HANDLE guisyncevent;
 
-extern "C" void closeextio(void) {
+void closeextio(void) {
 	if (source == NULL) return;
 	if (source->HideGUI != NULL) source->HideGUI();
 	source->CloseHW();
@@ -49,39 +40,39 @@ extern "C" void closeextio(void) {
 	source = NULL;
 }
 
-extern "C" void TSDRPLUGIN_EXTIO_API __stdcall tsdrplugin_getName(char * name) {
-	strcpy_s(name, 20, "TSDR ExtIO Plugin");
+void __stdcall tsdrplugin_getName(char * name) {
+	strcpy(name, "TSDR ExtIO Plugin");
 }
 
-extern "C" uint32_t TSDRPLUGIN_EXTIO_API __stdcall tsdrplugin_setsamplerate(uint32_t rate) {
+uint32_t __stdcall tsdrplugin_setsamplerate(uint32_t rate) {
 	if (source != NULL) return source->GetHWSR();
 	return 0;
 }
 
-extern "C" uint32_t TSDRPLUGIN_EXTIO_API __stdcall tsdrplugin_getsamplerate() {
+uint32_t __stdcall tsdrplugin_getsamplerate() {
 	if (source != NULL) return source->GetHWSR();
 	return 0;
 }
 
-extern "C"  int TSDRPLUGIN_EXTIO_API __stdcall tsdrplugin_setbasefreq(uint32_t freq) {
+int __stdcall tsdrplugin_setbasefreq(uint32_t freq) {
 	req_freq = freq;
 
 	RETURN_OK();
 }
 
-extern "C" int TSDRPLUGIN_EXTIO_API __stdcall tsdrplugin_stop(void) {
+int __stdcall tsdrplugin_stop(void) {
 	is_running = 0;
 
 	RETURN_OK();
 }
 
-extern "C" int TSDRPLUGIN_EXTIO_API __stdcall tsdrplugin_setgain(float gain) {
+int __stdcall tsdrplugin_setgain(float gain) {
 	req_gain = gain;
 
 	RETURN_OK();
 }
 
-extern "C" void callback(int cnt, int status, float IQoffs, void *IQdata) {
+void callback(int cnt, int status, float IQoffs, void *IQdata) {
 	if (!is_running) return;
 	if (status < 0 || cnt < 0) return;
 
@@ -214,11 +205,10 @@ DWORD WINAPI doGuiStuff(LPVOID arg) {
 		}
 	}
 
-	printf("THREAD SAYS BYE BYE\n"); fflush(stdout);
 	return 0;
 }
 
-extern "C" int TSDRPLUGIN_EXTIO_API __stdcall tsdrplugin_init(const char * params) {
+int __stdcall tsdrplugin_init(const char * params) {
 	
 	// create synchronization event
 	guisyncevent = CreateEvent(0, FALSE, FALSE, 0);
@@ -236,7 +226,7 @@ extern "C" int TSDRPLUGIN_EXTIO_API __stdcall tsdrplugin_init(const char * param
 	return errormsg_code;
 }
 
-extern "C" void attenuate(float gain) {
+void attenuate(float gain) {
 	if (max_att_id > 0 && source->SetAttenuator != NULL) {
 		int att_id = (int)(gain * max_att_id);
 		if (att_id >= max_att_id) att_id = max_att_id - 1;
@@ -245,7 +235,7 @@ extern "C" void attenuate(float gain) {
 	}
 }
 
-extern "C" int TSDRPLUGIN_EXTIO_API __stdcall tsdrplugin_readasync(tsdrplugin_readasync_function cb, void *ctx) {
+int __stdcall tsdrplugin_readasync(tsdrplugin_readasync_function cb, void *ctx) {
 
 	if (source == NULL)
 		RETURN_EXCEPTION("Please provide a full path to a valid ExtIO dll.", TSDR_PLUGIN_PARAMETERS_WRONG);
@@ -282,7 +272,7 @@ extern "C" int TSDRPLUGIN_EXTIO_API __stdcall tsdrplugin_readasync(tsdrplugin_re
 	RETURN_OK();
 }
 
-extern "C" void TSDRPLUGIN_EXTIO_API __stdcall tsdrplugin_cleanup(void) {
+void __stdcall tsdrplugin_cleanup(void) {
 
 	if (outbuf != NULL) {
 		free(outbuf);

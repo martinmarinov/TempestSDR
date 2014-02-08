@@ -6,7 +6,6 @@
 #include <stdint.h>
 #include <string.h>
 #include <stdlib.h>
-#include "threading.h"
 
 tsdr_lib_t tsdr_instance;
 
@@ -131,39 +130,16 @@ void read_async(float *buf, int width, int height, void *ctx) {
 	(*env)->CallVoidMethod(env, context->obj, context->notifyCallbacks);
 }
 
-mutex_t mutex_loadplugin;
-volatile int status_loadplugin;
-typedef struct holder_loadplugin {const char * npath; const char * nparams;} holder_loadplugin_t;
-void newthread_tsdr_loadplugin(void * ctx) {
-	(*jvm)->DetachCurrentThread(jvm);
-
-	holder_loadplugin_t * data = (holder_loadplugin_t *) ctx;
-	status_loadplugin = tsdr_loadplugin(&tsdr_instance, data->npath, data->nparams);
-
-	mutex_signal(&mutex_loadplugin);
-}
-
 JNIEXPORT void JNICALL Java_martin_tempest_core_TSDRLibrary_loadPlugin (JNIEnv * env, jobject obj, jstring path, jstring params) {
 	const char *npath = (*env)->GetStringUTFChars(env, path, 0);
 	const char *nparams = (*env)->GetStringUTFChars(env, params, 0);
 
-	(*jvm)->DetachCurrentThread(jvm);
-
-	holder_loadplugin_t data;
-	data.npath = npath;
-	data.nparams = nparams;
-
-	mutex_init(&mutex_loadplugin);
-
-	thread_start(&newthread_tsdr_loadplugin, &data);
-
-	mutex_waitforever(&mutex_loadplugin);
-	mutex_free(&mutex_loadplugin);
+	int status = tsdr_loadplugin(&tsdr_instance, npath, nparams);
 
 	if ((*jvm)->GetEnv(jvm, (void **)&env, javaversion) == JNI_EDETACHED)
 		(*jvm)->AttachCurrentThread(jvm, (void **) &env, 0);
 
-	THROW(status_loadplugin);
+	THROW(status);
 
 	(*env)->ReleaseStringUTFChars(env, path, npath);
 	(*env)->ReleaseStringUTFChars(env, params, nparams);
@@ -185,8 +161,6 @@ JNIEXPORT void JNICALL Java_martin_tempest_core_TSDRLibrary_nativeStart (JNIEnv 
 	context->pic_height = 0;
 	context->pixelsize = 1;
 	context->pixels = (jint *) malloc(sizeof(jint) * context->pixelsize);
-
-	(*jvm)->DetachCurrentThread(jvm);
 
 	int status = tsdr_readasync(&tsdr_instance, read_async, (void *) context);
 

@@ -1,16 +1,14 @@
 #ifndef _TSDRPluginLoader
 #define _TSDRPluginLoader
 
-	// A platform independed dynamic library loader
-
 #include <stdint.h>
 #include <stdbool.h>
 
 #include <windows.h>
 
-extern "C" typedef void(*pfnExtIOCallback) (int cnt, int status, float IQoffs, void *IQdata);
+typedef void(*pfnExtIOCallback) (int cnt, int status, float IQoffs, void *IQdata);
 
-	extern "C" struct extiosource {
+	struct extiosource {
 		HINSTANCE fd;
 
 		// mandatory functions that the dll must implement
@@ -34,7 +32,7 @@ extern "C" typedef void(*pfnExtIOCallback) (int cnt, int status, float IQoffs, v
 
 	} typedef extiosource_t;
 
-	extern "C" int extio_load(extiosource_t * plugin, const char *dlname);
-	extern "C" void extio_close(extiosource_t * plugin);
+	int extio_load(extiosource_t * plugin, const char *dlname);
+	void extio_close(extiosource_t * plugin);
 
 #endif
