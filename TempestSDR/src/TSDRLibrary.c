@@ -371,8 +371,6 @@ int tsdr_loadplugin(tsdr_lib_t * tsdr, const char * pluginfilepath, const char *
 	if (tsdr->nativerunning || tsdr->running)
 			RETURN_EXCEPTION(tsdr, "The library is already running in async mode. Stop it first!", TSDR_ALREADY_RUNNING);
 
-	printf("Loading plugin %s with params %s\n", pluginfilepath, params); fflush(stdout);
-
 	unloadplugin(tsdr);
 
 	tsdr->plugin = malloc(sizeof(pluginsource_t));

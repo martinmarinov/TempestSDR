@@ -20,6 +20,7 @@ int hwtype;
 tsdrplugin_readasync_function tsdr_cb;
 void * tsdr_ctx;
 volatile int is_running = 0;
+int samplespercallback = 0;
 float * outbuf = NULL;
 int outbuf_size = 0;
 int max_att_id = -1;
@@ -74,31 +75,26 @@ int __stdcall tsdrplugin_setgain(float gain) {
 
 void callback(int cnt, int status, float IQoffs, void *IQdata) {
 	if (!is_running) return;
-	if (status < 0 || cnt < 0) return;
+	if (status < 0 || cnt < 0)
+		return;
 
 	int i;
 
-	const int cntvalues = cnt;
-	if (cntvalues > outbuf_size) {
-		outbuf_size = cntvalues;
-		outbuf = (float *)realloc((void *)outbuf, sizeof(float)* outbuf_size);
-	}
-
 	switch (hwtype) {
 	case EXTIO_HWTYPE_FLOAT:
-		memcpy(outbuf, IQdata, cntvalues * sizeof(float));
+		memcpy(outbuf, IQdata, samplespercallback * sizeof(float));
 		break;
 	case EXTIO_HWTYPE_16B:
 	{
 							 int16_t * buf = (int16_t *)IQdata;
-							 for (i = 0; i < cntvalues; i++)
+							 for (i = 0; i < samplespercallback; i++)
 								 outbuf[i] = *(buf++) / 32767.0f;
 	}
 		break;
 	case EXTIO_HWTYPE_24B:
 	{
 							 uint8_t * buf = (uint8_t *)IQdata;
-							 for (i = 0; i < cntvalues; i++) {
+							 for (i = 0; i < samplespercallback; i++) {
 								 const uint8_t first = *(buf++);
 								 const uint8_t second = *(buf++);
 								 const uint8_t third = *(buf++);
@@ -110,13 +106,13 @@ void callback(int cnt, int status, float IQoffs, void *IQdata) {
 	case EXTIO_HWTYPE_32B:
 	{
 							 int32_t * buf = (int32_t *)IQdata;
-							 for (i = 0; i < cntvalues; i++)
+							 for (i = 0; i < samplespercallback; i++)
 								 outbuf[i] = *(buf++) / 2147483647.0f;
 	}
 		break;
 	}
 
-	tsdr_cb(outbuf, cntvalues, tsdr_ctx, 0);
+	tsdr_cb(outbuf, samplespercallback, tsdr_ctx, 0);
 }
 
 DWORD WINAPI doGuiStuff(LPVOID arg) {
@@ -146,7 +142,6 @@ DWORD WINAPI doGuiStuff(LPVOID arg) {
 				closeextio();
 				announceexception("The sample format of the ExtIO plugin is not supported.", TSDR_CANNOT_OPEN_DEVICE);
 			} else if (source->OpenHW()) {
-				//printf("Opened %s model %s!\n", name, model); fflush(stdout);
 
 				if (source->ShowGUI != NULL) source->ShowGUI();
 
@@ -247,8 +242,15 @@ int __stdcall tsdrplugin_readasync(tsdrplugin_readasync_function cb, void *ctx) 
 
 	act_freq = req_freq;
 
-	if (source->StartHW(act_freq) < 0)
+	int bufsize;
+	if ((bufsize = source->StartHW(act_freq)) < 0)
 		RETURN_EXCEPTION("The device has stopped responding.", TSDR_CANNOT_OPEN_DEVICE);
+
+	samplespercallback = bufsize * 2;
+	if (samplespercallback > outbuf_size) {
+		outbuf_size = samplespercallback;
+		outbuf = (float *)realloc((void *)outbuf, sizeof(float)* outbuf_size);
+	}
 
 	act_gain = req_gain;
 	attenuate(act_gain);
