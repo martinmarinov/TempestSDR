@@ -14,25 +14,34 @@ import java.util.List;
 import martin.tempest.core.exceptions.TSDRAlreadyRunningException;
 import martin.tempest.core.exceptions.TSDRException;
 import martin.tempest.core.exceptions.TSDRLibraryNotCompatible;
+import martin.tempest.gui.VideoMode;
 import martin.tempest.sources.TSDRSource;
 
 /**
- * This is a Java wrapper library for TSDRLibrary
+ * This is a Java wrapper library for TSDRLibrary. It aims to be platform independent as long as
+ * the library is compiled for the corresponding OS and the native dlls are located in lib/OSNAME/ARCH or in
+ * LD_LIBRARY_PATH. It controls the native library and exposes its full functionality.
  * 
- * @author Martin
+ * @author Martin Marinov
  *
  */
 public class TSDRLibrary {
 	
+	/** The image that will be have its pixels written by the NDK */
 	private BufferedImage bimage;
+	/** A pointer to the pixels of {@link #bimage} */
 	private volatile int[] pixels;
 	
+	/** The desired direction of manual synchronisation */
 	public enum SYNC_DIRECTION {ANY, UP, DOWN, LEFT, RIGHT};
 	
+	/** Whether native is running or not */
 	volatile private boolean nativerunning = false;
 	
-	// If the binaries weren't loaded, this will go off
+	/** If the binaries weren't loaded, this will go off */
 	private static TSDRLibraryNotCompatible m_e = null;
+	
+	/** A list of all of the callbacks that will receive a frame when it is ready */
 	private final List<FrameReadyCallback> callbacks = new ArrayList<FrameReadyCallback>();
 	
 	/**
@@ -154,30 +163,94 @@ public class TSDRLibrary {
 		} 
 	}
 	
+	/**
+	 * Initializes the library by attempting to load the required underlying native binaries.
+	 * @throws TSDRException
+	 */
 	public TSDRLibrary() throws TSDRException {
 		if (m_e != null) throw m_e;
 		init();
 	}
 
+	/** Called on initialisation to set up native buffers and variables */
 	private native void init();
+	
+	/** Set the sample rate on the fly */
 	public native void setSampleRate(long rate) throws TSDRException;
+	
+	/** Set the tuned frequency */
 	public native void setBaseFreq(long freq) throws TSDRException;
+	
+	/**
+	 * Load a plugin so that it is ready to be started via {@link #nativeStart()}
+	 * @param pluginfilepath
+	 * @param params
+	 * @throws TSDRException
+	 */
 	private native void loadPlugin(String pluginfilepath, String params) throws TSDRException;
+	
+	/**
+	 * Starts the processing. After this point on, either an exception will be genrated or the callback
+	 * will start receiving frames. This function DOES block and run on the same thread as the caller. 
+	 * {@link #startAsync(int, int, double)} uses it so one needs to use {@link #startAsync(int, int, double)} instead of calling this directly.
+	 * @throws TSDRException
+	 */
 	private native void nativeStart() throws TSDRException;
+	
+	/**
+	 * Stop the processing that was started with {@link #nativeStart()} before.
+	 * @throws TSDRException
+	 */
 	public native void stop() throws TSDRException;
+	
+	/**
+	 * Unloads and frees any resources taken by the native plugin that was previously loaded with {@link #loadPlugin(TSDRSource)}
+	 * @throws TSDRException
+	 */
 	public native void unloadPlugin() throws TSDRException;
+	
+	/**
+	 * Set gain level
+	 * @param gain from 0 to 1
+	 * @throws TSDRException
+	 */
 	public native void setGain(float gain) throws TSDRException;
+	
+	/**
+	 * Check whether the library is running
+	 * @return true if {@link #nativeStart()} is still working.
+	 */
 	public native boolean isRunning();
 	public native void setInvertedColors(boolean invertedEnabled);
 	public native void sync(int pixels, SYNC_DIRECTION dir);
 	public native void setResolution(int width, int height, double refreshrate) throws TSDRException;
 	public native void setMotionBlur(float gain) throws TSDRException;
+	
+	/** Releases any resources taken by the native library. Unless {@link #init()} is called again, any call to {@link TSDRLibrary} can have unexpected
+	 * result and may crash the JVM */
 	public native void free();
 	
-	public void loadPlugin(final TSDRSource plugin) throws TSDRLibraryNotCompatible, TSDRException {
+	/**
+	 * Loads the plugin. It is always safe to do {@link #unloadPlugin()} first before calling this.
+	 * Note: If the plugin that you are trying to load is already in use, unload it first otherwise 
+	 * you might receive an exception.
+	 * @param plugin the plugin to be loaded
+	 * @throws TSDRException
+	 */
+	public void loadPlugin(final TSDRSource plugin) throws TSDRException {
 		loadPlugin(plugin.getAbsolutePathToLibrary(), plugin.getParams());
 	}
 	
+	/**
+	 * Starts the whole system. After this function is called, assuming there are no exceptions,
+	 * the callbacks registered via {@link #registerFrameReadyCallback(FrameReadyCallback)} will start
+	 * receiving video frames.
+	 * Note: width and height are not what you might think. For example for 800x600@60Hz resolution, width and height might be 1056x628. Consult {@link VideoMode} for more information.
+	 * @param width the desired total width
+	 * @param height the desired total height
+	 * @param refreshrate the desired refreshrate
+	 * @throws TSDRException
+	 */
 	public void startAsync(int width, int height, double refreshrate) throws TSDRException {
 		if (nativerunning) throw new TSDRAlreadyRunningException("");
 		
@@ -197,13 +270,16 @@ public class TSDRLibrary {
 					for (final FrameReadyCallback callback : callbacks) callback.onException(TSDRLibrary.this, e);
 				}
 				
-				for (final FrameReadyCallback callback : callbacks) callback.onClosed(TSDRLibrary.this);
+				for (final FrameReadyCallback callback : callbacks) callback.onStopped(TSDRLibrary.this);
 				nativerunning = false;
 			};
 		}.start();
 		
 	}
 	
+	/**
+	 * Unloads the native libraries just before the JVM closes.
+	 */
 	final private Thread unloaderhook = new Thread() {
 		@Override
 		public void run() {
@@ -228,6 +304,11 @@ public class TSDRLibrary {
 		super.finalize();
 	}
 	
+	/**
+	 * Register the callback that will receive the decoded video frames
+	 * @param callback
+	 * @return true on success, false if the callback is already registered
+	 */
 	public boolean registerFrameReadyCallback(final FrameReadyCallback callback) {
 		if (callbacks.contains(callback))
 			return false;
@@ -235,14 +316,46 @@ public class TSDRLibrary {
 			return callbacks.add(callback);
 	}
 	
+	/**
+	 * Unregister a callback previously registered with {@link #unregisterFrameReadyCallback(FrameReadyCallback)}
+	 * @param callback
+	 * @return true if it was removed, false if it was never registered, therefore not removed
+	 */
 	public boolean unregisterFrameReadyCallback(final FrameReadyCallback callback) {
 		return callbacks.remove(callback);
 	}
 	
+	/**
+	 * This interface will allow you to asynchronously receive information about video frames and exceptions from the library.
+	 * 
+	 * @author Martin Marinov
+	 *
+	 */
 	public interface FrameReadyCallback {
+		
+		/**
+		 * When a new video frame was generated, this callback will trigger giving you an oportunity to 
+		 * save it or show it to the user.
+		 * This method should return quickly otherwise you risk dropping frames.
+		 * After this method terminates, the {@link BufferedImage} is not guaranteed to be the same or indeed thread safe.
+		 * This is because as soon as this function terminates, the system will start painting the next frame onto the same image.
+		 * @param lib
+		 * @param frame
+		 */
 		void onFrameReady(final TSDRLibrary lib, final BufferedImage frame);
+		
+		/**
+		 * If any exception was generated while the library was running
+		 * @param lib
+		 * @param e
+		 */
 		void onException(final TSDRLibrary lib, final Exception e);
-		void onClosed(final TSDRLibrary lib);
+		
+		/**
+		 * If the {@link TSDRLibrary#stop()} was called.
+		 * @param lib
+		 */
+		void onStopped(final TSDRLibrary lib);
 	}
 	
 	/**

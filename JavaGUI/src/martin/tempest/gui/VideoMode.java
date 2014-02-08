@@ -1,5 +1,12 @@
 package martin.tempest.gui;
 
+/**
+ * The class gives an easy representation of VESA video modes. Use {@link #getVideoModes()} to obtain
+ * a list of pre-registered video modes.
+ * 
+ * @author Martin Marinov
+ *
+ */
 public class VideoMode {
 	final public String name;
 	final public int width, height;
@@ -88,10 +95,21 @@ public class VideoMode {
 		new VideoMode("2048x1536 @ 60Hz", 2800, 1589, 60),
 	};
 	
+	/**
+	 * Get all available pre-registered video modes
+	 * @return
+	 */
 	public static VideoMode[] getVideoModes() {
 		return MODES;
 	}
 	
+	/**
+	 * Construct a video mode
+	 * @param name a user friendly name
+	 * @param width the maximum width of transmitted pixels
+	 * @param height the maximum height of transmitted pixels
+	 * @param refreshrate the refresh rate in Hz
+	 */
 	public VideoMode(final String name, final int width, final int height, final double refreshrate) {
 		this.name = name;
 		this.height = height;

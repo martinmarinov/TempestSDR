@@ -12,35 +12,84 @@ import javax.swing.JTextField;
 import martin.tempest.core.TSDRLibrary;
 import martin.tempest.core.exceptions.TSDRLibraryNotCompatible;
 
+/**
+ * This class allows {@link TSDRLibrary} to use various devices as SDR frontend inputs. Note that all of these are backed up 
+ * by native dynamic libraries so it can be platform dependent.
+ * 
+ * This class attempts to provide a flexible way of managing plugins for multiple OSes and architectues.
+ * 
+ * @author Martin Marinov
+ *
+ */
 public class TSDRSource {
 	
+	/**
+	 * This is the official TSDRSource register. All available sources are to be registered here.
+	 */
 	private final static TSDRSource[] SOURCES = new TSDRSource[] {
 		new TSDRFileSource(),
 		new TSDRMiricsSource(),
 		new TSDRExtIOSource(),
 	};
 	
+	/** The native name of the dynamic library. It should not contain prefixes or extensions.
+	 * For example a library could be called "abc", so libname would be "abc". When the library
+	 * needs to be loaded, the system will make sure it loads abs.dll on Windows or libabs.so on Linux.
+	 * An exception to this rule is if the libname contains full absolute path to the dll and {@link #absolute} is set to true. */
 	public final String libname;
-	private String params = "";
-	public final boolean absolute;
-	public final String descr;
-	private TSDRSourceParamChangedListener callback = null;
 	
+	/**
+	 * If true, {@link #libname} will have the full path to the file that is the native library that this source represents
+	 */
+	public final boolean absolute;
+	
+	/**
+	 * A user friendly description of the library. Use this for displaying in GUI.
+	 */
+	public final String descr;
+	
+	private TSDRSourceParamChangedListener callback = null;
+	private String params = "";
+	
+	/**
+	 * Return all of the available built-in TSDRSources. 
+	 * @return a list of all available TSDRSources. Some of them might be incompatible with the current user's system, but this will raise the appropriate exception
+	 */
 	public static TSDRSource[] getAvailableSources() {
 		return SOURCES;
 	}
 	
-	TSDRSource(final String desc, final String libname, final boolean absolute) {
+	/**
+	 * Create a {@link TSDRSource} on the fly. This represents a native library that {@link TSDRLibrary} will load
+	 * so that it can access the input of various SDR devices. The library supplied must be compatible with {@link TSDRLibrary},
+	 * otherwise it won't be loaded.
+	 * @param desc a user friendly description
+	 * @param libname let's assume your library is called "abc". If you supply absolute equals to false, then setting libname to "abc" will mean 
+	 * the system will look for "abc.dll" on Windows or "libabc.so" on Linux, etc in the LD_LIBRARY_PATH or the java.library.path. This is the best way
+	 * to be platform independent. If, however, your library is not in any of these folders, you can supply the absolute path, for example "D:\abc.dll" here and set absolute to true.
+	 * NOTE however that if any dependent libraries are not in the LD_LIBRARY_PATH, this native library will fail to load no matter whether you have set absolute to true or false.
+	 * @param absolute look at information about libname
+	 */
+	public TSDRSource(final String desc, final String libname, final boolean absolute) {
 		this.descr = desc;
 		this.libname = libname;
 		this.absolute = absolute;
 	}
 	
+	/**
+	 * This function can be called by the plugin itself when it's ready to be loaded/reloaded. Call it only if your application does not have a GUI or really need to force
+	 * usage of a certain parameter.
+	 * @param params
+	 */
 	public void setParams(final String params) {
 		this.params = params;
 		if (callback != null) callback.onParametersChanged(this);
 	}
 	
+	/**
+	 * Get the most current parameters
+	 * @return
+	 */
 	public String getParams() {
 		return params;
 	}
@@ -94,13 +143,13 @@ public class TSDRSource {
 	
 	/**
 	 * This should be called when the plugin is to be loaded. It will set the plugin parameters correctly according to user's desire so that once the parameters are set, 
-	 * it can be loaded to {@link TSDRLibrary}
+	 * it can be loaded to {@link TSDRLibrary}. In order to get a notification when the plugin is ready to be loaded to TSDRLibrary, register your callback with {@link #setOnParameterChangedCallback(TSDRSourceParamChangedListener)}
 	 * @param cont the container that will receive the components
-	 * @param defaultprefs the default parameters stored for this plugin. The plugin can use them to build the GUI.
-	 * @return true if GUI was populated so that the user can input parameters manually
-	 * 			false if the plugin does not require manual adjustements or the default preferences are ok, the caller than needs to call {@link #setParams(String)}
+	 * @param defaultprefs the suggested parameters for this plugin. The plugin will decide what the exact value would be.
 	 */
-	public boolean populateGUI(final Container cont, final String defaultprefs) {
+	public void populateGUI(final Container cont, final String defaultprefs) {
+		if (cont == null) setParams(defaultprefs);
+		
 	    final JLabel description = new JLabel("Type in the parameters:");
 	    cont.add(description);
 	    description.setBounds(12, 12, 400-12, 24);
@@ -125,14 +174,13 @@ public class TSDRSource {
 				}.start();
 			}
 		});
-		return true;
 	}
 	
 	/**
 	 * Interface that allows for events to be generated when a new parameter is applied to the plugin.
 	 * The plugin will need to be reloaded so that they take place.
 	 * 
-	 * @author Martin
+	 * @author Martin Marinov
 	 *
 	 */
 	public static interface TSDRSourceParamChangedListener {

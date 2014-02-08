@@ -65,9 +65,7 @@ void closeextio(void) {
 
 	if (source == NULL) return;
 
-	printf("Before GUI hide\n"); fflush(stdout);
 	if (source->HideGUI != NULL) source->HideGUI();
-	printf("After GUI hide\n"); fflush(stdout);
 	if (hwopen) safecloseHw();
 	extio_close(source);
 	free(source);

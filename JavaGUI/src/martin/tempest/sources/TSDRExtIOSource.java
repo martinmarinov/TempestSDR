@@ -11,12 +11,28 @@ import javax.swing.JButton;
 import javax.swing.JComboBox;
 import javax.swing.JFileChooser;
 
+/**
+ * The ExtIO file source is a plugin that will load a ExtIO__.dll on Windows. The dll needs to be in the same folder
+ * as the executabe, in the native library path (LD_LIBRARY_PATH), supplied via java.library.path or via absolute path as parameters.
+ * 
+ * The GUI allows for user friendly selection if the system fails to automatically find a dll.
+ * 
+ * This class will not work on Linux!
+ * 
+ * @author Martin Marinov
+ *
+ */
 public class TSDRExtIOSource extends TSDRSource {
 	
 	public TSDRExtIOSource() {
 		super("ExtIO source", "TSDRPlugin_ExtIO", false);
 	}
 	
+	/**
+	 * Finds all of the files in a folder that match the ExtIO filename convention.
+	 * @param dir the folder to be searched
+	 * @return {@link ArrayList} with all of the discovered files
+	 */
 	private ArrayList<File> findExtIOpluginsInFolder(final File dir) {
 		final ArrayList<File> answer = new ArrayList<File>();
 		if (dir.exists()) {
@@ -31,6 +47,11 @@ public class TSDRExtIOSource extends TSDRSource {
 		return answer;
 	}
 	
+	/**
+	 * If more than one ExtIO dll is selected, build GUI for user selection.
+	 * @param cont
+	 * @param availableplugins
+	 */
 	@SuppressWarnings({ "unchecked", "rawtypes" })
 	private void makeDeviceSelectionDialog(final Container cont, final ArrayList<File> availableplugins) {
 		
@@ -59,6 +80,10 @@ public class TSDRExtIOSource extends TSDRSource {
 		});
 	}
 	
+	/**
+	 * If no files are pressent at all, user will have the option to pick one manually.
+	 * @param cont
+	 */
 	private void makeFileSelectionDialog(final Container cont) {
 		
 		final JFileChooser fc = new JFileChooser();
@@ -68,7 +93,7 @@ public class TSDRExtIOSource extends TSDRSource {
 		
 		final JButton ok = new JButton("Choose ExtIO dll file");
 		cont.add(ok);
-		ok.setBounds(12, 12+2*32, 84, 24);
+		ok.setBounds(12, 12, 200, 24);
 
 		ok.addActionListener(new ActionListener() {
 			@Override
@@ -86,17 +111,17 @@ public class TSDRExtIOSource extends TSDRSource {
 	}
 
 	@Override
-	public boolean populateGUI(final Container cont, final String defaultprefs) {
+	public void populateGUI(final Container cont, final String defaultprefs) {
 		
 		final String[] paths = System.getProperty("java.library.path").split(File.pathSeparator);
 		for (final String path : paths) {
 			final ArrayList<File> plugins = findExtIOpluginsInFolder(new File(path));
 			if (plugins.size() == 1) {
 				setParams(plugins.get(0).getAbsolutePath());
-				return false;
+				return;
 			} else if (plugins.size() > 1) {
 				makeDeviceSelectionDialog(cont, plugins);
-				return true;
+				return;
 			}
 		}
 		
@@ -104,14 +129,13 @@ public class TSDRExtIOSource extends TSDRSource {
 			final ArrayList<File> plugins = findExtIOpluginsInFolder(new File("."));
 			if (plugins.size() == 1) {
 				setParams(plugins.get(0).getAbsolutePath());
-				return false;
+				return;
 			} else if (plugins.size() > 1) {
 				makeDeviceSelectionDialog(cont, plugins);
-				return true;
+				return;
 			}
 		}
 		
 		makeFileSelectionDialog(cont);
-		return true;
 	}
 }

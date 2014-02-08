@@ -18,7 +18,6 @@ import javax.swing.DefaultComboBoxModel;
 
 import martin.tempest.core.TSDRLibrary;
 import martin.tempest.core.TSDRLibrary.SYNC_DIRECTION;
-import martin.tempest.core.exceptions.TSDRAlreadyRunningException;
 import martin.tempest.core.exceptions.TSDRException;
 import martin.tempest.core.exceptions.TSDRLoadPluginException;
 import martin.tempest.gui.HoldButton.HoldListener;
@@ -34,7 +33,6 @@ import java.awt.image.BufferedImage;
 import javax.swing.SwingConstants;
 import javax.swing.event.ChangeListener;
 import javax.swing.event.ChangeEvent;
-import javax.swing.text.html.HTMLDocument.HTMLReader.IsindexAction;
 import javax.swing.JCheckBox;
 
 import java.awt.event.KeyAdapter;
@@ -453,7 +451,7 @@ public class Main implements TSDRLibrary.FrameReadyCallback, TSDRSourceParamChan
 				@Override
 				public void run() {
 					try {
-						btnStartStop.setEnabled(false);
+						if (!mSdrlib.isRunning()) btnStartStop.setEnabled(false);
 						mSdrlib.stop();
 					} catch (TSDRException e) {
 						displayException(frmTempestSdr, e);
@@ -668,7 +666,7 @@ public class Main implements TSDRLibrary.FrameReadyCallback, TSDRSourceParamChan
 	
 	private void onPluginSelected() {
 		
-		btnStartStop.setEnabled(false);
+		if (!mSdrlib.isRunning()) btnStartStop.setEnabled(false);
 		try {
 			mSdrlib.unloadPlugin();
 		} catch (TSDRException e) {};
@@ -685,11 +683,9 @@ public class Main implements TSDRLibrary.FrameReadyCallback, TSDRSourceParamChan
 		final TSDRSource current = (TSDRSource) cbDevice.getSelectedItem();
 		current.setOnParameterChangedCallback(this);
 		
-		if (current.populateGUI(pnInputDeviceSettings, preferences)) {
-			pnInputDeviceSettings.revalidate();
-			pnInputDeviceSettings.repaint(); 
-		} else
-			current.setParams(preferences);
+		current.populateGUI(pnInputDeviceSettings, preferences);
+		pnInputDeviceSettings.revalidate();
+		pnInputDeviceSettings.repaint(); 
 	}
 
 	@Override
@@ -706,7 +702,7 @@ public class Main implements TSDRLibrary.FrameReadyCallback, TSDRSourceParamChan
 	}
 
 	@Override
-	public void onClosed(TSDRLibrary lib) {
+	public void onStopped(TSDRLibrary lib) {
 		btnStartStop.setEnabled(true);
 		btnStartStop.setText("Start");
 		cbDevice.setEnabled(true);
@@ -728,7 +724,7 @@ public class Main implements TSDRLibrary.FrameReadyCallback, TSDRSourceParamChan
 	@Override
 	public void onParametersChanged(TSDRSource source) {
 		cbDevice.setEnabled(false);
-		btnStartStop.setEnabled(false);
+		if (!mSdrlib.isRunning())  btnStartStop.setEnabled(false);
 		
 		try {
 			try {
@@ -737,9 +733,9 @@ public class Main implements TSDRLibrary.FrameReadyCallback, TSDRSourceParamChan
 			
 			mSdrlib.loadPlugin(source);
 		} catch (Throwable t) {
-			if (!(t instanceof TSDRAlreadyRunningException))
-				btnStartStop.setEnabled(false);
+			if (!mSdrlib.isRunning())  btnStartStop.setEnabled(false);
 			displayException(frmTempestSdr, t);
+			cbDevice.setEnabled(true);
 			return;
 		}
 		cbDevice.setEnabled(true);
