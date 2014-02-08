@@ -85,7 +85,7 @@ public class TSDRSource {
 	}
 	
 
-	public boolean populate(final JDialog dialog) {
+	public boolean populate(final JDialog dialog, final String defaultprefs) {
 		dialog.setTitle(descr);
 		dialog.getContentPane().setLayout(null);
 		dialog.setSize(400, 150);
@@ -96,7 +96,7 @@ public class TSDRSource {
 	    dialog.getContentPane().add(description);
 	    description.setBounds(12, 12, 400-12, 24);
 	    
-	    final JTextField params = new JTextField(this.params);
+	    final JTextField params = new JTextField(defaultprefs);
 	    dialog.getContentPane().add(params);
 	    params.setBounds(12, 12+32, 400-12, 24);
 	    
@@ -107,7 +107,13 @@ public class TSDRSource {
 	    ok.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(ActionEvent arg0) {
-				setParams(params.getText());
+				new Thread() {
+					public void run() {
+						ok.setEnabled(false);
+						setParams(params.getText());
+						ok.setEnabled(true);
+					};
+				}.start();
 			}
 		});
 		return true;
@@ -117,9 +123,9 @@ public class TSDRSource {
 		this.callback = callback;
 	}
 	
-	public JDialog invokeGUIDialog(final Frame frame) {
+	public JDialog invokeGUIDialog(final Frame frame, final String defaultprefs) {
 		final JDialog dialog = new JDialog(frame, false);
-		if (!populate(dialog))
+		if (!populate(dialog, defaultprefs))
 			return null;
 		else
 			return dialog;

@@ -405,6 +405,8 @@ public class Main implements TSDRLibrary.FrameReadyCallback, TSDRSourceParamChan
 		fullscreenframe.setSize(xSize,ySize);
 		fullscreenframe.setUndecorated(true);
 		fullscreenframe.setLocation(0, 0);
+		
+		onPluginSelected();
 	}
 	
 	private int findClosestVideoModeId(final int width, final int height, final double framerate, final VideoMode[] modes) {
@@ -654,6 +656,8 @@ public class Main implements TSDRLibrary.FrameReadyCallback, TSDRSourceParamChan
 	}
 	
 	private void onPluginSelected() {
+		if (plugindialog != null) plugindialog.setVisible(false);
+		
 		final int id = cbDevice.getSelectedIndex();
 		prefs.putInt(PREF_SOURCE_ID, id);
 		current_plugin_name = souces[id].descr;
@@ -661,9 +665,8 @@ public class Main implements TSDRLibrary.FrameReadyCallback, TSDRSourceParamChan
 		final String preferences = prefs.get(PREF_COMMAND_PREFIX+current_plugin_name, "");
 		final TSDRSource current = (TSDRSource) cbDevice.getSelectedItem();
 		current.setOnParameterChangedCallback(this);
-		current.setParams(preferences);
 		
-		plugindialog = ((TSDRSource) cbDevice.getSelectedItem()).invokeGUIDialog(frmTempestSdr);
+		plugindialog = ((TSDRSource) cbDevice.getSelectedItem()).invokeGUIDialog(frmTempestSdr, preferences);
 		if (plugindialog != null) plugindialog.setVisible(true);
 	}
 
@@ -710,6 +713,7 @@ public class Main implements TSDRLibrary.FrameReadyCallback, TSDRSourceParamChan
 			
 			mSdrlib.loadPlugin(source);
 		} catch (Throwable t) {
+			btnStartStop.setEnabled(false);
 			displayException(frmTempestSdr, t);
 			return;
 		}

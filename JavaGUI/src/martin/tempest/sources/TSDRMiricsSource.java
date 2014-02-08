@@ -8,7 +8,8 @@ public class TSDRMiricsSource extends TSDRSource {
 		super("Mirics dongle", "TSDRPlugin_Mirics", "", false);
 	}
 	
-	public boolean populate(final JDialog dialog) {
+	@Override
+	public boolean populate(JDialog dialog, String defaultprefs) {
 		return false;
 	}
 

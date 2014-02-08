@@ -221,10 +221,10 @@ public class TSDRLibrary {
 	
 	@Override
 	protected void finalize() throws Throwable {
-		unloaderhook.run();
 		try {
 		Runtime.getRuntime().removeShutdownHook(unloaderhook);
 		} catch (Throwable e) {};
+		unloaderhook.run();
 		super.finalize();
 	}
 	

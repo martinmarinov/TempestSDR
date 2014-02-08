@@ -49,6 +49,18 @@ LONG WINAPI exceptionhandler(struct _EXCEPTION_POINTERS *ExceptionInfo) {
 	return EXCEPTION_CONTINUE_EXECUTION;
 }
 
+void safecloseHw() {
+	PVOID h = AddVectoredExceptionHandler(0, exceptionhandler);
+
+	errid = 0;
+	int statjump = setjmp(exceptionenv);
+	if (statjump)
+		source->CloseHW();
+	hwopen = 0;
+
+	RemoveVectoredExceptionHandler(h);
+}
+
 void closeextio(void) {
 
 	if (source == NULL) return;
@@ -56,17 +68,7 @@ void closeextio(void) {
 	printf("Before GUI hide\n"); fflush(stdout);
 	if (source->HideGUI != NULL) source->HideGUI();
 	printf("After GUI hide\n"); fflush(stdout);
-	if (hwopen) {
-		PVOID h = AddVectoredExceptionHandler(0, exceptionhandler);
-
-		errid = 0;
-		int statjump = setjmp(exceptionenv);
-		if (statjump)
-			source->CloseHW();
-		hwopen = 0;
-
-		RemoveVectoredExceptionHandler(h);
-	}
+	if (hwopen) safecloseHw();
 	extio_close(source);
 	free(source);
 	source = NULL;
@@ -171,7 +173,7 @@ DWORD WINAPI doGuiStuff(LPVOID arg) {
 
 			if (hwopen) {
 				hwopen = 0;
-				source->CloseHW();
+				safecloseHw();
 			}
 
 			if (hwtype != EXTIO_HWTYPE_16B && hwtype != EXTIO_HWTYPE_24B && hwtype != EXTIO_HWTYPE_32B && hwtype != EXTIO_HWTYPE_FLOAT) {
