@@ -1,12 +1,11 @@
 package martin.tempest.sources;
 
-import java.awt.Frame;
+import java.awt.Container;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.io.File;
 
 import javax.swing.JButton;
-import javax.swing.JDialog;
 import javax.swing.JLabel;
 import javax.swing.JTextField;
 
@@ -16,13 +15,13 @@ import martin.tempest.core.exceptions.TSDRLibraryNotCompatible;
 public class TSDRSource {
 	
 	private final static TSDRSource[] SOURCES = new TSDRSource[] {
-		new TSDRFileSource(""),
+		new TSDRFileSource(),
 		new TSDRMiricsSource(),
-		new TSDRExtIOSource(""),
+		new TSDRExtIOSource(),
 	};
 	
 	public final String libname;
-	private String params;
+	private String params = "";
 	public final boolean absolute;
 	public final String descr;
 	private TSDRSourceParamChangedListener callback = null;
@@ -31,10 +30,9 @@ public class TSDRSource {
 		return SOURCES;
 	}
 	
-	TSDRSource(final String desc, final String libname, final String params, final boolean absolute) {
+	TSDRSource(final String desc, final String libname, final boolean absolute) {
 		this.descr = desc;
 		this.libname = libname;
-		this.params = params;
 		this.absolute = absolute;
 	}
 	
@@ -47,15 +45,16 @@ public class TSDRSource {
 		return params;
 	}
 	
-	public static TSDRSource fromPlugin(final String desc, final File full_path_to_library, final String params) {
-		return new TSDRSource(desc, full_path_to_library.getAbsolutePath(), params, true);
-	}
-	
 	@Override
 	public String toString() {
 		return descr;
 	}
 	
+	/**
+	 * The functions tries to find the absolute path to the native library that implements this source.
+	 * It will also look into paths that are supplied with java.library.path
+	 * @return a full path to the library or just {@link #libname}
+	 */
 	public String getAbsolutePathToLibrary() {
 
 		if (absolute) return libname;
@@ -84,24 +83,34 @@ public class TSDRSource {
 		return libname;
 	}
 	
-
-	public boolean populate(final JDialog dialog, final String defaultprefs) {
-		dialog.setTitle(descr);
-		dialog.getContentPane().setLayout(null);
-		dialog.setSize(400, 150);
-		dialog.setVisible(false);
-		dialog.setResizable(false);
-		
+	/**
+	 * Register a callback that will get notified as soon as the parameters are changed. The caller
+	 * may want to reload the plugin in the {@link TSDRLibrary} so that the changes would take place.
+	 * @param callback
+	 */
+	public void setOnParameterChangedCallback(final TSDRSourceParamChangedListener callback) {
+		this.callback = callback;
+	}
+	
+	/**
+	 * This should be called when the plugin is to be loaded. It will set the plugin parameters correctly according to user's desire so that once the parameters are set, 
+	 * it can be loaded to {@link TSDRLibrary}
+	 * @param cont the container that will receive the components
+	 * @param defaultprefs the default parameters stored for this plugin. The plugin can use them to build the GUI.
+	 * @return true if GUI was populated so that the user can input parameters manually
+	 * 			false if the plugin does not require manual adjustements or the default preferences are ok, the caller than needs to call {@link #setParams(String)}
+	 */
+	public boolean populateGUI(final Container cont, final String defaultprefs) {
 	    final JLabel description = new JLabel("Type in the parameters:");
-	    dialog.getContentPane().add(description);
+	    cont.add(description);
 	    description.setBounds(12, 12, 400-12, 24);
 	    
 	    final JTextField params = new JTextField(defaultprefs);
-	    dialog.getContentPane().add(params);
+	    cont.add(params);
 	    params.setBounds(12, 12+32, 400-12, 24);
 	    
 	    final JButton ok = new JButton("OK");
-	    dialog.getContentPane().add(ok);
+	    cont.add(ok);
 	    ok.setBounds(12, 12+2*32, 84, 24);
 	    
 	    ok.addActionListener(new ActionListener() {
@@ -119,19 +128,20 @@ public class TSDRSource {
 		return true;
 	}
 	
-	public void setOnParameterChangedCallback(final TSDRSourceParamChangedListener callback) {
-		this.callback = callback;
-	}
-	
-	public JDialog invokeGUIDialog(final Frame frame, final String defaultprefs) {
-		final JDialog dialog = new JDialog(frame, false);
-		if (!populate(dialog, defaultprefs))
-			return null;
-		else
-			return dialog;
-	}
-	
+	/**
+	 * Interface that allows for events to be generated when a new parameter is applied to the plugin.
+	 * The plugin will need to be reloaded so that they take place.
+	 * 
+	 * @author Martin
+	 *
+	 */
 	public static interface TSDRSourceParamChangedListener {
+		
+		/**
+		 * Everytime a source changes its parameters, this function will be called.
+		 * A good suggestion would be to call {@link TSDRLibrary#loadPlugin}
+		 * @param source the {@link TSDRSource} that was changed
+		 */
 		void onParametersChanged(final TSDRSource source);
 	}
 }
