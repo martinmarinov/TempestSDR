@@ -29,7 +29,17 @@ for i in "${!CCs[@]}"; do
 	ARCHNAME=${ARCHNAMEs[$i]}
 	JAVA_HOME=${JAVA_HOMEs[$i]}
 	make jnilib CC=$CC AR=$AR OSNAME=$OSNAME ARCHNAME=$ARCHNAME JAVA_HOME=$JAVA_HOME MIRICS_HOME=$MIRICS_HOME
+
+	#do release of dlls
+	mkdir -p Release/dlls/$OSNAME/$ARCHNAME/
+	cp -f lib/$OSNAME/$ARCHNAME/* Release/dlls/$OSNAME/$ARCHNAME/
+	cp -f ../TempestSDR/bin/$OSNAME/$ARCHNAME/* Release/dlls/$OSNAME/$ARCHNAME/
+
 	make cleandependent CC=$CC OSNAME=$OSNAME ARCHNAME=$ARCHNAME JAVA_HOME=$JAVA_HOME
 done
 
 make jar
+
+mkdir -p Release/JavaGUI/
+cp -f JTempestSDR.jar Release/JavaGUI/
+
