@@ -36,28 +36,51 @@ public class TSDRLibrary {
 	private final List<FrameReadyCallback> callbacks = new ArrayList<FrameReadyCallback>();
 	
 	/**
-	 * Extracts a library to a temporary path and prays for the OS to delete it after the app closes.
+	 * Returns a OS specific library filename. If you supply "abc" on Windows, this function
+	 * will return abc.dll. On Linux this will return libabc.so, etc.
 	 * @param name
+	 * @throws TSDRLibraryNotCompatible if current OS not supported
 	 * @return
-	 * @throws IOException
 	 */
-	public static final File extractLibrary(final String name) throws TSDRLibraryNotCompatible {
+	public static final String getNativeLibraryFullName(final String name) throws TSDRLibraryNotCompatible {
 		final String rawOSNAME = System.getProperty("os.name").toLowerCase();
-		final String rawARCHNAME = System.getProperty("os.arch").toLowerCase();
+		String EXT = null, LIBPREFIX = "";
 
-		String OSNAME = null, EXT = null, ARCHNAME = null, LIBPREFIX = "";
-
-		if (rawOSNAME.contains("win")) {
-			OSNAME = "WINDOWS";
+		if (rawOSNAME.contains("win"))
 			EXT = ".dll";
-		} else if (rawOSNAME.contains("nix") || rawOSNAME.contains("nux") || rawOSNAME.contains("aix")) {
-			OSNAME = "LINUX";
+		else if (rawOSNAME.contains("nix") || rawOSNAME.contains("nux") || rawOSNAME.contains("aix")) {
 			EXT = ".so";
 			LIBPREFIX = "lib";
 		} else if (rawOSNAME.contains("mac")) {
-			OSNAME = "MAC";
 			EXT = ".a";
 		}
+
+		if (EXT == null)
+			throw new TSDRLibraryNotCompatible("Your OS or CPU is not yet supported, sorry.");
+		
+		return LIBPREFIX+name+EXT;
+	}
+	
+	/**
+	 * Extracts a library to a temporary path and prays for the OS to delete it after the app closes.
+	 * @param name
+	 * @return
+	 * @throws TSDRLibraryNotCompatible
+	 */
+	public static final File extractLibrary(final String name) throws TSDRLibraryNotCompatible {
+
+
+		final String rawOSNAME = System.getProperty("os.name").toLowerCase();
+		final String rawARCHNAME = System.getProperty("os.arch").toLowerCase();
+		String OSNAME = null, ARCHNAME = null;
+		final String dllfullfilename = getNativeLibraryFullName(name);
+
+		if (rawOSNAME.contains("win"))
+			OSNAME = "WINDOWS";
+		else if (rawOSNAME.contains("nix") || rawOSNAME.contains("nux") || rawOSNAME.contains("aix"))
+			OSNAME = "LINUX";
+		else if (rawOSNAME.contains("mac"))
+			OSNAME = "MAC";
 
 		if (rawARCHNAME.contains("arm"))
 			ARCHNAME = "ARM";
@@ -65,11 +88,11 @@ public class TSDRLibrary {
 			ARCHNAME = "X64";
 		else
 			ARCHNAME = "X86";
-
-		if (OSNAME == null || EXT == null || ARCHNAME == null)
+		
+		if (OSNAME == null || ARCHNAME == null)
 			throw new TSDRLibraryNotCompatible("Your OS or CPU is not yet supported, sorry.");
 
-		final String relative_path = "lib/"+OSNAME+"/"+ARCHNAME+"/"+LIBPREFIX+name+EXT;
+		final String relative_path = "lib/"+OSNAME+"/"+ARCHNAME+"/"+dllfullfilename;
 
 		InputStream in = TSDRLibrary.class.getClassLoader().getResourceAsStream(relative_path);
 
@@ -85,7 +108,7 @@ public class TSDRLibrary {
 			byte[] buffer = new byte[in.available()];
 
 			int read = -1;
-			temp = new File(System.getProperty("java.io.tmpdir"), LIBPREFIX+name+EXT);
+			temp = new File(System.getProperty("java.io.tmpdir"), dllfullfilename);
 			temp.deleteOnExit();
 			final FileOutputStream fos = new FileOutputStream(temp);
 
@@ -113,7 +136,6 @@ public class TSDRLibrary {
 		try {
 			// try traditional method
 			System.loadLibrary(name); 
-			System.out.println(name+" loaded from library");
 		} catch (Throwable t) {
 				final File library = extractLibrary(name);
 				System.load(library.getAbsolutePath());

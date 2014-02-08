@@ -1,9 +1,6 @@
 package martin.tempest.sources;
 
-import java.awt.Component;
-import java.awt.Dialog;
 import java.awt.Frame;
-import java.awt.Window;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.io.File;
@@ -59,8 +56,32 @@ public class TSDRSource {
 		return descr;
 	}
 	
-	public String getAbsolutePathToLibrary() throws TSDRLibraryNotCompatible {
-		return absolute ? libname : (TSDRLibrary.extractLibrary(libname).getAbsolutePath());
+	public String getAbsolutePathToLibrary() {
+
+		if (absolute) return libname;
+
+		try {
+			return TSDRLibrary.extractLibrary(libname).getAbsolutePath();
+		} catch (TSDRLibraryNotCompatible e) {
+			String fullname;
+			try {
+				fullname = TSDRLibrary.getNativeLibraryFullName(libname);
+
+
+				// if the library is not in the jar, try looking for it somewhere else
+				final File direct = new File(fullname);
+				if (direct.exists()) return direct.getAbsolutePath();
+
+				final String[] paths = System.getProperty("java.library.path").split(File.pathSeparator);
+				for (final String path : paths) {
+					final File temp = new File(path+File.separator+fullname);
+					if (temp.exists()) return temp.getAbsolutePath();
+				}
+
+			} catch (TSDRLibraryNotCompatible e1) {}
+		}
+
+		return libname;
 	}
 	
 

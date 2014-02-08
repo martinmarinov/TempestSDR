@@ -21,7 +21,6 @@ import martin.tempest.core.TSDRLibrary;
 import martin.tempest.core.TSDRLibrary.SYNC_DIRECTION;
 import martin.tempest.core.exceptions.TSDRException;
 import martin.tempest.core.exceptions.TSDRLoadPluginException;
-import martin.tempest.core.exceptions.TSDRPluginParametersException;
 import martin.tempest.gui.HoldButton.HoldListener;
 import martin.tempest.sources.TSDRSource;
 import martin.tempest.sources.TSDRSource.TSDRSourceParamChangedListener;
