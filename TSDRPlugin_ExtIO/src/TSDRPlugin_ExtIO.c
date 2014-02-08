@@ -2,6 +2,8 @@
 #include <string.h>
 #include <stdlib.h>
 
+#include <setjmp.h>
+
 #include "TSDRCodes.h"
 #include "ExtIOPluginLoader.h"
 #include <windows.h>
@@ -30,12 +32,41 @@ uint32_t act_freq = -1;
 float req_gain = 0.5;
 float act_gain = -1;
 
+int hwopen = 0;
+
 HANDLE guisyncevent;
+jmp_buf exceptionenv;
+int errid = 0;
+// This is a hack for handling WindowsAPI exceptions, when an exception is caught, the PC is
+// transported back to where the setjump originally was and the call that causes  the exception
+// is not invoked again.
+LONG WINAPI exceptionhandler(struct _EXCEPTION_POINTERS *ExceptionInfo) {
+	UNREFERENCED_PARAMETER(ExceptionInfo);
+
+	errid++;
+	if (errid == 1) longjmp(exceptionenv, errid);
+
+	return EXCEPTION_CONTINUE_EXECUTION;
+}
 
 void closeextio(void) {
+
 	if (source == NULL) return;
+
+	printf("Before GUI hide\n"); fflush(stdout);
 	if (source->HideGUI != NULL) source->HideGUI();
-	source->CloseHW();
+	printf("After GUI hide\n"); fflush(stdout);
+	if (hwopen) {
+		PVOID h = AddVectoredExceptionHandler(0, exceptionhandler);
+
+		errid = 0;
+		int statjump = setjmp(exceptionenv);
+		if (statjump)
+			source->CloseHW();
+		hwopen = 0;
+
+		RemoveVectoredExceptionHandler(h);
+	}
 	extio_close(source);
 	free(source);
 	source = NULL;
@@ -138,10 +169,16 @@ DWORD WINAPI doGuiStuff(LPVOID arg) {
 		if (source->InitHW(name, model, &hwtype)) {
 			source->SetCallback(&callback);
 
+			if (hwopen) {
+				hwopen = 0;
+				source->CloseHW();
+			}
+
 			if (hwtype != EXTIO_HWTYPE_16B && hwtype != EXTIO_HWTYPE_24B && hwtype != EXTIO_HWTYPE_32B && hwtype != EXTIO_HWTYPE_FLOAT) {
 				closeextio();
 				announceexception("The sample format of the ExtIO plugin is not supported.", TSDR_CANNOT_OPEN_DEVICE);
 			} else if (source->OpenHW()) {
+				hwopen = 1;
 
 				if (source->ShowGUI != NULL) source->ShowGUI();
 
@@ -153,8 +190,7 @@ DWORD WINAPI doGuiStuff(LPVOID arg) {
 				}
 
 				errormsg_code = TSDR_OK;
-			}
-			else {
+			} else {
 				closeextio();
 				announceexception("The ExtIO driver failed to open a device. Make sure your device is plugged in and its drivers are installed correctly.", TSDR_CANNOT_OPEN_DEVICE);
 			}
@@ -275,15 +311,12 @@ int __stdcall tsdrplugin_readasync(tsdrplugin_readasync_function cb, void *ctx) 
 }
 
 void __stdcall tsdrplugin_cleanup(void) {
-
 	if (outbuf != NULL) {
 		free(outbuf);
 		outbuf = NULL;
 	}
 
 	if (source == NULL) return;
-
-	if (source->HideGUI != NULL) source->HideGUI();
 
 	closeextio();
 }

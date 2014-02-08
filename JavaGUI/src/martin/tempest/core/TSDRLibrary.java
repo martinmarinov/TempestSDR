@@ -208,11 +208,25 @@ public class TSDRLibrary {
 		@Override
 		public void run() {
 			try {
+				TSDRLibrary.this.unloadPlugin();
+			} catch (Throwable e) {}
+			try {
 				TSDRLibrary.this.stop();
+			} catch (Throwable e) {}
+			try {
 				TSDRLibrary.this.free();
 			} catch (Throwable e) {}
 		}
 	};
+	
+	@Override
+	protected void finalize() throws Throwable {
+		unloaderhook.run();
+		try {
+		Runtime.getRuntime().removeShutdownHook(unloaderhook);
+		} catch (Throwable e) {};
+		super.finalize();
+	}
 	
 	public boolean registerFrameReadyCallback(final FrameReadyCallback callback) {
 		if (callbacks.contains(callback))
