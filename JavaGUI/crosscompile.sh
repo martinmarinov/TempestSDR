@@ -23,12 +23,14 @@ make clean
 make java
 
 for i in "${!CCs[@]}"; do 
+	CXX=${CCs[$i]}g++ 
+	GPP=${CCs[$i]}g++ 
 	CC=${CCs[$i]}gcc
 	AR=${CCs[$i]}ar
 	OSNAME=${OSNAMEs[$i]}
 	ARCHNAME=${ARCHNAMEs[$i]}
 	JAVA_HOME=${JAVA_HOMEs[$i]}
-	make jnilib CC=$CC AR=$AR OSNAME=$OSNAME ARCHNAME=$ARCHNAME JAVA_HOME=$JAVA_HOME MIRICS_HOME=$MIRICS_HOME
+	make jnilib CC=$CC CXX=$CXX GPP=$GPP AR=$AR OSNAME=$OSNAME ARCHNAME=$ARCHNAME JAVA_HOME=$JAVA_HOME MIRICS_HOME=$MIRICS_HOME
 
 	#do release of dlls
 	mkdir -p Release/dlls/$OSNAME/$ARCHNAME/

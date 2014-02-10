@@ -6,10 +6,10 @@ package martin.tempest.sources;
  * @author Martin Marinov
  *
  */
-public class TSDRFileSource extends TSDRSource {
+public class TSDRUHDSource extends TSDRSource {
 
-	public TSDRFileSource() {
-		super("From file", "TSDRPlugin_RawFile", false);
+	public TSDRUHDSource() {
+		super("USRP (via UHD)", "TSDRPlugin_UHD", false);
 	}
 
 }

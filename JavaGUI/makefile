@@ -62,7 +62,7 @@ endif
 # in the parent directory with the exact same name as the plugin names. The library files
 # produced need to have the name of the plugin folder and need to be in the bin directory.
 # The default plugin file will make sure this is compatible.
-PLUGINS=TSDRPlugin_RawFile
+PLUGINS=TSDRPlugin_RawFile TSDRPlugin_UHD
 
 ifeq ($(OSNAME),WINDOWS)
 # Windows only plugins
