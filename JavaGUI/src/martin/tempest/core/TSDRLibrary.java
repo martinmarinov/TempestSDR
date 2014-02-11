@@ -119,8 +119,17 @@ public class TSDRLibrary {
 
 			int read = -1;
 			temp = new File(System.getProperty("java.io.tmpdir"), dllfullfilename);
-			if (temp.exists())
+			final String fullpath = temp.getAbsolutePath();
+			
+			// if the file exists and we have opened it before, don't overwrite it! DANGEROUS!
+			if (temp.exists() && files_to_delete_on_shutdown.contains(fullpath))
 				return temp;
+			else if (temp.exists()) {
+				// if file exists but we have never opened it, delete it - it is probably an old version
+				try {
+					temp.delete();
+				} catch (Throwable e) {}
+			}
 			
 			temp.deleteOnExit();
 			final FileOutputStream fos = new FileOutputStream(temp);
@@ -134,7 +143,7 @@ public class TSDRLibrary {
 			if (!temp.exists())
 				throw new TSDRLibraryNotCompatible("Cannot extract library files to temporary directory.");
 			
-			final String fullpath = temp.getAbsolutePath();
+			
 			if (!files_to_delete_on_shutdown.contains(fullpath)) files_to_delete_on_shutdown.add(fullpath);
 		} catch (IOException e) {
 			throw new TSDRLibraryNotCompatible(e);

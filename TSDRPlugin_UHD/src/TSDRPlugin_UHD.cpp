@@ -31,45 +31,52 @@ EXTERNC void __stdcall tsdrplugin_getName(char * name) {
 
 EXTERNC int __stdcall tsdrplugin_init(const char * params) {
 	uhd::set_thread_priority_safe();
-	std::string str1(params);
+
+	// simulate argv and argc
+	std::string sparams(params);
 
 	typedef std::vector< std::string > split_vector_type;
 
 	split_vector_type argscounter;
-	boost::split( argscounter, str1, boost::is_any_of(" "), boost::token_compress_on );
+	boost::split( argscounter, sparams, boost::is_any_of(" "), boost::token_compress_on );
 
-	int argc = argscounter.size();
-	char * argv[11];
-	for (int i = 0; i < argc; i++) argv[i] = (char *) argscounter[i].c_str();
+	int argc = argscounter.size()+1;
+	char * argv[argc];
+	char zerothtarg[] = "TSDRPlugin_UHD";
+	argv[0] = zerothtarg;
+	for (int i = 0; i < argc-1; i++)
+		argv[i+1] = (char *) argscounter[i].c_str();
 
 	//variables to be set by po
 	std::string args, file, ant, subdev, ref;
-	size_t total_num_samps;
 	double rate, freq, gain, bw;
-	std::string addr, port;
 
 	//setup the program options
 	po::options_description desc("Allowed options");
 	desc.add_options()
 			("args", po::value<std::string>(&args)->default_value(""), "multi uhd device address args")
-			("nsamps", po::value<size_t>(&total_num_samps)->default_value(1000), "total number of samples to receive")
 			("rate", po::value<double>(&rate)->default_value(100e6/16), "rate of incoming samples")
 			("freq", po::value<double>(&freq)->default_value(0), "rf center frequency in Hz")
 			("gain", po::value<double>(&gain)->default_value(0), "gain for the RF chain")
 			("ant", po::value<std::string>(&ant), "daughterboard antenna selection")
 			("subdev", po::value<std::string>(&subdev), "daughterboard subdevice specification")
 			("bw", po::value<double>(&bw), "daughterboard IF filter bandwidth in Hz")
-			("port", po::value<std::string>(&port)->default_value("7124"), "server udp port")
-			("addr", po::value<std::string>(&addr)->default_value("192.168.1.10"), "resolvable server address")
 			("ref", po::value<std::string>(&ref)->default_value("internal"), "waveform type (internal, external, mimo)") ;
 
-	po::variables_map vm;
-	po::store(po::parse_command_line(argc, argv, desc), vm);
-	po::notify(vm);
+	try {
+		po::variables_map vm;
+		po::store(po::parse_command_line(argc, argv, desc), vm);
+		po::notify(vm);
+	} catch (std::exception const&  ex)
+	{
+		std::string msg(boost::str(boost::format("Error: %s\n\nTSDRPlugin_UHD %s") % ex.what() % desc));
+		RETURN_EXCEPTION(msg.c_str(), TSDR_PLUGIN_PARAMETERS_WRONG);
+	}
 
 	//if (args.size() != ARG_COUNT) RETURN_EXCEPTION("Unexpected number of arguments!", TSDR_PLUGIN_PARAMETERS_WRONG);
 
 	printf("Freq = %.4f\n", freq);
+	printf("Rate = %.4f\n", rate);
 	//usrp = uhd::usrp::multi_usrp::make(args[ARG_ID_ADDRESS]);
 
 	RETURN_OK();

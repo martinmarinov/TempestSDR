@@ -30,8 +30,7 @@ static inline void announceexception(const char * message, int status) {
 	}
 
 
-	memcpy(errormsg, message, length);
-	errormsg[length-1] =  0;
+	strcpy(errormsg, message);
 }
 
 
