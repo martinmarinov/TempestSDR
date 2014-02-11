@@ -4,6 +4,7 @@
 
 #include <stdlib.h>
 #include <stdio.h>
+#include <string.h>
 
 // A platform independent dynamic library loader
 
@@ -23,7 +24,9 @@ int tsdrplug_load(pluginsource_t * plugin, const char *dlname)
     #if WINHEAD // Microsoft compiler
         plugin->fd = (void*)LoadLibrary(dlname);
     #else
-        plugin->fd = dlopen(dlname,2);
+        plugin->fd = dlopen(dlname,RTLD_NOW);
+        if (plugin->fd == NULL)
+        	fprintf(stderr,"Library load exception: %s\n",dlerror());
     #endif
 
     if (plugin->fd == NULL)
@@ -42,17 +45,21 @@ int tsdrplug_load(pluginsource_t * plugin, const char *dlname)
     // this needs to be always last!
     if ((plugin->tsdrplugin_cleanup = tsdrplug_getfunction(plugin, "tsdrplugin_cleanup")) == 0) return TSDR_ERR_PLUGIN;
 
+    plugin->initialized = 1;
     return TSDR_OK;
 }
 
 
 void tsdrplug_close(pluginsource_t * plugin)
 {
+	if (!plugin->initialized) return;
 	if (plugin->fd == NULL) return;
 	if (plugin->tsdrplugin_cleanup != NULL) plugin->tsdrplugin_cleanup(); // cleanup before closing
+	plugin->initialized = 0;
 #if WINHEAD
     FreeLibrary((HINSTANCE)plugin->fd);
 #else
     dlclose(plugin->fd);
 #endif
+
 }

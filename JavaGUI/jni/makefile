@@ -10,7 +10,11 @@ OBJS = TSDRLibraryNDK.o
 DEPS = TSDRLibraryNDK.h include/TSDRLibrary.h include/TSDRCodes.h
 
 # Flags
-CFLAGS+=-O3
+ifeq ($(BUILD_TYPE),Debug)
+	DEBUGFLAGS+=-g -O0
+else
+	CFLAGS+=-O3
+endif
 
 # Headers
 INC = "$(JAVA_HOME)/include" "$(JAVA_HOME)/include/win32"
@@ -94,7 +98,7 @@ all : rebuildtempestsdr library
 	
 # Linking
 library : $(_OBJS)
-	$(CC) -Wall -shared $(LDFLAGS) $(COMPILATION_TYPE) -o $(OUTPUTFOLDER)/$(LIBPREFIX)TSDRLibraryNDK$(EXT) $< ../../TempestSDR/bin/$(OSNAME)/$(ARCHNAME)/$(LIBPREFIX)TSDRLibrary.a
+	$(CC) -Wall -shared $(LDFLAGS) $(DEBUGFLAGS) $(COMPILATION_TYPE) -o $(OUTPUTFOLDER)/$(LIBPREFIX)TSDRLibraryNDK$(EXT) $< ../../TempestSDR/bin/$(OSNAME)/$(ARCHNAME)/$(LIBPREFIX)TSDRLibrary.a
 
 # Rebuild the main library so that we have the most up-to-date version
 # The main library is assumed to be two levels below this jni folder
@@ -108,7 +112,7 @@ rebuildtempestsdr :
 
 # Compile the sources to obj files
 $(OBJFOLDER)/%.o : %.c $(DEPS)
-	$(CC) -Wall $(foreach d, $(INC), -I$d) $(CFLAGS) $(COMPILATION_TYPE) -c $< -o $@
+	$(CC) -Wall $(foreach d, $(INC), -I$d) $(CFLAGS) $(DEBUGFLAGS) $(COMPILATION_TYPE) -c $< -o $@
 
 # Generate the java header based on the class
 TSDRLibraryNDK.h : ../bin/martin/tempest/core/TSDRLibrary.class 

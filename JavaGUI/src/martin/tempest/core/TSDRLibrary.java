@@ -26,6 +26,7 @@ import martin.tempest.sources.TSDRSource;
  *
  */
 public class TSDRLibrary {
+	private final static ArrayList<String> files_to_delete_on_shutdown = new ArrayList<String>();
 	
 	/** The image that will be have its pixels written by the NDK */
 	private BufferedImage bimage;
@@ -118,6 +119,9 @@ public class TSDRLibrary {
 
 			int read = -1;
 			temp = new File(System.getProperty("java.io.tmpdir"), dllfullfilename);
+			if (temp.exists())
+				return temp;
+			
 			temp.deleteOnExit();
 			final FileOutputStream fos = new FileOutputStream(temp);
 
@@ -129,6 +133,9 @@ public class TSDRLibrary {
 			
 			if (!temp.exists())
 				throw new TSDRLibraryNotCompatible("Cannot extract library files to temporary directory.");
+			
+			final String fullpath = temp.getAbsolutePath();
+			if (!files_to_delete_on_shutdown.contains(fullpath)) files_to_delete_on_shutdown.add(fullpath);
 		} catch (IOException e) {
 			throw new TSDRLibraryNotCompatible(e);
 		}
@@ -292,6 +299,14 @@ public class TSDRLibrary {
 			try {
 				TSDRLibrary.this.free();
 			} catch (Throwable e) {}
+			
+			// delete all extracted libraries
+			for (final String filename : files_to_delete_on_shutdown) {
+				try {
+					final File file = new File(filename);
+					file.delete();
+				} catch (Throwable e) {}
+			}
 		}
 	};
 	

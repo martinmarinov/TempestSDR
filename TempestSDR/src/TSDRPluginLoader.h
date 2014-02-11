@@ -25,6 +25,7 @@
 		int (__stdcall *tsdrplugin_readasync)(tsdrplugin_readasync_function, void *);
 		char * (__stdcall *tsdrplugin_getlasterrortext) (void);
 		void * (__stdcall *tsdrplugin_cleanup) (void);
+		volatile int initialized;
 
 	} typedef pluginsource_t;
 

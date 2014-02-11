@@ -4,11 +4,14 @@ PLUGNAME=TSDRPlugin_UHD
 
 # Dependencies
 OBJS=$(PLUGNAME).o
-DEPS=TSDRPlugin.h errors.h TSDRCodes.h
+LIBRARIES=-luhd -lboost_thread -lboost_program_options
 
 # Flags
-CXXFLAGS+=-O3
-LDFLAGS+=
+ifeq ($(BUILD_TYPE),Debug)
+	DEBUGFLAGS+=-g -O0
+else
+	CFLAGS+=-O3
+endif
 
 # END OF CONFIGURATION IF STANDARD DIR STRUCTURE IS USED
 
@@ -101,13 +104,13 @@ copyoverheaderfile:
 
 # Link
 $(OUTPUTFOLDER)/$(LIBPREFIX)$(PLUGNAME)$(EXT): copyoverheaderfile $(_OBJS)
-	$(GPP) -Wall -shared $(LDFLAGS) $(COMPILATION_TYPE) -o $@ $(_OBJS)
+	$(GPP) -Wall -shared $(LDFLAGS) $(DEBUGFLAGS) $(COMPILATION_TYPE) -o $@ $(_OBJS) $(LIBRARIES) 
 
 # Make dirs and compile
-$(OBJFOLDER)/%.o : $(SOURCEFOLDER)/%.cpp $(_DEPS)
+$(OBJFOLDER)/%.o : $(SOURCEFOLDER)/%.cpp
 	mkdir -p $(OUTPUTFOLDER)
 	mkdir -p $(OBJFOLDER)
-	$(GPP) -Wall $(foreach d, $(INC), -I$d) $(CXXFLAGS) $(COMPILATION_TYPE) -c $< -o $@
+	$(GPP) -Wall $(foreach d, $(INC), -I$d) $(CXXFLAGS) $(DEBUGFLAGS) $(COMPILATION_TYPE) -c $< -o $@
 
 .PHONY: clean
 

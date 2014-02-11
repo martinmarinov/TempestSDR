@@ -35,10 +35,32 @@ struct tsdr_context {
 		unsigned int todrop;
 	} typedef tsdr_context_t;
 
+	struct tsdr_lib {
+		pluginsource_t plugin;
+		mutex_t mutex_sync_unload;
+		mutex_t mutex_video_stopped;
+		uint32_t samplerate;
+		double sampletime;
+		int width;
+		int height;
+		double pixelrate;
+		double pixeltime;
+		double pixeltimeoversampletime;
+		volatile int running;
+		volatile int nativerunning;
+		uint32_t centfreq;
+		float gain;
+		float motionblur;
+		volatile int syncoffset;
+		char * errormsg;
+		int errormsg_size;
+		int errormsg_code;
+	};
+
 
 #define RETURN_EXCEPTION(tsdr, message, status) {announceexception(tsdr, message, status); return status;}
 #define RETURN_OK(tsdr) {tsdr->errormsg_code = TSDR_OK; return TSDR_OK;}
-#define RETURN_PLUGIN_RESULT(tsdr,plugin,result) {if (result == TSDR_OK) RETURN_OK(tsdr) else RETURN_EXCEPTION(tsdr,plugin->tsdrplugin_getlasterrortext(),result);}
+#define RETURN_PLUGIN_RESULT(tsdr,plugin,result) {if ((result) == TSDR_OK) RETURN_OK(tsdr) else RETURN_EXCEPTION(tsdr,plugin.tsdrplugin_getlasterrortext(),result);}
 
 static inline void announceexception(tsdr_lib_t * tsdr, const char * message, int status) {
 	tsdr->errormsg_code = status;
@@ -65,13 +87,21 @@ static inline void announceexception(tsdr_lib_t * tsdr, const char * message, in
 		return tsdr->errormsg;
 }
 
- void tsdr_init(tsdr_lib_t * tsdr) {
-	tsdr->nativerunning = 0;
-	tsdr->plugin = NULL;
-	tsdr->centfreq = 0;
-	tsdr->syncoffset = 0;
-	tsdr->errormsg_size = 0;
-	tsdr->errormsg_code = TSDR_OK;
+ void tsdr_init(tsdr_lib_t ** tsdr) {
+	*tsdr = (tsdr_lib_t *) malloc(sizeof(tsdr_lib_t));
+
+	(*tsdr)->nativerunning = 0;
+	(*tsdr)->running = 0;
+	(*tsdr)->plugin.initialized = 0;
+	(*tsdr)->plugin.tsdrplugin_cleanup = NULL;
+	(*tsdr)->centfreq = 0;
+	(*tsdr)->syncoffset = 0;
+	(*tsdr)->errormsg_size = 0;
+	(*tsdr)->errormsg_code = TSDR_OK;
+
+	mutex_init(&(*tsdr)->mutex_sync_unload);
+	mutex_init(&(*tsdr)->mutex_video_stopped);
+
 }
 
  int tsdr_isrunning(tsdr_lib_t * tsdr) {
@@ -79,10 +109,9 @@ static inline void announceexception(tsdr_lib_t * tsdr, const char * message, in
 }
 
  int tsdr_setsamplerate(tsdr_lib_t * tsdr, uint32_t rate) {
-	if (tsdr->plugin == NULL) RETURN_EXCEPTION(tsdr, "Cannot change sample rate. Plugin not loaded yet.", TSDR_ERR_PLUGIN);
+	if (!tsdr->plugin.initialized) RETURN_EXCEPTION(tsdr, "Cannot change sample rate. Plugin not loaded yet.", TSDR_ERR_PLUGIN);
 
-	pluginsource_t * plugin = (pluginsource_t *)(tsdr->plugin);
-	tsdr->samplerate = plugin->tsdrplugin_setsamplerate(rate);
+	tsdr->samplerate = tsdr->plugin.tsdrplugin_setsamplerate(rate);
 	if (tsdr->samplerate == 0 || tsdr->samplerate > MAX_SAMP_RATE) RETURN_EXCEPTION(tsdr, "Invalid/unsupported value for sample rate.", TSDR_SAMPLE_RATE_WRONG);
 
 	tsdr->sampletime = 1.0f / (float) tsdr->samplerate;
@@ -93,10 +122,9 @@ static inline void announceexception(tsdr_lib_t * tsdr, const char * message, in
 }
 
  int tsdr_getsamplerate(tsdr_lib_t * tsdr) {
-	if (tsdr->plugin == NULL) RETURN_EXCEPTION(tsdr, "Cannot change sample rate. Plugin not loaded yet.", TSDR_ERR_PLUGIN);
+	if (!tsdr->plugin.initialized) RETURN_EXCEPTION(tsdr, "Cannot change sample rate. Plugin not loaded yet.", TSDR_ERR_PLUGIN);
 
-	pluginsource_t * plugin = (pluginsource_t *)(tsdr->plugin);
-	tsdr->samplerate = plugin->tsdrplugin_getsamplerate();
+	tsdr->samplerate = tsdr->plugin.tsdrplugin_getsamplerate();
 	if (tsdr->samplerate == 0 || tsdr->samplerate > 500e6) RETURN_EXCEPTION(tsdr, "Invalid/unsupported value for sample rate.", TSDR_SAMPLE_RATE_WRONG);
 
 	tsdr->sampletime = 1.0f / (float) tsdr->samplerate;
@@ -109,37 +137,29 @@ static inline void announceexception(tsdr_lib_t * tsdr, const char * message, in
  int tsdr_setbasefreq(tsdr_lib_t * tsdr, uint32_t freq) {
 	tsdr->centfreq = freq;
 
-	if (tsdr->plugin != NULL) {
-		pluginsource_t * plugin = (pluginsource_t *)(tsdr->plugin);
-		RETURN_PLUGIN_RESULT(tsdr, plugin, plugin->tsdrplugin_setbasefreq(tsdr->centfreq));
-	} else
+	if (tsdr->plugin.initialized)
+		RETURN_PLUGIN_RESULT(tsdr, tsdr->plugin, tsdr->plugin.tsdrplugin_setbasefreq(tsdr->centfreq))
+	else
 		RETURN_OK(tsdr);
 }
 
+
  int tsdr_stop(tsdr_lib_t * tsdr) {
 	if (!tsdr->running) RETURN_OK(tsdr);
+	int status = tsdr->plugin.tsdrplugin_stop();
 
-	pluginsource_t * plugin = (pluginsource_t *)(tsdr->plugin);
-
-	int status = plugin->tsdrplugin_stop();
-
-	mutex_wait((mutex_t *) tsdr->mutex_sync_unload);
-
-	mutex_t * msu_ref = (mutex_t *) tsdr->mutex_sync_unload;
-	tsdr->mutex_sync_unload = NULL;
-	mutex_free(msu_ref);
-	free(tsdr->mutex_sync_unload);
-	RETURN_PLUGIN_RESULT(tsdr, plugin, status);
+	mutex_waitforever(&tsdr->mutex_sync_unload);
+	RETURN_PLUGIN_RESULT(tsdr, tsdr->plugin, status);
 }
 
  int tsdr_setgain(tsdr_lib_t * tsdr, float gain) {
 
+
 	tsdr->gain = gain;
 
-	if (tsdr->plugin != NULL) {
-		pluginsource_t * plugin = (pluginsource_t *)(tsdr->plugin);
-		RETURN_PLUGIN_RESULT(tsdr, plugin, plugin->tsdrplugin_setgain(gain));
-	} else
+	if (tsdr->plugin.initialized)
+		RETURN_PLUGIN_RESULT(tsdr, tsdr->plugin, tsdr->plugin.tsdrplugin_setgain(gain))
+	else
 		RETURN_OK(tsdr);
 }
 
@@ -201,7 +221,7 @@ void videodecodingthread(void * ctx) {
 
 	free (buffer);
 
-	mutex_signal((mutex_t *) context->this->mutex_video_stopped);
+	mutex_signal(&context->this->mutex_video_stopped);
 }
 
 
@@ -350,15 +370,12 @@ void process(float *buf, uint32_t len, void *ctx, int dropped) {
 }
 
 void unloadplugin(tsdr_lib_t * tsdr) {
-	if (tsdr->plugin != NULL) {
-		tsdrplug_close((pluginsource_t *)(tsdr->plugin));
-		free(tsdr->plugin);
-		tsdr->plugin = NULL;
-	}
+	if (tsdr->plugin.initialized)
+		tsdrplug_close(&tsdr->plugin);
 }
 
 int tsdr_unloadplugin(tsdr_lib_t * tsdr) {
-	if (tsdr->plugin == NULL) RETURN_EXCEPTION(tsdr, "No plugin has been loaded so it can't be unloaded", TSDR_ERR_PLUGIN);
+	if (!tsdr->plugin.initialized) RETURN_EXCEPTION(tsdr, "No plugin has been loaded so it can't be unloaded", TSDR_ERR_PLUGIN);
 
 	if (tsdr->nativerunning || tsdr->running)
 			RETURN_EXCEPTION(tsdr, "The library is already running in async mode. Stop it first!", TSDR_ALREADY_RUNNING);
@@ -373,13 +390,10 @@ int tsdr_loadplugin(tsdr_lib_t * tsdr, const char * pluginfilepath, const char *
 
 	unloadplugin(tsdr);
 
-	tsdr->plugin = malloc(sizeof(pluginsource_t));
-	int status = tsdrplug_load((pluginsource_t *)(tsdr->plugin), pluginfilepath);
+	int status = tsdrplug_load(&tsdr->plugin, pluginfilepath);
 	if (status != TSDR_OK) {
 
 		if (status == TSDR_INCOMPATIBLE_PLUGIN) {
-			free(tsdr->plugin);
-			tsdr->plugin = NULL;
 			RETURN_EXCEPTION(tsdr, "The plugin cannot be loaded. It is incompatible or there are depending libraries missing. Please check the readme file that comes with the plugin.", status);
 		} else {
 			unloadplugin(tsdr);
@@ -387,9 +401,10 @@ int tsdr_loadplugin(tsdr_lib_t * tsdr, const char * pluginfilepath, const char *
 		}
 	}
 
-	pluginsource_t * plugin = (pluginsource_t *)(tsdr->plugin);
-	if ((status = plugin->tsdrplugin_init(params)) != TSDR_OK) {
-		announceexception(tsdr,plugin->tsdrplugin_getlasterrortext(),status);
+	char blah[200];
+	tsdr->plugin.tsdrplugin_getName(blah);
+	if ((status = tsdr->plugin.tsdrplugin_init(params)) != TSDR_OK) {
+		announceexception(tsdr,tsdr->plugin.tsdrplugin_getlasterrortext(),status);
 		unloadplugin(tsdr);
 		return status;
 	}
@@ -403,7 +418,7 @@ int tsdr_loadplugin(tsdr_lib_t * tsdr, const char * pluginfilepath, const char *
 	if (tsdr->nativerunning || tsdr->running)
 		RETURN_EXCEPTION(tsdr, "The library is already running in async mode. Stop it first!", TSDR_ALREADY_RUNNING);
 
-	if (tsdr->plugin == NULL)
+	if (!tsdr->plugin.initialized)
 		RETURN_EXCEPTION(tsdr, "Please load a working plugin first!", TSDR_ERR_PLUGIN);
 
 	tsdr->nativerunning = 1;
@@ -417,20 +432,12 @@ int tsdr_loadplugin(tsdr_lib_t * tsdr, const char * pluginfilepath, const char *
 	if (width <= 0 || height <= 0 || size > MAX_ARR_SIZE)
 		RETURN_EXCEPTION(tsdr, "The supplied height and the width are invalid!", TSDR_WRONG_VIDEOPARAMS);
 
-	pluginsource_t * plugin = (pluginsource_t *)(tsdr->plugin);
-
 	int status;
 	if ((status = tsdr_getsamplerate(tsdr)) != TSDR_OK) goto end;
 	if ((status = tsdr_setbasefreq(tsdr, tsdr->centfreq)) != TSDR_OK) goto end;
 	if ((status = tsdr_setgain(tsdr, tsdr->gain)) != TSDR_OK) goto end;
 
 	if (tsdr->pixeltimeoversampletime <= 0) goto end;
-
-	tsdr->mutex_sync_unload = malloc(sizeof(mutex_t));
-	mutex_init((mutex_t *) tsdr->mutex_sync_unload);
-
-	tsdr->mutex_video_stopped = malloc(sizeof(mutex_t));
-	mutex_init((mutex_t *) tsdr->mutex_video_stopped);
 
 	tsdr_context_t * context = (tsdr_context_t *) malloc(sizeof(tsdr_context_t));
 	context->this = tsdr;
@@ -446,24 +453,22 @@ int tsdr_loadplugin(tsdr_lib_t * tsdr, const char * pluginfilepath, const char *
 
 	thread_start(videodecodingthread, (void *) context);
 
-	status = plugin->tsdrplugin_readasync(process, (void *) context);
+	status = tsdr->plugin.tsdrplugin_readasync(process, (void *) context);
 
 	if (status != TSDR_OK) pluginsfault =1;
 
 	tsdr->running = 0;
-	mutex_wait((mutex_t *) tsdr->mutex_video_stopped);
 
-	mutex_free((mutex_t *) tsdr->mutex_video_stopped);
-	free(tsdr->mutex_video_stopped);
+	mutex_waitforever(&tsdr->mutex_video_stopped);
 
 	free(context->buffer);
 	free(context);
 
 	cb_free(&context->circbuf);
 
-	if (tsdr->mutex_sync_unload != NULL) mutex_signal((mutex_t *) tsdr->mutex_sync_unload);
+	mutex_signal(&tsdr->mutex_sync_unload);
 end:
-	if (pluginsfault) announceexception(tsdr,plugin->tsdrplugin_getlasterrortext(),status);
+	if (pluginsfault) announceexception(tsdr,tsdr->plugin.tsdrplugin_getlasterrortext(),status);
 
 	tsdr->running = 0;
 	tsdr->nativerunning = 0;
@@ -517,10 +522,16 @@ end:
 	RETURN_OK(tsdr);
 }
 
- void tsdr_free(tsdr_lib_t * tsdr) {
-	 unloadplugin(tsdr);
+ void tsdr_free(tsdr_lib_t ** tsdr) {
+	 unloadplugin(*tsdr);
 
-	 free(tsdr->errormsg);
-	 tsdr->errormsg_size = 0;
+	 free((*tsdr)->errormsg);
+	 (*tsdr)->errormsg_size = 0;
+
+	 mutex_free(&(*tsdr)->mutex_video_stopped);
+	 mutex_free(&(*tsdr)->mutex_sync_unload);
+
+	 free (*tsdr);
+	 *tsdr = NULL;
  }
 

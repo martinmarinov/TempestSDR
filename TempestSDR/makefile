@@ -5,7 +5,11 @@ OBJS = TSDRLibrary.o TSDRPluginLoader.o threading.o circbuff.o
 DEPS = include/TSDRLibrary.h TSDRPluginLoader.h include/TSDRPlugin.h osdetect.h threading.h circbuff.h
 
 # Flags
-CFLAGS+=-O3
+ifeq ($(BUILD_TYPE),Debug)
+	DEBUGFLAGS+=-g -O0
+else
+	CFLAGS+=-O3
+endif
 
 # USER CONFIGURATION ENDS HERE
 
@@ -92,14 +96,14 @@ all : $(OUTPUTFOLDER)/$(LIBPREFIX)TSDRLibrary$(EXT)
 
 # Link
 $(OUTPUTFOLDER)/$(LIBPREFIX)TSDRLibrary$(EXT) : $(_OBJS)
-	$(CC) -Wall -shared $(LDFLAGS) $(COMPILATION_TYPE) -o $@ $(_OBJS)
+	$(CC) -Wall -shared $(LDFLAGS) $(DEBUGFLAGS) $(COMPILATION_TYPE) -o $@ $(_OBJS)
 	$(AR) rcs -o $(OUTPUTFOLDER)/$(LIBPREFIX)TSDRLibrary.a $(_OBJS)
 
 # Create folders if needed and compile
 $(OBJFOLDER)/%.o : src/%.c $(_DEPS)
 	mkdir -p $(OUTPUTFOLDER)
 	mkdir -p $(OBJFOLDER)
-	$(CC) -Wall $(foreach d, $(INC), -I$d) $(CFLAGS) $(COMPILATION_TYPE) -c $< -o $@
+	$(CC) -Wall $(foreach d, $(INC), -I$d) $(CFLAGS) $(DEBUGFLAGS) $(COMPILATION_TYPE) -c $< -o $@
 	
 .PHONY: clean
 

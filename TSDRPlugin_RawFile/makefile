@@ -7,7 +7,11 @@ OBJS=$(PLUGNAME).o timer.o
 DEPS=TSDRPlugin.h TSDRCodes.h timer.h osdetect.h
 
 # Flags
-CFLAGS+=-O3
+ifeq ($(BUILD_TYPE),Debug)
+	DEBUGFLAGS+=-g -O0
+else
+	CFLAGS+=-O3
+endif
 
 # END OF CONFIGURATION IF STANDARD DIR STRUCTURE IS USED
 
@@ -97,13 +101,13 @@ copyoverheaderfile:
 
 # Link
 $(OUTPUTFOLDER)/$(LIBPREFIX)$(PLUGNAME)$(EXT): copyoverheaderfile $(_OBJS)
-	$(CC) -Wall -shared $(LDFLAGS) $(COMPILATION_TYPE) -o $@ $(_OBJS)
+	$(CC) -Wall -shared $(LDFLAGS)  $(DEBUGFLAGS) $(COMPILATION_TYPE) -o $@ $(_OBJS)
 
 # Make dirs and compile
 $(OBJFOLDER)/%.o : $(SOURCEFOLDER)/%.c $(_DEPS)
 	mkdir -p $(OUTPUTFOLDER)
 	mkdir -p $(OBJFOLDER)
-	$(CC) -Wall $(foreach d, $(INC), -I$d) $(CFLAGS) $(COMPILATION_TYPE) -c $< -o $@
+	$(CC) -Wall $(foreach d, $(INC), -I$d) $(CFLAGS)  $(DEBUGFLAGS) $(COMPILATION_TYPE) -c $< -o $@
 
 .PHONY: clean
 

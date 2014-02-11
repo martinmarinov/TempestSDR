@@ -7,7 +7,11 @@ OBJS=$(PLUGNAME).o
 DEPS=TSDRPlugin.h TSDRCodes.h
 
 # Flags
-CFLAGS+=-O3
+ifeq ($(BUILD_TYPE),Debug)
+	DEBUGFLAGS+=-g -O0
+else
+	CFLAGS+=-O3
+endif
 
 # Headers
 INC = "$(MIRICS_HOME)/API/inc"
@@ -99,13 +103,13 @@ copyoverheaderfile:
 
 # Link
 $(OUTPUTFOLDER)/$(PLUGNAME)$(EXT): copyoverheaderfile $(_OBJS)
-	$(CC) -Wall -L"$(MIRICS_HOME)/API/$(ARCHNAME_LOWER)/" -lmir_sdr_api $(LDFLAGS) -shared $(COMPILATION_TYPE) -o $@ $(_OBJS)
+	$(CC) -Wall -L"$(MIRICS_HOME)/API/$(ARCHNAME_LOWER)/" -lmir_sdr_api $(LDFLAGS) $(DEBUGFLAGS) -shared $(COMPILATION_TYPE) -o $@ $(_OBJS)
 
 # Make dirs and compile
 $(OBJFOLDER)/%.o : $(SOURCEFOLDER)/%.c $(_DEPS)
 	mkdir -p $(OUTPUTFOLDER)
 	mkdir -p $(OBJFOLDER)
-	$(CC) -Wall $(foreach d, $(INC), -I$d) $(CFLAGS) $(COMPILATION_TYPE) -c $< -o $@
+	$(CC) -Wall $(foreach d, $(INC), -I$d) $(CFLAGS) $(DEBUGFLAGS) $(COMPILATION_TYPE) -c $< -o $@
 
 .PHONY: clean
 

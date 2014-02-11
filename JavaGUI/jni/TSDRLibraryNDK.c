@@ -7,7 +7,7 @@
 #include <string.h>
 #include <stdlib.h>
 
-tsdr_lib_t tsdr_instance;
+tsdr_lib_t * tsdr_instance = NULL;
 
 #define THROW(x) announce_jni_error(env, x)
 
@@ -64,12 +64,13 @@ void error_translate (int exception_code, char * exceptionclass) {
 
 void announce_jni_error(JNIEnv * env, int exception_code)
 {
+	if (tsdr_instance == NULL) return;
 	if (exception_code == TSDR_OK) return;
 
 	char exceptionclass[256];
 	error_translate(exception_code, exceptionclass);
 
-	char * msg = tsdr_getlasterrortext(&tsdr_instance);
+	char * msg = tsdr_getlasterrortext(tsdr_instance);
 
     jclass cls = (*env)->FindClass(env, exceptionclass);
     /* if cls is NULL, an exception has already been thrown */
@@ -87,11 +88,13 @@ JNIEXPORT void JNICALL Java_martin_tempest_core_TSDRLibrary_init (JNIEnv * env, 
 }
 
 JNIEXPORT void JNICALL Java_martin_tempest_core_TSDRLibrary_setSampleRate (JNIEnv * env, jobject obj, jlong rate) {
-	THROW(tsdr_setsamplerate(&tsdr_instance, (uint32_t) rate));
+	if (tsdr_instance == NULL) return;
+	THROW(tsdr_setsamplerate(tsdr_instance, (uint32_t) rate));
 }
 
 JNIEXPORT void JNICALL Java_martin_tempest_core_TSDRLibrary_setBaseFreq (JNIEnv * env, jobject obj, jlong freq) {
-	THROW(tsdr_setbasefreq(&tsdr_instance, (uint32_t) freq));
+	if (tsdr_instance == NULL) return;
+	THROW(tsdr_setbasefreq(tsdr_instance, (uint32_t) freq));
 }
 
 void read_async(float *buf, int width, int height, void *ctx) {
@@ -131,10 +134,12 @@ void read_async(float *buf, int width, int height, void *ctx) {
 }
 
 JNIEXPORT void JNICALL Java_martin_tempest_core_TSDRLibrary_loadPlugin (JNIEnv * env, jobject obj, jstring path, jstring params) {
+	if (tsdr_instance == NULL) return;
+
 	const char *npath = (*env)->GetStringUTFChars(env, path, 0);
 	const char *nparams = (*env)->GetStringUTFChars(env, params, 0);
 
-	int status = tsdr_loadplugin(&tsdr_instance, npath, nparams);
+	int status = tsdr_loadplugin(tsdr_instance, npath, nparams);
 
 	if ((*jvm)->GetEnv(jvm, (void **)&env, javaversion) == JNI_EDETACHED)
 		(*jvm)->AttachCurrentThread(jvm, (void **) &env, 0);
@@ -146,6 +151,7 @@ JNIEXPORT void JNICALL Java_martin_tempest_core_TSDRLibrary_loadPlugin (JNIEnv *
 }
 
 JNIEXPORT void JNICALL Java_martin_tempest_core_TSDRLibrary_nativeStart (JNIEnv * env, jobject obj) {
+	if (tsdr_instance == NULL) return;
 
 	java_context_t * context = (java_context_t *) malloc(sizeof(java_context_t));
 
@@ -162,7 +168,7 @@ JNIEXPORT void JNICALL Java_martin_tempest_core_TSDRLibrary_nativeStart (JNIEnv 
 	context->pixelsize = 1;
 	context->pixels = (jint *) malloc(sizeof(jint) * context->pixelsize);
 
-	int status = tsdr_readasync(&tsdr_instance, read_async, (void *) context);
+	int status = tsdr_readasync(tsdr_instance, read_async, (void *) context);
 
 	if ((*jvm)->GetEnv(jvm, (void **)&env, javaversion) == JNI_EDETACHED)
 		(*jvm)->AttachCurrentThread(jvm, (void **) &env, 0);
@@ -177,31 +183,38 @@ JNIEXPORT void JNICALL Java_martin_tempest_core_TSDRLibrary_nativeStart (JNIEnv 
 }
 
 JNIEXPORT void JNICALL Java_martin_tempest_core_TSDRLibrary_stop (JNIEnv * env, jobject obj) {
-	THROW(tsdr_stop(&tsdr_instance));
+	if (tsdr_instance == NULL) return;
+	THROW(tsdr_stop(tsdr_instance));
 }
 
 JNIEXPORT void JNICALL Java_martin_tempest_core_TSDRLibrary_unloadPlugin (JNIEnv * env, jobject obj) {
-	THROW(tsdr_unloadplugin(&tsdr_instance));
+	if (tsdr_instance == NULL) return;
+	THROW(tsdr_unloadplugin(tsdr_instance));
 }
 
 JNIEXPORT void JNICALL Java_martin_tempest_core_TSDRLibrary_free (JNIEnv * env, jobject obj) {
+	if (tsdr_instance == NULL) return;
 	tsdr_free(&tsdr_instance);
 }
 
 JNIEXPORT void JNICALL Java_martin_tempest_core_TSDRLibrary_setGain (JNIEnv * env, jobject obj, jfloat gain) {
-	THROW(tsdr_setgain(&tsdr_instance, (float) gain));
+	if (tsdr_instance == NULL) return;
+	THROW(tsdr_setgain(tsdr_instance, (float) gain));
 }
 
 JNIEXPORT void JNICALL Java_martin_tempest_core_TSDRLibrary_setMotionBlur(JNIEnv * env, jobject obj, jfloat coeff) {
-	THROW(tsdr_motionblur(&tsdr_instance, (float) coeff));
+	if (tsdr_instance == NULL) return;
+	THROW(tsdr_motionblur(tsdr_instance, (float) coeff));
 }
 
 JNIEXPORT void JNICALL Java_martin_tempest_core_TSDRLibrary_setResolution (JNIEnv * env, jobject obj, jint width, jint height, jdouble refreshrate) {
-	THROW(tsdr_setresolution(&tsdr_instance, (int) width, (int) height, (double) refreshrate));
+	if (tsdr_instance == NULL) return;
+	THROW(tsdr_setresolution(tsdr_instance, (int) width, (int) height, (double) refreshrate));
 }
 
 JNIEXPORT jboolean JNICALL Java_martin_tempest_core_TSDRLibrary_isRunning  (JNIEnv * env, jobject obj) {
-	if (tsdr_isrunning(&tsdr_instance))
+	if (tsdr_instance == NULL) return JNI_FALSE;
+	if (tsdr_isrunning(tsdr_instance))
 		return JNI_TRUE;
 	else
 		return JNI_FALSE;
@@ -212,21 +225,23 @@ JNIEXPORT void JNICALL Java_martin_tempest_core_TSDRLibrary_setInvertedColors  (
 }
 
 JNIEXPORT void JNICALL Java_martin_tempest_core_TSDRLibrary_sync (JNIEnv * env, jobject obj, jint pixels, jobject dir) {
+	if (tsdr_instance == NULL) return;
+
 	jclass enumClass = (*env)->FindClass(env, "martin/tempest/core/TSDRLibrary$SYNC_DIRECTION");
 	jmethodID getNameMethod = (*env)->GetMethodID(env, enumClass, "name", "()Ljava/lang/String;");
 	jstring value = (jstring)(*env)->CallObjectMethod(env, dir, getNameMethod);
 	const char* valueNative = (*env)->GetStringUTFChars(env, value, 0);
 
 	if (strcmp(valueNative, "ANY") == 0)
-		THROW(tsdr_sync(&tsdr_instance, (int) pixels, DIRECTION_CUSTOM));
+		THROW(tsdr_sync(tsdr_instance, (int) pixels, DIRECTION_CUSTOM));
 	else if (strcmp(valueNative, "UP") == 0)
-		THROW(tsdr_sync(&tsdr_instance, (int) pixels, DIRECTION_UP));
+		THROW(tsdr_sync(tsdr_instance, (int) pixels, DIRECTION_UP));
 	else if (strcmp(valueNative, "DOWN") == 0)
-		THROW(tsdr_sync(&tsdr_instance, (int) pixels, DIRECTION_DOWN));
+		THROW(tsdr_sync(tsdr_instance, (int) pixels, DIRECTION_DOWN));
 	else if (strcmp(valueNative, "LEFT") == 0)
-		THROW(tsdr_sync(&tsdr_instance, (int) pixels, DIRECTION_LEFT));
+		THROW(tsdr_sync(tsdr_instance, (int) pixels, DIRECTION_LEFT));
 	else if (strcmp(valueNative, "RIGHT") == 0)
-		THROW(tsdr_sync(&tsdr_instance, (int) pixels, DIRECTION_RIGHT));
+		THROW(tsdr_sync(tsdr_instance, (int) pixels, DIRECTION_RIGHT));
 
 	(*env)->ReleaseStringUTFChars(env, value, valueNative);
 }

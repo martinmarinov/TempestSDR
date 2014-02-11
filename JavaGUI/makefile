@@ -109,12 +109,12 @@ java : $(CLASSFILES)
 
 # Invoke the makefile for the jni stuff
 jnilib : plugins
-	@$(MAKE) -C jni/ all JAVA_HOME=$(JAVA_HOME)
+	@$(MAKE) -C jni/ all JAVA_HOME=$(JAVA_HOME) BUILD_TYPE=$(BUILD_TYPE)
 
 # Recompile each plugin and copy its shared library over to the java directory
 plugins :
 	mkdir -p $(OUTPUTFOLDER)
-	$(foreach pdir, $(PLUGINS_DIRS), $(MAKE) -C $(pdir) all; cp -f $(pdir)/bin/$(OSNAME)/$(ARCHNAME)/*$(EXT) $(OUTPUTFOLDER)/;)
+	$(foreach pdir, $(PLUGINS_DIRS), $(MAKE) -C $(pdir) all BUILD_TYPE=$(BUILD_TYPE); cp -f $(pdir)/bin/$(OSNAME)/$(ARCHNAME)/*$(EXT) $(OUTPUTFOLDER)/;)
 	
 # Clean the jni stuff
 cleanjni: cleanplugins
