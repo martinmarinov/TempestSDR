@@ -79,14 +79,14 @@ EXTERNC int __stdcall tsdrplugin_init(const char * params) {
 
 	//variables to be set by po
 	std::string args, file, ant, subdev, ref, tsrc;
-	double bw, rate;
+	double bw;
 
 	//setup the program options
 	po::options_description desc("Allowed options");
 	desc.add_options()
 			("args", po::value<std::string>(&args)->default_value(""), "multi uhd device address args")
 			("ant", po::value<std::string>(&ant), "daughterboard antenna selection")
-			("rate", po::value<double>(&rate)->default_value(req_rate), "rate of incoming samples")
+			("rate", po::value<double>(&req_rate)->default_value(req_rate), "rate of incoming samples")
 			("subdev", po::value<std::string>(&subdev), "daughterboard subdevice specification")
 			("bw", po::value<double>(&bw), "daughterboard IF filter bandwidth in Hz")
 			("ref", po::value<std::string>(&ref)->default_value("internal"), "waveform type (internal, external, mimo)")
@@ -110,7 +110,7 @@ EXTERNC int __stdcall tsdrplugin_init(const char * params) {
 		usrp->set_clock_source(ref);
 		if (vm.count("tsrc")) usrp->set_time_source(tsrc);
 
-		usrp->set_rx_rate(rate);
+		usrp->set_rx_rate(req_rate);
 		req_rate = usrp->get_rx_rate();
 		items_per_call = HOW_OFTEN_TO_CALL_CALLBACK_SEC * req_rate * 2;
 

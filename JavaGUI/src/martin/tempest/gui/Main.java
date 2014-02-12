@@ -709,6 +709,7 @@ public class Main implements TSDRLibrary.FrameReadyCallback, TSDRSourceParamChan
 		btnStartStop.setText("Start");
 		cbDevice.setEnabled(true);
 		displayException(frmTempestSdr, e);
+		System.gc();
 	}
 
 	@Override
@@ -716,6 +717,7 @@ public class Main implements TSDRLibrary.FrameReadyCallback, TSDRSourceParamChan
 		btnStartStop.setEnabled(true);
 		btnStartStop.setText("Start");
 		cbDevice.setEnabled(true);
+		System.gc();
 	}
 	
 	private final KeyAdapter keyhook = new KeyAdapter() {

@@ -27,17 +27,20 @@
 #define INTEG_TYPE (0)
 #define PI (3.141592653589793238462643383279502f)
 
+#define DEFAULT_DECIMATOR_TO_POLL (64)
+
 struct tsdr_context {
 		tsdr_readasync_function cb;
-		float * buffer;
+
 		tsdr_lib_t * this;
-		int bufsize;
+
 		void *ctx;
-		CircBuff_t circbuf;
-		double offset;
-		float contributionfromlast;
-		int dropped;
-		unsigned int todrop;
+		CircBuff_t circbuf_decimation_to_video;
+		CircBuff_t circbuf_device_to_decimation;
+		int decimator_items_to_poll;
+		int device_items_dropped;
+		unsigned int device_items_to_drop;
+
 	} typedef tsdr_context_t;
 
 	struct tsdr_lib {
@@ -205,7 +208,7 @@ void videodecodingthread(void * ctx) {
 			}
 		}
 
-		if (cb_rem_blocking(&context->circbuf, buffer, sizetopoll) == CB_OK) {
+		if (cb_rem_blocking(&context->circbuf_decimation_to_video, buffer, sizetopoll) == CB_OK) {
 
 			float max = buffer[0];
 			float min = max;
@@ -225,6 +228,8 @@ void videodecodingthread(void * ctx) {
 	}
 
 	free (buffer);
+	free (sendbuffer);
+	free (screenbuffer);
 
 	semaphore_leave(&context->this->threadsync);
 }
@@ -256,122 +261,163 @@ static inline float definiteintegral(float x) {
 // Return the area of the pixel signal spanned by this if the pixel was from 0 to 1
 #define integrate(start, end) (definiteintegral(end) - definiteintegral(start))
 
-void process(float *buf, uint32_t len, void *ctx, int dropped) {
+void process(float *buf, uint32_t items_count, void *ctx, int samples_dropped) {
 	tsdr_context_t * context = (tsdr_context_t *) ctx;
 
-	const int size = len/2;
+	context->decimator_items_to_poll = items_count;
 
-	float * outbuf = context->buffer;
-	int outbufsize = context->bufsize;
+	if (samples_dropped > 0)
+		context->device_items_dropped += (samples_dropped << 1);
 
-	const double post = context->this->pixeltimeoversampletime;
-	const int pids = (int) ((size - context->offset) / post);
-	const float normalize = integrate(0, 1);
+	if (context->device_items_dropped > 0) {
+		const unsigned int size2 = ((context->this->width * context->this->height) << 1) * context->this->pixeltimeoversampletime;
+		const unsigned int moddropped = context->device_items_dropped % size2;
+		context->device_items_to_drop += size2-moddropped; // how much to drop so that it ends up on one frame
+		context->device_items_dropped = 0;
+	}
 
-	if (dropped > 0)
-		context->dropped += dropped / post;
+	if (context->device_items_to_drop >= items_count)
+		context->device_items_to_drop -= items_count;
+	else if (cb_add(&context->circbuf_device_to_decimation, &buf[context->device_items_to_drop], items_count-context->device_items_to_drop) == CB_OK)
+		context->device_items_to_drop = 0;
+	else // we lost samples due to buffer overflow
+		context->device_items_dropped += items_count;
+}
 
-	// resize buffer so it fits
-	if (pids > outbufsize) {
+
+void decimatingthread(void * ctx) {
+	tsdr_context_t * context = (tsdr_context_t *) ctx;
+	semaphore_enter(&context->this->threadsync);
+
+	int bufsize = context->decimator_items_to_poll;
+	float * buffer = (float *) malloc(sizeof(float) * bufsize);
+	int dropped_samples = 0;
+	unsigned int todrop = 0;
+
+	int outbufsize = context->this->width * context->this->height;
+	float * outbuf = (float *) malloc(sizeof(float) * outbufsize);
+
+	float contrib = 0;
+	double offset = 0;
+
+	while (context->this->running) {
+
+		const int len = context->decimator_items_to_poll;
+		if (len > bufsize) {
+			bufsize = len;
+			buffer = (float *) realloc((void*) buffer, sizeof(float) * bufsize);
+		}
+		if (cb_rem_blocking(&context->circbuf_device_to_decimation, buffer, len) == CB_OK) {
+
+			const int size = len/2;
+
+			const double post = context->this->pixeltimeoversampletime;
+			const int pids = (int) ((size - offset) / post);
+			const float normalize = integrate(0, 1);
+
+			// resize buffer so it fits
+			if (pids > outbufsize) {
 				outbufsize = pids+len;
 				outbuf = (float *) realloc(outbuf, sizeof(float) * outbufsize);
-	}
+			}
 
-	const double offset = context->offset;
-	double t = context->offset;
-	float contrib = context->contributionfromlast;
+			double t = offset;
 
-	int pid = 0;
-	int i = 0;
-	int id;
+			int pid = 0;
+			int id;
 
-	for (id = 0; id < size; id++) {
-		const float I = buf[i++];
-		const float Q = buf[i++];
+			float * bref = buffer;
+			for (id = 0; id < size; id++) {
+				const float I = *(bref++);
+				const float Q = *(bref++);
 
-		const float val = sqrtf(I*I+Q*Q);
+				const float val = sqrtf(I*I+Q*Q);
 
-		// we are in case:
-		//    pid
-		//    t                                  (in terms of id)
-		//  . ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! !  pixels (pid)
-		// ____|__val__|_______|_______|_______| samples (id)
-		//    id     id+1    id+2
+				// we are in case:
+				//    pid
+				//    t                                  (in terms of id)
+				//  . ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! !  pixels (pid)
+				// ____|__val__|_______|_______|_______| samples (id)
+				//    id     id+1    id+2
 
-		if (t < id && (t + post) < (id+1)) {
-			const float start = (id-t)/post;
+				if (t < id && (t + post) < (id+1)) {
+					const float start = (id-t)/post;
 #if INTEG_TYPE == -1
-			outbuf[pid++] = val;
+					outbuf[pid++] = val;
 #else
-			const float contrfract = integrate(start, 1)/normalize;
-			outbuf[pid++] = contrib + val*contrfract;
+					const float contrfract = integrate(start, 1)/normalize;
+					outbuf[pid++] = contrib + val*contrfract;
 #endif
-			contrib = 0;
-			t=offset+pid*post;
-		}
+					contrib = 0;
+					t=offset+pid*post;
+				}
 
-		// we are in case:
-		//      pid
-		//      t t+post                        (in terms of id)
-		//  . ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! !  pixels (pid)
-		// ____|__val__|_______|_______|_______| samples (id)
-		//    id
+				// we are in case:
+				//      pid
+				//      t t+post                        (in terms of id)
+				//  . ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! !  pixels (pid)
+				// ____|__val__|_______|_______|_______| samples (id)
+				//    id
 
-		while ((t+post) < (id+1)) {
-			// this only ever triggers if post < 1
-			outbuf[pid++] = val;
-			t=offset+pid*post;
-		}
+				while ((t+post) < (id+1)) {
+					// this only ever triggers if post < 1
+					outbuf[pid++] = val;
+					t=offset+pid*post;
+				}
 
-		// we are in case:
-		//            pid
-		//            t                          (in terms of id)
-		//  . ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! !  pixels (pid)
-		// ____|__val__|_______|_______|_______| samples (id)
-		//    id     id+1    id+2
+				// we are in case:
+				//            pid
+				//            t                          (in terms of id)
+				//  . ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! !  pixels (pid)
+				// ____|__val__|_______|_______|_______| samples (id)
+				//    id     id+1    id+2
 
-		if (t < (id + 1) && t > id) {
-			const float contrfract = integrate(0,(id+1-t)/post)/normalize;
-			contrib += contrfract * val;
-		} else {
-			const float idt = id - t;
-			const float contrfract = integrate(idt/post,(idt+1)/post)/normalize;
-			contrib += contrfract * val;
+				if (t < (id + 1) && t > id) {
+					const float contrfract = integrate(0,(id+1-t)/post)/normalize;
+					contrib += contrfract * val;
+				} else {
+					const float idt = id - t;
+					const float contrfract = integrate(idt/post,(idt+1)/post)/normalize;
+					contrib += contrfract * val;
+				}
+			}
+
+			offset = t-size;
+
+			//	if (pid != pids || context->offset > 0 || context->offset < -post)
+			//		printf("Pid %d; pids %d; t %.4f, size %d, offset %.4f\n", pid, pids, t, size, context->offset);
+
+			// section for syncing lost samples
+			if (dropped_samples > 0) {
+				const unsigned int size = context->this->width * context->this->height;
+				const unsigned int moddropped = dropped_samples % size;
+				todrop += size - moddropped; // how much to drop so that it ends up on one frame
+				dropped_samples = 0;
+			}
+
+
+			if (todrop >= pid)
+				todrop -= pid;
+			else if (cb_add(&context->circbuf_decimation_to_video, &outbuf[todrop], pid-todrop) == CB_OK)
+				todrop = 0;
+			else // we lost samples due to buffer overflow
+				dropped_samples += pid;
+
+
+			// section for manual syncing
+			const int syncoffset = -context->this->syncoffset;
+			if (syncoffset > 0)
+				dropped_samples += syncoffset;
+			else if (syncoffset < 0)
+				dropped_samples += context->this->width * context->this->height + syncoffset;
+			context->this->syncoffset = 0;
 		}
 	}
 
-	context->bufsize = outbufsize;
-	context->buffer = outbuf;
-	context->offset = t-size;
-	context->contributionfromlast = contrib;
+	free(buffer);
+	free(outbuf);
 
-//	if (pid != pids || context->offset > 0 || context->offset < -post)
-//		printf("Pid %d; pids %d; t %.4f, size %d, offset %.4f\n", pid, pids, t, size, context->offset);
-
-	// section for syncing lost samples
-	if (context->dropped > 0) {
-		const unsigned int size = context->this->width * context->this->height;
-		const unsigned int moddropped = context->dropped % size;
-		context->todrop += size - moddropped; // how much to drop so that it ends up on one frame
-		context->dropped = 0;
-	}
-
-	if (context->todrop >= pid)
-		context->todrop -= pid;
-	else if (cb_add(&context->circbuf, &outbuf[context->todrop], pid-context->todrop) == CB_OK)
-		context->todrop = 0;
-	else // we lost samples due to buffer overflow
-		context->dropped += pid;
-
-
-	// section for manual syncing
-	const int syncoffset = -context->this->syncoffset;
-	if (syncoffset > 0)
-		context->dropped += syncoffset;
-	else if (syncoffset < 0)
-		context->dropped += context->this->width * context->this->height + syncoffset;
-	context->this->syncoffset = 0;
-
+	semaphore_leave(&context->this->threadsync);
 }
 
 void unloadplugin(tsdr_lib_t * tsdr) {
@@ -447,15 +493,14 @@ int tsdr_loadplugin(tsdr_lib_t * tsdr, const char * pluginfilepath, const char *
 	tsdr_context_t * context = (tsdr_context_t *) malloc(sizeof(tsdr_context_t));
 	context->this = tsdr;
 	context->cb = cb;
-	context->bufsize = width * height;
-	context->buffer = (float *) malloc(sizeof(float) * context->bufsize);
 	context->ctx = ctx;
-	context->contributionfromlast = 0;
-	context->offset = 0;
-	context->dropped = 0;
-	context->todrop = 0;
-	cb_init(&context->circbuf);
+	context->decimator_items_to_poll = DEFAULT_DECIMATOR_TO_POLL;
+	context->device_items_dropped = 0;
+	context->device_items_to_drop = 0;
+	cb_init(&context->circbuf_decimation_to_video);
+	cb_init(&context->circbuf_device_to_decimation);
 
+	thread_start(decimatingthread, (void *) context);
 	thread_start(videodecodingthread, (void *) context);
 
 	status = tsdr->plugin.tsdrplugin_readasync(process, (void *) context);
@@ -466,10 +511,10 @@ int tsdr_loadplugin(tsdr_lib_t * tsdr, const char * pluginfilepath, const char *
 
 	semaphore_wait(&tsdr->threadsync);
 
-	free(context->buffer);
 	free(context);
 
-	cb_free(&context->circbuf);
+	cb_free(&context->circbuf_decimation_to_video);
+	cb_free(&context->circbuf_device_to_decimation);
 
 end:
 	if (pluginsfault) announceexception(tsdr,tsdr->plugin.tsdrplugin_getlasterrortext(),status);
