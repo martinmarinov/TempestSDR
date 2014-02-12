@@ -21,13 +21,16 @@
 
 #include "errors.hpp"
 
+#define HOW_OFTEN_TO_CALL_CALLBACK_SEC (0.05)
+
 uhd::usrp::multi_usrp::sptr usrp;
 namespace po = boost::program_options;
 
 uint32_t req_freq = 105e6;
 float req_gain = 1;
-uint32_t req_rate = 25e6;
+double req_rate = 25e6;
 volatile int is_running = 0;
+size_t samples_per_call = HOW_OFTEN_TO_CALL_CALLBACK_SEC * req_rate;
 
 EXTERNC void __stdcall tsdrplugin_getName(char * name) {
 	uhd::set_thread_priority_safe();
@@ -96,6 +99,7 @@ EXTERNC int __stdcall tsdrplugin_init(const char * params) {
 
 		usrp->set_rx_rate(rate);
 		req_rate = usrp->get_rx_rate();
+		samples_per_call = HOW_OFTEN_TO_CALL_CALLBACK_SEC * req_rate;
 
 		//set the rx center frequency
 		usrp->set_rx_freq(req_freq);
@@ -106,10 +110,8 @@ EXTERNC int __stdcall tsdrplugin_init(const char * params) {
 		if (vm.count("ant")) usrp->set_rx_antenna(ant);
 
 		//set the IF filter bandwidth
-		if (vm.count("bw")){
+		if (vm.count("bw"))
 			usrp->set_rx_bandwidth(bw);
-			std::cout << boost::format("Actual RX Bandwidth: %f MHz...") % usrp->get_rx_bandwidth() << std::endl << std::endl;
-		}
 
 		boost::this_thread::sleep(boost::posix_time::seconds(1)); //allow for some setup time
 
@@ -144,12 +146,12 @@ EXTERNC uint32_t __stdcall tsdrplugin_setsamplerate(uint32_t rate) {
 		usrp->set_rx_rate(req_rate);
 		double real_rate = usrp->get_rx_rate();
 		req_rate = real_rate;
-		std::cout << boost::format("Actual RX Rate: %f Msps...") % (real_rate/1e6) << std::endl << std::endl;
 	}
 	catch (std::exception const&  ex)
 	{
 	}
 
+	samples_per_call = HOW_OFTEN_TO_CALL_CALLBACK_SEC * req_rate;
 	return req_rate;
 }
 
@@ -163,6 +165,7 @@ EXTERNC uint32_t __stdcall tsdrplugin_getsamplerate() {
 	{
 	}
 
+	samples_per_call = HOW_OFTEN_TO_CALL_CALLBACK_SEC * req_rate;
 	return req_rate;
 }
 
@@ -189,7 +192,7 @@ EXTERNC int __stdcall tsdrplugin_setgain(float gain) {
 	req_gain = gain;
 	try {
 		usrp->set_rx_gain(tousrpgain(req_gain));
-		std::cout << boost::format("Actual RX Gain: %f dB...") % usrp->get_rx_gain() << std::endl << std::endl;
+		std::cout << boost::format("RX Gain: %f dB...") % usrp->get_rx_gain() << std::endl << std::endl;
 	}
 	catch (std::exception const&  ex)
 	{
@@ -202,13 +205,11 @@ EXTERNC int __stdcall tsdrplugin_readasync(tsdrplugin_readasync_function cb, voi
 
 	is_running = 1;
 
-	size_t native_buffer_size = 1;
-	float * native_buffer = (float *) malloc(sizeof(float) * native_buffer_size);
+	float * native_buffer = NULL;
 
 	try {
 		//set the rx sample rate
 		usrp->set_rx_rate(req_rate);
-		std::cout << boost::format("Actual RX Rate: %f Msps...") % (usrp->get_rx_rate()/1e6) << std::endl << std::endl;
 
 		//set the rx center frequency
 		usrp->set_rx_freq(req_freq);
@@ -227,9 +228,19 @@ EXTERNC int __stdcall tsdrplugin_readasync(tsdrplugin_readasync_function cb, voi
 		//loop until total number of samples reached
 		uhd::rx_metadata_t md;
 		std::vector<std::complex<float> > buff(rx_stream->get_max_num_samps());
+		if (samples_per_call < rx_stream->get_max_num_samps()) samples_per_call = rx_stream->get_max_num_samps();
+		native_buffer = (float *) malloc(sizeof(float) * samples_per_call);
+
+		// initialize counters
+		float * nativeref = native_buffer;
+		size_t samples_in_buffer = 0;
 
 		//setup streaming
 		rx_stream->issue_stream_cmd(uhd::stream_cmd_t::STREAM_MODE_START_CONTINUOUS);
+
+		// for counting dropped samples
+		time_t lastfullsec = 0;
+		double lastfractsec = 0;
 
 		while(is_running){
 			size_t num_rx_samps = rx_stream->recv(
@@ -257,26 +268,48 @@ EXTERNC int __stdcall tsdrplugin_readasync(tsdrplugin_readasync_function cb, voi
 				goto done_loop;
 			}
 
+			const size_t items = num_rx_samps << 1;
+			const size_t samples_so_far = items + samples_in_buffer; // samples received up to this point (but buffer only cintains samples_in_buffer)
+			if (samples_so_far > samples_per_call) {
 
-//			std::cout << boost::format(
-//			            "Received packet: %u samples, %u full secs, %f frac secs"
-//			        ) % num_rx_samps % md.time_spec.get_full_secs() % md.time_spec.get_frac_secs() << std::endl;
+				uint32_t dropped_samples = 0;
 
-			const size_t items = num_rx_samps*2;
-			if (items > native_buffer_size) {
-				printf("Resizing\n");fflush(stdout);
-				native_buffer_size = items;
-				native_buffer = (float *) realloc((void *) native_buffer, sizeof(float) * native_buffer_size);
+				if (md.has_time_spec) {
+					const time_t nowfullsecs = md.time_spec.get_full_secs();
+					const double nowfractsecs = md.time_spec.get_frac_secs();
+
+					const double difference =
+							(nowfractsecs > lastfractsec) ?
+									(nowfractsecs - lastfractsec)
+										: (nowfractsecs + ((double) (nowfullsecs - lastfullsec) - lastfractsec));
+
+					if (difference > 0) {
+						const size_t expected = round(difference * req_rate);
+						const size_t samps = samples_in_buffer >> 1;
+						if (expected > samps)
+							dropped_samples = expected - samps;
+					}
+
+					lastfractsec = nowfractsecs;
+					lastfullsec = nowfullsecs;
+				}
+
+				// we have collected samples_in_buffer / 2 samples in the buffer, send them for processing
+				cb(native_buffer, samples_in_buffer, ctx, dropped_samples);
+				//if (dropped_samples != 0) {printf("Dropped %d\n", dropped_samples); fflush(stdout);}
+
+				// reset counters, the native buffer is empty
+				nativeref = native_buffer;
+				samples_in_buffer = 0;
 			}
 
-			float * nativeref = native_buffer;
 			for (size_t i = 0; i < num_rx_samps; i++) {
 				std::complex<float> sample = buff[i];
 				*(nativeref++) = sample.imag();
 				*(nativeref++) = sample.real();
 			}
 
-			cb(native_buffer, items, ctx, 0);
+			samples_in_buffer+=items;
 
 		} done_loop:
 
@@ -293,10 +326,10 @@ EXTERNC int __stdcall tsdrplugin_readasync(tsdrplugin_readasync_function cb, voi
 	catch (std::exception const&  ex)
 	{
 		is_running = 0;
-		free(native_buffer);
+		if (native_buffer!=NULL) free(native_buffer);
 		RETURN_EXCEPTION(ex.what(), TSDR_CANNOT_OPEN_DEVICE);
 	}
-	free(native_buffer);
+	if (native_buffer!=NULL) free(native_buffer);
 	RETURN_OK();
 }
 
