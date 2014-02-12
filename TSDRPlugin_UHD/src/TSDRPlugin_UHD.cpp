@@ -21,7 +21,7 @@
 
 #include "errors.hpp"
 
-#define HOW_OFTEN_TO_CALL_CALLBACK_SEC (0.2)
+#define HOW_OFTEN_TO_CALL_CALLBACK_SEC (0.1)
 
 uhd::usrp::multi_usrp::sptr usrp;
 namespace po = boost::program_options;
@@ -30,7 +30,7 @@ uint32_t req_freq = 105e6;
 float req_gain = 1;
 double req_rate = 25e6;
 volatile int is_running = 0;
-size_t items_per_call = HOW_OFTEN_TO_CALL_CALLBACK_SEC * req_rate;
+size_t items_per_call = HOW_OFTEN_TO_CALL_CALLBACK_SEC * req_rate * 2;
 
 EXTERNC void __stdcall tsdrplugin_getName(char * name) {
 	strcpy(name, "TSDR UHD USRP Compatible Plugin");
@@ -97,7 +97,7 @@ EXTERNC int __stdcall tsdrplugin_init(const char * params) {
 
 		usrp->set_rx_rate(rate);
 		req_rate = usrp->get_rx_rate();
-		items_per_call = HOW_OFTEN_TO_CALL_CALLBACK_SEC * req_rate;
+		items_per_call = HOW_OFTEN_TO_CALL_CALLBACK_SEC * req_rate * 2;
 
 		//set the rx center frequency
 		usrp->set_rx_freq(req_freq);
@@ -152,7 +152,7 @@ EXTERNC uint32_t __stdcall tsdrplugin_setsamplerate(uint32_t rate) {
 	{
 	}
 
-	items_per_call = HOW_OFTEN_TO_CALL_CALLBACK_SEC * req_rate;
+	items_per_call = HOW_OFTEN_TO_CALL_CALLBACK_SEC * req_rate * 2;
 	return req_rate;
 }
 
@@ -165,7 +165,7 @@ EXTERNC uint32_t __stdcall tsdrplugin_getsamplerate() {
 	{
 	}
 
-	items_per_call = HOW_OFTEN_TO_CALL_CALLBACK_SEC * req_rate;
+	items_per_call = HOW_OFTEN_TO_CALL_CALLBACK_SEC * req_rate * 2;
 	return req_rate;
 }
 
@@ -191,7 +191,6 @@ EXTERNC int __stdcall tsdrplugin_setgain(float gain) {
 	req_gain = gain;
 	try {
 		usrp->set_rx_gain(tousrpgain(req_gain));
-		std::cout << boost::format("RX Gain: %f dB...") % usrp->get_rx_gain() << std::endl << std::endl;
 	}
 	catch (std::exception const&  ex)
 	{
@@ -204,7 +203,7 @@ EXTERNC int __stdcall tsdrplugin_readasync(tsdrplugin_readasync_function cb, voi
 
 	is_running = 1;
 
-	float * native_buffer = NULL;
+	float * buff = NULL;
 
 	try {
 		//set the rx sample rate
@@ -221,10 +220,13 @@ EXTERNC int __stdcall tsdrplugin_readasync(tsdrplugin_readasync_function cb, voi
 		uhd::rx_streamer::sptr rx_stream = usrp->get_rx_stream(stream_args);
 
 		//loop until total number of samples reached
+		// 1 sample = 2 items
 		uhd::rx_metadata_t md;
-		std::vector<std::complex<float> > buff(rx_stream->get_max_num_samps());
-		if (items_per_call < rx_stream->get_max_num_samps()) items_per_call = rx_stream->get_max_num_samps();
-		native_buffer = (float *) malloc(sizeof(float) * items_per_call);
+		size_t buff_size = items_per_call;
+		const size_t samples_per_api_read = rx_stream->get_max_num_samps();
+		if (buff_size < samples_per_api_read * 2) buff_size = samples_per_api_read * 2;
+		buff = (float *) malloc(sizeof(float) * buff_size);
+		const size_t items_per_api_read = samples_per_api_read*2;
 
 		// initialize counters
 		int items_in_buffer = 0;
@@ -232,19 +234,29 @@ EXTERNC int __stdcall tsdrplugin_readasync(tsdrplugin_readasync_function cb, voi
 		uint64_t first_sample_id = 0;
 		const uint64_t samp_rate_uint = req_rate;
 		const double samp_rate_fract = req_rate - (double) samp_rate_uint;
-		printf("Samp rate fract %.2f\n", samp_rate_fract);
 		//setup streaming
 		usrp->set_time_now(uhd::time_spec_t(0.0));
 		rx_stream->issue_stream_cmd(uhd::stream_cmd_t::STREAM_MODE_START_CONTINUOUS);
 
 		uint64_t frame = 0;
 		uint64_t dropped_samples = 0;
-		size_t dropped_items = 0;
 		while(is_running){
 
+			// if next call will overflow our buffer, call the callback
+			if (items_per_api_read + items_in_buffer > buff_size) {
+
+				// we have collected samples_in_buffer / 2 samples in the buffer, send them for processing
+				cb(buff, items_in_buffer, ctx, dropped_samples);
+				dropped_samples = 0;
+
+				// reset counters, the native buffer is empty
+				items_in_buffer = 0;
+			}
+
 			size_t num_rx_samps = rx_stream->recv(
-					&buff.front(), buff.size(), md
+					&buff[items_in_buffer], samples_per_api_read, md
 			);
+			items_in_buffer+=num_rx_samps << 1;
 
 			if (md.has_time_spec) {
 				const uint64_t roundsecs = (uint64_t) md.time_spec.get_full_secs();
@@ -256,14 +268,7 @@ EXTERNC int __stdcall tsdrplugin_readasync(tsdrplugin_readasync_function cb, voi
 				if (first_sample_id > frame)
 					dropped_samples = first_sample_id - frame;
 				frame = first_sample_id + num_rx_samps;
-				dropped_items = dropped_samples * 2;
 			}
-
-
-			if (md.has_time_spec) {
-
-			}
-			const size_t num_rx_items = num_rx_samps << 1;
 
 			//handle the error codes
 			switch(md.error_code){
@@ -286,33 +291,13 @@ EXTERNC int __stdcall tsdrplugin_readasync(tsdrplugin_readasync_function cb, voi
 				goto done_loop;
 			}
 
-			const size_t items_so_far = num_rx_items + items_in_buffer; // samples received up to this point (but buffer only cintains samples_in_buffer)
-			if (items_so_far > items_per_call) {
-
-				// we have collected samples_in_buffer / 2 samples in the buffer, send them for processing
-				cb(native_buffer, items_in_buffer, ctx, dropped_items);
-				dropped_items = 0;
-				dropped_samples = 0;
-
-				// reset counters, the native buffer is empty
-				items_in_buffer = 0;
-			}
-
-			//for(std::vector< std::complex<float> >::iterator it = buff.begin(); it != buff.end(); ++it) {
-
-			//std::complex<float> * complexes = ;
-			float * raw_cpp_buffer = reinterpret_cast<float*>(&(reinterpret_cast<std::complex<float> * >(&buff[0]))[0]);
-			memcpy(&native_buffer[items_in_buffer],raw_cpp_buffer,num_rx_items*sizeof(float));
-
-			items_in_buffer+=num_rx_items;
-
 		} done_loop:
 
 		usrp->issue_stream_cmd(uhd::stream_cmd_t::STREAM_MODE_STOP_CONTINUOUS);
 
 		// flush usrpbuffer
 	    while(rx_stream->recv(
-	        &buff.front(), buff.size(), md,
+	        buff, samples_per_api_read, md,
 	        uhd::device::RECV_MODE_ONE_PACKET
 	    )){
 	        /* NOP */
@@ -321,10 +306,10 @@ EXTERNC int __stdcall tsdrplugin_readasync(tsdrplugin_readasync_function cb, voi
 	catch (std::exception const&  ex)
 	{
 		is_running = 0;
-		if (native_buffer!=NULL) free(native_buffer);
+		if (buff!=NULL) free(buff);
 		RETURN_EXCEPTION(ex.what(), TSDR_CANNOT_OPEN_DEVICE);
 	}
-	if (native_buffer!=NULL) free(native_buffer);
+	if (buff!=NULL) free(buff);
 	RETURN_OK();
 }
 
