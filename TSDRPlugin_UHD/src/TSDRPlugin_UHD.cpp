@@ -21,7 +21,7 @@
 
 #include "errors.hpp"
 
-#define HOW_OFTEN_TO_CALL_CALLBACK_SEC (0.1)
+#define HOW_OFTEN_TO_CALL_CALLBACK_SEC (0.05)
 #define FRACT_DROPPED_TO_TOLERATE (0.1)
 
 uhd::usrp::multi_usrp::sptr usrp;
@@ -267,11 +267,12 @@ EXTERNC int __stdcall tsdrplugin_readasync(tsdrplugin_readasync_function cb, voi
 					last_firstsample = first_sample_id;
 				}
 
-				if (dropped_samples < 0) dropped_samples = 0;
-				if ((dropped_samples / ((float) samples_in_buffer)) < FRACT_DROPPED_TO_TOLERATE)
-					cb(buff, items_in_buffer, ctx, dropped_samples);
+				if (dropped_samples <= 0)
+					cb(buff, items_in_buffer, ctx, 0); // nothing was dropped, nice
+				else if ((dropped_samples / ((float) samples_in_buffer)) < FRACT_DROPPED_TO_TOLERATE)
+					cb(buff, items_in_buffer, ctx, dropped_samples); // some part of the data was dropped, but that's fine
 				else
-					cb(buff, 0, ctx, dropped_samples + samples_in_buffer);
+					cb(buff, 0, ctx, dropped_samples + samples_in_buffer); // too much dropped, abort
 
 				// reset counters, the native buffer is empty
 				items_in_buffer = 0;
