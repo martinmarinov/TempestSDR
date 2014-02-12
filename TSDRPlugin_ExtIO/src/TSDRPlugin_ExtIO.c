@@ -279,8 +279,10 @@ int __stdcall tsdrplugin_readasync(tsdrplugin_readasync_function cb, void *ctx) 
 	act_freq = req_freq;
 
 	int bufsize;
-	if ((bufsize = source->StartHW(act_freq)) < 0)
+	if ((bufsize = source->StartHW(act_freq)) < 0) {
+		is_running = 0;
 		RETURN_EXCEPTION("The device has stopped responding.", TSDR_CANNOT_OPEN_DEVICE);
+	}
 
 	samplespercallback = bufsize * 2;
 	if (samplespercallback > outbuf_size) {
