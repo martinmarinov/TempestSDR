@@ -1,3 +1,15 @@
+/*
+#-------------------------------------------------------------------------------
+# Copyright (c) 2014 Martin Marinov.
+# All rights reserved. This program and the accompanying materials
+# are made available under the terms of the GNU Public License v3.0
+# which accompanies this distribution, and is available at
+# http://www.gnu.org/licenses/gpl.html
+# 
+# Contributors:
+#     Martin Marinov - initial API and implementation
+#-------------------------------------------------------------------------------
+*/
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -35,6 +47,10 @@ int sizepersample = -1;
 
 uint32_t samplerate = 0;
 char filename[300];
+
+#if !WINHEAD
+#include <unistd.h>
+#endif
 
 void thread_sleep(uint32_t milliseconds) {
 #if WINHEAD
