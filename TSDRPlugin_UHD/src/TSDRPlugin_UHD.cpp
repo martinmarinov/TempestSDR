@@ -22,6 +22,7 @@
 #include "errors.hpp"
 
 #define HOW_OFTEN_TO_CALL_CALLBACK_SEC (0.1)
+#define FRACT_DROPPED_TO_TOLERATE (0.1)
 
 uhd::usrp::multi_usrp::sptr usrp;
 namespace po = boost::program_options;
@@ -65,7 +66,7 @@ EXTERNC int __stdcall tsdrplugin_init(const char * params) {
 		argv[i+1] = (char *) argscounter[i].c_str();
 
 	//variables to be set by po
-	std::string args, file, ant, subdev, ref;
+	std::string args, file, ant, subdev, ref, tsrc;
 	double bw, rate;
 
 	//setup the program options
@@ -76,7 +77,8 @@ EXTERNC int __stdcall tsdrplugin_init(const char * params) {
 			("rate", po::value<double>(&rate)->default_value(req_rate), "rate of incoming samples")
 			("subdev", po::value<std::string>(&subdev), "daughterboard subdevice specification")
 			("bw", po::value<double>(&bw), "daughterboard IF filter bandwidth in Hz")
-			("ref", po::value<std::string>(&ref)->default_value("internal"), "waveform type (internal, external, mimo)") ;
+			("ref", po::value<std::string>(&ref)->default_value("internal"), "waveform type (internal, external, mimo)")
+			("tsrc", po::value<std::string>(&tsrc)->default_value("external"), "time source (none, external, _external_, mimo)") ;
 
 	po::variables_map vm;
 	try {
@@ -94,6 +96,7 @@ EXTERNC int __stdcall tsdrplugin_init(const char * params) {
 
 		//Lock mboard clocks
 		usrp->set_clock_source(ref);
+		if (vm.count("tsrc")) usrp->set_time_source(tsrc);
 
 		usrp->set_rx_rate(rate);
 		req_rate = usrp->get_rx_rate();
@@ -222,6 +225,8 @@ EXTERNC int __stdcall tsdrplugin_readasync(tsdrplugin_readasync_function cb, voi
 		//loop until total number of samples reached
 		// 1 sample = 2 items
 		uhd::rx_metadata_t md;
+		md.has_time_spec = false;
+
 		size_t buff_size = items_per_call;
 		const size_t samples_per_api_read = rx_stream->get_max_num_samps();
 		if (buff_size < samples_per_api_read * 2) buff_size = samples_per_api_read * 2;
@@ -231,23 +236,42 @@ EXTERNC int __stdcall tsdrplugin_readasync(tsdrplugin_readasync_function cb, voi
 		// initialize counters
 		int items_in_buffer = 0;
 
-		uint64_t first_sample_id = 0;
 		const uint64_t samp_rate_uint = req_rate;
 		const double samp_rate_fract = req_rate - (double) samp_rate_uint;
 		//setup streaming
 		usrp->set_time_now(uhd::time_spec_t(0.0));
 		rx_stream->issue_stream_cmd(uhd::stream_cmd_t::STREAM_MODE_START_CONTINUOUS);
 
-		uint64_t frame = 0;
-		uint64_t dropped_samples = 0;
-		while(is_running){
+		uint64_t last_firstsample = 0;
 
+		while(is_running){
 			// if next call will overflow our buffer, call the callback
 			if (items_per_api_read + items_in_buffer > buff_size) {
+				int64_t dropped_samples = 0;
+				const int samples_in_buffer = items_in_buffer >> 1;
 
-				// we have collected samples_in_buffer / 2 samples in the buffer, send them for processing
-				cb(buff, items_in_buffer, ctx, dropped_samples);
-				dropped_samples = 0;
+				// estimate dropped samples
+				if (md.has_time_spec) {
+					const uint64_t roundsecs = (uint64_t) md.time_spec.get_full_secs();
+					uint64_t first_sample_id = roundsecs * samp_rate_uint;
+					first_sample_id += round(roundsecs * samp_rate_fract);
+					first_sample_id += round(md.time_spec.get_frac_secs() * req_rate);
+
+					// we should have the id of the first sample in our first_sample_id
+					const uint64_t expected_first_sample_id = last_firstsample + samples_in_buffer;
+					const int64_t dropped_samples_now = first_sample_id - expected_first_sample_id;
+
+					dropped_samples = dropped_samples_now;
+
+					// estimate next frame
+					last_firstsample = first_sample_id;
+				}
+
+				if (dropped_samples < 0) dropped_samples = 0;
+				if ((dropped_samples / ((float) samples_in_buffer)) < FRACT_DROPPED_TO_TOLERATE)
+					cb(buff, items_in_buffer, ctx, dropped_samples);
+				else
+					cb(buff, 0, ctx, dropped_samples + samples_in_buffer);
 
 				// reset counters, the native buffer is empty
 				items_in_buffer = 0;
@@ -256,19 +280,9 @@ EXTERNC int __stdcall tsdrplugin_readasync(tsdrplugin_readasync_function cb, voi
 			size_t num_rx_samps = rx_stream->recv(
 					&buff[items_in_buffer], samples_per_api_read, md
 			);
-			items_in_buffer+=num_rx_samps << 1;
 
-			if (md.has_time_spec) {
-				const uint64_t roundsecs = (uint64_t) md.time_spec.get_full_secs();
-				first_sample_id = roundsecs * samp_rate_uint;
-				first_sample_id += round(roundsecs * samp_rate_fract);
-				first_sample_id += round(md.time_spec.get_frac_secs() * req_rate);
-
-				// we should have the id of the first sample in our first_sample_id
-				if (first_sample_id > frame)
-					dropped_samples = first_sample_id - frame;
-				frame = first_sample_id + num_rx_samps;
-			}
+			// vizualize gap
+			items_in_buffer+=(num_rx_samps << 1);
 
 			//handle the error codes
 			switch(md.error_code){
@@ -281,7 +295,7 @@ EXTERNC int __stdcall tsdrplugin_readasync(tsdrplugin_readasync_function cb, voi
 				) << std::endl;
 				break;
 			case uhd::rx_metadata_t::ERROR_CODE_OVERFLOW:
-				// overflow :(
+				//printf("Overflow!\n"); fflush(stdout);
 				break;
 
 			default:
