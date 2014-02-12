@@ -42,8 +42,7 @@ struct tsdr_context {
 
 	struct tsdr_lib {
 		pluginsource_t plugin;
-		mutex_t mutex_sync_unload;
-		mutex_t mutex_video_stopped;
+		semaphore_t threadsync;
 		uint32_t samplerate;
 		double sampletime;
 		int width;
@@ -104,8 +103,7 @@ static inline void announceexception(tsdr_lib_t * tsdr, const char * message, in
 	(*tsdr)->errormsg_size = 0;
 	(*tsdr)->errormsg_code = TSDR_OK;
 
-	mutex_init(&(*tsdr)->mutex_sync_unload);
-	mutex_init(&(*tsdr)->mutex_video_stopped);
+	semaphore_init(&(*tsdr)->threadsync);
 
 }
 
@@ -153,7 +151,7 @@ static inline void announceexception(tsdr_lib_t * tsdr, const char * message, in
 	if (!tsdr->running) RETURN_OK(tsdr);
 	int status = tsdr->plugin.tsdrplugin_stop();
 
-	mutex_waitforever(&tsdr->mutex_sync_unload);
+	semaphore_wait(&tsdr->threadsync);
 	RETURN_PLUGIN_RESULT(tsdr, tsdr->plugin, status);
 }
 
@@ -172,9 +170,11 @@ static inline void announceexception(tsdr_lib_t * tsdr, const char * message, in
 // polyface filterbank
 // shielded loop antenna (magnetic)
 void videodecodingthread(void * ctx) {
+
 	int i;
 
 	tsdr_context_t * context = (tsdr_context_t *) ctx;
+	semaphore_enter(&context->this->threadsync);
 
 	int height = context->this->height;
 	int width = context->this->width;
@@ -226,7 +226,7 @@ void videodecodingthread(void * ctx) {
 
 	free (buffer);
 
-	mutex_signal(&context->this->mutex_video_stopped);
+	semaphore_leave(&context->this->threadsync);
 }
 
 
@@ -464,14 +464,13 @@ int tsdr_loadplugin(tsdr_lib_t * tsdr, const char * pluginfilepath, const char *
 
 	tsdr->running = 0;
 
-	mutex_waitforever(&tsdr->mutex_video_stopped);
+	semaphore_wait(&tsdr->threadsync);
 
 	free(context->buffer);
 	free(context);
 
 	cb_free(&context->circbuf);
 
-	mutex_signal(&tsdr->mutex_sync_unload);
 end:
 	if (pluginsfault) announceexception(tsdr,tsdr->plugin.tsdrplugin_getlasterrortext(),status);
 
@@ -533,8 +532,7 @@ end:
 	 free((*tsdr)->errormsg);
 	 (*tsdr)->errormsg_size = 0;
 
-	 mutex_free(&(*tsdr)->mutex_video_stopped);
-	 mutex_free(&(*tsdr)->mutex_sync_unload);
+	 semaphore_free(&(*tsdr)->threadsync);
 
 	 free (*tsdr);
 	 *tsdr = NULL;

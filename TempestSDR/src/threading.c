@@ -152,7 +152,7 @@
 		pthread_cond_t * cond = (pthread_cond_t *) imutex->thing2;
 
 		pthread_mutex_lock(mutex);
-		pthread_cond_signal(cond);
+		pthread_cond_broadcast(cond);
 		pthread_mutex_unlock(mutex);
 #endif
 	}
@@ -169,4 +169,33 @@
 		pthread_mutex_destroy(mutex);
 		pthread_cond_destroy(cond);
 #endif
+	}
+
+	void semaphore_init(semaphore_t * semaphore) {
+		semaphore->count = 0;
+		mutex_init(&semaphore->locker);
+		mutex_init(&semaphore->signaller);
+	}
+
+	void semaphore_enter(semaphore_t * semaphore) {
+		critical_enter(&semaphore->locker);
+		semaphore->count++;
+		critical_leave(&semaphore->locker);
+	}
+
+	void semaphore_leave(semaphore_t * semaphore) {
+		critical_enter(&semaphore->locker);
+		semaphore->count--;
+		if (semaphore -> count == 0)
+			mutex_signal(&semaphore->signaller);
+		critical_leave(&semaphore->locker);
+	}
+
+	void semaphore_wait(semaphore_t * semaphore) {
+		mutex_waitforever(&semaphore->signaller);
+	}
+
+	void semaphore_free(semaphore_t * semaphore) {
+		mutex_free(&semaphore->locker);
+		mutex_free(&semaphore->signaller);
 	}

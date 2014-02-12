@@ -29,6 +29,12 @@
 		void * thing2;
 	} typedef mutex_t;
 
+	struct semaphore {
+		int count;
+		mutex_t locker;
+		mutex_t signaller;
+	} typedef semaphore_t;
+
 #define THREAD_INIT ={NULL, NULL}
 
 	void thread_start(thread_function f, void * ctx);
@@ -43,5 +49,11 @@
 
 	void critical_enter(mutex_t * mutex);
 	void critical_leave(mutex_t * mutex);
+
+	void semaphore_init(semaphore_t * semaphore);
+	void semaphore_enter(semaphore_t * semaphore);
+	void semaphore_leave(semaphore_t * semaphore);
+	void semaphore_wait(semaphore_t * semaphore);
+	void semaphore_free(semaphore_t * semaphore);
 
 #endif
