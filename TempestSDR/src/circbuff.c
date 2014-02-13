@@ -82,6 +82,7 @@ int cb_add(CircBuff_t * cb, float * in, const int len) {
 }
 
 int cb_rem_blocking(CircBuff_t * cb, float * in, const int len) {
+	if (len <= 0) return CB_OK;
 
     int items_inside = cb->buffer_size - cb->remaining_capacity;
     while (items_inside < len) {

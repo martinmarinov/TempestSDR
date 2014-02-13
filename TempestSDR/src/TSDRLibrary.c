@@ -38,8 +38,9 @@ struct tsdr_context {
 		CircBuff_t circbuf_decimation_to_video;
 		CircBuff_t circbuf_device_to_decimation;
 		int decimator_items_to_poll;
+
 		int device_items_dropped;
-		unsigned int device_items_to_drop;
+		int device_items_to_drop;
 
 	} typedef tsdr_context_t;
 
@@ -270,7 +271,8 @@ void process(float *buf, uint32_t items_count, void *ctx, int samples_dropped) {
 		context->device_items_dropped += (samples_dropped << 1);
 
 	if (context->device_items_dropped > 0) {
-		const unsigned int size2 = ((context->this->width * context->this->height) << 1) * context->this->pixeltimeoversampletime;
+
+		const unsigned int size2 = round(((context->this->width * context->this->height) << 1) * context->this->pixeltimeoversampletime);
 		const unsigned int moddropped = context->device_items_dropped % size2;
 		context->device_items_to_drop += size2-moddropped; // how much to drop so that it ends up on one frame
 		context->device_items_dropped = 0;

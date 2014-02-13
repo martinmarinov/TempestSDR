@@ -15,6 +15,7 @@ import java.awt.EventQueue;
 import java.awt.Rectangle;
 import java.awt.Toolkit;
 
+import javax.imageio.ImageIO;
 import javax.swing.JFrame;
 import javax.swing.JComboBox;
 import javax.swing.JButton;
@@ -51,6 +52,10 @@ import java.awt.event.FocusAdapter;
 import java.awt.event.FocusEvent;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
+import java.io.File;
+import java.io.IOException;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.prefs.Preferences;
 
 import javax.swing.JPanel;
@@ -59,6 +64,7 @@ import javax.swing.UIManager;
 
 public class Main implements TSDRLibrary.FrameReadyCallback, TSDRSourceParamChangedListener {
 	
+	private final static String SNAPSHOT_FORMAT = "png";
 	private final static int OSD_TIME = 2000;
 	
 	private final static int FRAMERATE_SIGNIFICANT_FIGURES = 6;
@@ -114,6 +120,8 @@ public class Main implements TSDRLibrary.FrameReadyCallback, TSDRSourceParamChan
 	
 	private final TSDRSource[] souces = TSDRSource.getAvailableSources();
 	private final VideoMode[] videomodes = VideoMode.getVideoModes();
+	
+	private volatile boolean snapshot = false;
 	
 	private boolean video_mode_change_manually_triggered = false;
 	
@@ -396,6 +404,16 @@ public class Main implements TSDRLibrary.FrameReadyCallback, TSDRSourceParamChan
 			}
 		});
 		frmTempestSdr.getContentPane().add(slMotionBlur);
+		
+		JButton btnSnapshot = new HoldButton("Snapshot");
+		btnSnapshot.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent arg0) {
+				snapshot = true;
+			}
+		});
+		btnSnapshot.setBounds(575, 306+30, 159, 25);
+		frmTempestSdr.getContentPane().add(btnSnapshot);
 		
 		JLabel lblMotionBlur = new JLabel("Lowpass:");
 		lblMotionBlur.setHorizontalAlignment(SwingConstants.RIGHT);
@@ -700,6 +718,20 @@ public class Main implements TSDRLibrary.FrameReadyCallback, TSDRSourceParamChan
 
 	@Override
 	public void onFrameReady(TSDRLibrary lib, BufferedImage frame) {
+		if (snapshot) {
+			snapshot = false;
+			try {
+				final int freq = (int) Math.abs(((Long) spFrequency.getValue())/1000000.0d);
+				final String filename = "TSDR_"+(new SimpleDateFormat("yyyy-MM-dd_HH-mm-ss")).format(new Date())+"_"+freq+"MHz"+"."+SNAPSHOT_FORMAT;
+				final File outputfile = new File(filename);
+				ImageIO.write(frame, SNAPSHOT_FORMAT, outputfile);
+				visualizer.setOSD("Saved to "+outputfile.getAbsolutePath(), OSD_TIME);
+			} catch (Throwable e) {
+				visualizer.setOSD("Failed to capture snapshot", OSD_TIME);
+				e.printStackTrace();
+			}
+			
+		}
 		visualizer.drawImage(frame);
 	}
 
