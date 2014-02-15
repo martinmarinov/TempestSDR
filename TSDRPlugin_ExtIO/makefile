@@ -23,9 +23,6 @@ else
 	CFLAGS+=-O3
 endif
 
-# Headers
-INC =
-
 # END OF CONFIGURATION IF STANDARD DIR STRUCTURE IS USED
 
 # Where the TSDRPlugin.h of the TempestSDR library resides (so it will be copied over)

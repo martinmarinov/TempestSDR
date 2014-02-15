@@ -23,6 +23,9 @@ else
 	CFLAGS+=-O3
 endif
 
+# Headers
+INC += "$(UHD_HOME)/include"
+
 # END OF CONFIGURATION IF STANDARD DIR STRUCTURE IS USED
 
 # Compile with g++

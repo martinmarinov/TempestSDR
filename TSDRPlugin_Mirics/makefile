@@ -24,7 +24,7 @@ else
 endif
 
 # Headers
-INC = "$(MIRICS_HOME)/API/inc"
+INC += "$(MIRICS_HOME)/API/inc"
 
 # END OF CONFIGURATION IF STANDARD DIR STRUCTURE IS USED
 

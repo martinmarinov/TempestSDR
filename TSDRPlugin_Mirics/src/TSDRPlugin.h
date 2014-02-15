@@ -25,7 +25,7 @@
 
 	#include <stdint.h>
 
-	typedef void(*tsdrplugin_readasync_function)(float *buf, uint32_t len, void *ctx, int dropped_samples);
+	typedef void(*tsdrplugin_readasync_function)(float *buf, uint32_t items_count, void *ctx, int samples_dropped);
 
 	EXTERNC void __stdcall tsdrplugin_getName(char *);
 	EXTERNC int __stdcall tsdrplugin_init(const char * params);

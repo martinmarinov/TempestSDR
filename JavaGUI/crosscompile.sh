@@ -10,6 +10,12 @@ C=/media/741C85CD1C858B36
 # Define Mirics home
 MIRICS_HOME=$C/PROGRA~1/MiricsSDR
 
+# Define UHD home
+UHD_HOME=$C/PROGRA~1/UHD
+
+# Third party libraries dir, that contains third party dlls compiled for the supported architectues (ex uhd.dll, etc)
+THIRD_PARTY_LIB=../home/martinmarinov/workspace/TempestSDR/thirdpartylibraries
+
 # Register the paths to your cross compilers (if they are not in the PATH already)
 export PATH=$PATH:/opt/cross_win64/bin:/opt/cross_win32/bin
 
@@ -30,7 +36,11 @@ for i in "${!CCs[@]}"; do
 	OSNAME=${OSNAMEs[$i]}
 	ARCHNAME=${ARCHNAMEs[$i]}
 	JAVA_HOME=${JAVA_HOMEs[$i]}
-	make jnilib CC=$CC CXX=$CXX GPP=$GPP AR=$AR OSNAME=$OSNAME ARCHNAME=$ARCHNAME JAVA_HOME=$JAVA_HOME MIRICS_HOME=$MIRICS_HOME
+	THIRD_PARTY_FULL_PATH=$THIRD_PARTY_LIB/$OSNAME/$ARCHNAME/
+	
+	echo ------ BUILDING FOR $OSNAME/$ARCHNAME >&2
+
+	make jnilib CC=$CC CXX=$CXX GPP=$GPP AR=$AR OSNAME=$OSNAME ARCHNAME=$ARCHNAME JAVA_HOME=$JAVA_HOME MIRICS_HOME=$MIRICS_HOME LDFLAGS=-L$THIRD_PARTY_FULL_PATH UHD_HOME=$UHD_HOME
 
 	#do release of dlls
 	mkdir -p Release/dlls/$OSNAME/$ARCHNAME/
