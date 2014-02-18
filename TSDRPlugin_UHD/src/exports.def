@@ -1,0 +1,12 @@
+LIBRARY TSDRPlugin_UHD
+EXPORTS
+tsdrplugin_getName = _tsdrplugin_getName@4
+tsdrplugin_init = _tsdrplugin_init@4
+tsdrplugin_setsamplerate = _tsdrplugin_setsamplerate@4
+tsdrplugin_getsamplerate = _tsdrplugin_getsamplerate@0
+tsdrplugin_setbasefreq = _tsdrplugin_setbasefreq@4
+tsdrplugin_stop = _tsdrplugin_stop@0
+tsdrplugin_setgain = _tsdrplugin_setgain@4
+tsdrplugin_getlasterrortext = _tsdrplugin_getlasterrortext@0
+tsdrplugin_readasync = _tsdrplugin_readasync@8
+tsdrplugin_cleanup = _tsdrplugin_cleanup@0

@@ -70,10 +70,10 @@ EXTERNC int __stdcall tsdrplugin_init(const char * params) {
 	split_vector_type argscounter;
 	boost::split( argscounter, sparams, boost::is_any_of(" "), boost::token_compress_on );
 
-	int argc = argscounter.size()+1;
-	char * argv[argc];
+	const int argc = argscounter.size()+1;
+	char ** argv = (char **) malloc(argc*sizeof(char *));
 	char zerothtarg[] = "TSDRPlugin_UHD";
-	argv[0] = zerothtarg;
+	argv[0] = (char *) zerothtarg;
 	for (int i = 0; i < argc-1; i++)
 		argv[i+1] = (char *) argscounter[i].c_str();
 
@@ -101,6 +101,8 @@ EXTERNC int __stdcall tsdrplugin_init(const char * params) {
 		std::string msg(boost::str(boost::format("Error: %s\n\nTSDRPlugin_UHD %s") % ex.what() % desc));
 		RETURN_EXCEPTION(msg.c_str(), TSDR_PLUGIN_PARAMETERS_WRONG);
 	}
+
+	free(argv);
 
 	try {
 		//create a usrp device

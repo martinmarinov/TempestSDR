@@ -47,6 +47,7 @@ struct tsdr_context {
 	struct tsdr_lib {
 		pluginsource_t plugin;
 		semaphore_t threadsync;
+		mutex_t stopsync;
 		uint32_t samplerate;
 		double sampletime;
 		int width;
@@ -108,6 +109,7 @@ static inline void announceexception(tsdr_lib_t * tsdr, const char * message, in
 	(*tsdr)->errormsg_code = TSDR_OK;
 
 	semaphore_init(&(*tsdr)->threadsync);
+	mutex_init(&(*tsdr)->stopsync);
 
 }
 
@@ -155,7 +157,10 @@ static inline void announceexception(tsdr_lib_t * tsdr, const char * message, in
 	if (!tsdr->running) RETURN_OK(tsdr);
 	int status = tsdr->plugin.tsdrplugin_stop();
 
+
 	semaphore_wait(&tsdr->threadsync);
+	mutex_signal(&tsdr->stopsync);
+
 	RETURN_PLUGIN_RESULT(tsdr, tsdr->plugin, status);
 }
 
@@ -510,9 +515,7 @@ int tsdr_loadplugin(tsdr_lib_t * tsdr, const char * pluginfilepath, const char *
 	if (status != TSDR_OK) pluginsfault =1;
 
 	tsdr->running = 0;
-
-	semaphore_wait(&tsdr->threadsync);
-
+	mutex_wait(&tsdr->stopsync);
 	free(context);
 
 	cb_free(&context->circbuf_decimation_to_video);
@@ -580,6 +583,7 @@ end:
 	 (*tsdr)->errormsg_size = 0;
 
 	 semaphore_free(&(*tsdr)->threadsync);
+	 mutex_free(&(*tsdr)->stopsync);
 
 	 free (*tsdr);
 	 *tsdr = NULL;

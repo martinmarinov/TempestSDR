@@ -14,7 +14,6 @@ PLUGNAME=TSDRPlugin_UHD
 
 # Dependencies
 OBJS=$(PLUGNAME).o
-LIBRARIES=-luhd -lboost_thread -lboost_program_options
 
 # Flags
 ifeq ($(BUILD_TYPE),Debug)
@@ -22,9 +21,6 @@ ifeq ($(BUILD_TYPE),Debug)
 else
 	CFLAGS+=-O3
 endif
-
-# Headers
-INC += "$(UHD_HOME)/include"
 
 # END OF CONFIGURATION IF STANDARD DIR STRUCTURE IS USED
 
@@ -99,13 +95,18 @@ OBJFOLDER=obj
 # OS specific flags
 ifeq ($(OSNAME),LINUX)
 	CXXFLAGS+=-fPIC
+	LIBRARIES+=-lboost_thread -lboost_program_options -luhd
 else ifeq ($(OSNAME),WINDOWS)
 	LDFLAGS+=-Wl,--add-stdcall-alias
+	LIBRARIES+= -lboost_thread-mt -lboost_program_options-mt -lboost_system-mt -luhd
 endif
 
 # Calculate the path to dependencies
+ifneq ($(OSNAME),WINDOWS)
 _OBJS = $(patsubst %,$(OBJFOLDER)/%,$(OBJS))
+endif
 _DEPS = $(patsubst %,$(SOURCEFOLDER)/%,$(DEPS))
+
 
 # Generate the library
 all : $(OUTPUTFOLDER)/$(LIBPREFIX)$(PLUGNAME)$(EXT)
@@ -117,16 +118,27 @@ copyoverheaderfile:
 
 # Link
 $(OUTPUTFOLDER)/$(LIBPREFIX)$(PLUGNAME)$(EXT): copyoverheaderfile $(_OBJS)
-	$(GPP) -Wall -shared $(LDFLAGS) $(DEBUGFLAGS) $(COMPILATION_TYPE) -o $@ $(_OBJS) $(LIBRARIES) 
+ifeq ($(OSNAME),WINDOWS)
+
+ifeq ($(ARCHNAME),X86)
+	msbuild.exe TSDRPlugin_UHD.vcxproj //p:Configuration=Release;Platform=Win32;msbuildemitsolution=1
+else ifeq ($(ARCHNAME),X64)
+	msbuild.exe TSDRPlugin_UHD.vcxproj //p:Configuration=Release;Platform=Win64;msbuildemitsolution=1
+endif
+
+else
+	$(GPP) -shared $(LDFLAGS) $(DEBUGFLAGS) $(COMPILATION_TYPE) -o $@ $(_OBJS) $(LIBRARIES)
+endif
 
 # Make dirs and compile
 $(OBJFOLDER)/%.o : $(SOURCEFOLDER)/%.cpp
 	mkdir -p $(OUTPUTFOLDER)
 	mkdir -p $(OBJFOLDER)
-	$(GPP) -Wall $(foreach d, $(INC), -I$d) $(CXXFLAGS) $(DEBUGFLAGS) $(COMPILATION_TYPE) -c $< -o $@
+	$(GPP) $(foreach d, $(INC), -I$d) $(CXXFLAGS) $(DEBUGFLAGS) $(COMPILATION_TYPE) -c $< -o $@
 
 .PHONY: clean
 
 # Clean artifacts
 clean :
-	rm -f $(OBJFOLDER)/*.o $(OUTPUTFOLDER)/*.* $(OUTPUTFOLDER)/$(LIBPREFIX)$(PLUGNAME)$(EXT)
+	rm -rf $(OBJFOLDER)
+	rm -f $(OUTPUTFOLDER)/*.* $(OUTPUTFOLDER)/$(LIBPREFIX)$(PLUGNAME)$(EXT)

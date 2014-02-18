@@ -1,0 +1,27 @@
+For Linux:
+
+This requires boost libraries and UHD to be installed
+
+For Windows:
+
+Compile boost:
+
+    Download sources
+    Extract them in a folder, in my case C:\boost_1_55_0
+    cd to that folder
+    bootstrap.bat mingw
+    b2 toolset=gcc
+
+The way to compile it is: (I have C:\MinGW\msys\1.0\bin and C:\MinGW\bin in my PATH)
+
+	Make sure you have Python/Cheetah/etc all of the prerequisites for UHD (look it up online)
+	change uhd/host/lib/transport/CMakeLists.txt from IF(WIN32) to IF(MSVC) everywhere
+	download libusb from http://libusb-winusb-wip.googlecode.com/files/libusb_2011.07.20.7z and extract into C:/libusb, so that C:/libusb contains libusb-1.0.lib, libusb-1.0.dll and libusb-1.0.dll.a and libusb-1.0/libusb.h for MinGW
+	add the following lines to uhd/host/lib/usrp/b200/b200_iface.cpp
+		#ifndef HAVE_LIBUSB_ERROR_NAME
+			#define libusb_error_name(code) \
+			str(boost::format("LIBUSB_ERROR_CODE %d") % code)
+		#endif
+	uhd\host\build>cmake -G "MinGW Makefiles" -DLIBUSB_LIBRARIES:STRING=C:/libusb/libusb-1.0.lib -DLIBUSB_INCLUDE_DIRS:STRING=C:\libusb\libusb-1.0 -DBOOST_ROOT:STRING=C:/boost_1_55_0 ../
+	mingw32-make
+	
