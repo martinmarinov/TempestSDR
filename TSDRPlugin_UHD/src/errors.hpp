@@ -17,6 +17,7 @@
 #include <string.h>
 #include <stdlib.h>
 
+extern "C" {
 
 int errormsg_code;
 char * errormsg = NULL;
@@ -45,13 +46,13 @@ static inline void announceexception(const char * message, int status) {
 	strcpy(errormsg, message);
 }
 
+}
 
-extern "C" char * __stdcall tsdrplugin_getlasterrortext(void) {
+EXTERNC TSDRPLUGIN_API char * __stdcall tsdrplugin_getlasterrortext(void) {
 	if (errormsg_code == TSDR_OK)
 		return NULL;
 	else
 		return errormsg;
 }
-
 
 #endif

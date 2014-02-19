@@ -46,7 +46,7 @@ static inline void announceexception(const char * message, int status) {
 }
 
 
-char * __stdcall tsdrplugin_getlasterrortext(void) {
+char * TSDRPLUGIN_API __stdcall tsdrplugin_getlasterrortext(void) {
 	if (errormsg_code == TSDR_OK)
 		return NULL;
 	else

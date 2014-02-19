@@ -1,27 +1,42 @@
+UHD_INCLUDE needs to point at the UHD header include directory (the one with folder "uhd")
+BOOST_INCLUDE needs to point at the  boost header include direcotory (the one with folder "boost")
+
 For Linux:
 
 This requires boost libraries and UHD to be installed
 
 For Windows:
 
-Compile boost:
+Everything is built with Visual studio because of the fact that boost do not support MinGW properly. Sad.
+
+Compile boost (this forces usage of Visual Studio 2012 since there are some bugs with 2013):
 
     Download sources
     Extract them in a folder, in my case C:\boost_1_55_0
     cd to that folder
-    bootstrap.bat mingw
-    b2 toolset=gcc
+    bootstrap.bat --toolset=vc11
+    b2 architecture=x86 link=static toolset=msvc-11.0 stage
+	b2 architecture=x86 link=static toolset=msvc-11.0 install
+	
+This will install in C:\Boost, I moved mine to D:\Boost32, then for For X64
 
-The way to compile it is: (I have C:\MinGW\msys\1.0\bin and C:\MinGW\bin in my PATH)
+	b2 architecture=x86 link=static toolset=msvc-11.0 address-model=64 stage
+	b2 architecture=x86 link=static toolset=msvc-11.0 address-model=64 install
+
+Which I moved to D:\Boost64	
+	
+The way to compile for X86 is:
 
 	Make sure you have Python/Cheetah/etc all of the prerequisites for UHD (look it up online)
-	change uhd/host/lib/transport/CMakeLists.txt from IF(WIN32) to IF(MSVC) everywhere
-	download libusb from http://libusb-winusb-wip.googlecode.com/files/libusb_2011.07.20.7z and extract into C:/libusb, so that C:/libusb contains libusb-1.0.lib, libusb-1.0.dll and libusb-1.0.dll.a and libusb-1.0/libusb.h for MinGW
-	add the following lines to uhd/host/lib/usrp/b200/b200_iface.cpp
-		#ifndef HAVE_LIBUSB_ERROR_NAME
-			#define libusb_error_name(code) \
-			str(boost::format("LIBUSB_ERROR_CODE %d") % code)
-		#endif
-	uhd\host\build>cmake -G "MinGW Makefiles" -DLIBUSB_LIBRARIES:STRING=C:/libusb/libusb-1.0.lib -DLIBUSB_INCLUDE_DIRS:STRING=C:\libusb\libusb-1.0 -DBOOST_ROOT:STRING=C:/boost_1_55_0 ../
-	mingw32-make
+	download libusb from http://sourceforge.net/projects/libusbx/files/releases/1.0.18/binaries/ and extract into C:/libusb
+	make folder uhd/host/build
+	get into that folder
+	cmake -G "Visual Studio 11" -DLIBUSB_LIBRARIES:STRING=C:/libusb/MS32/static/libusb-1.0.lib -DLIBUSB_INCLUDE_DIRS:STRING=C:/libusb/include/libusbx-1.0 -DBOOST_ROOT:STRING=D:/Boost32 ../
+	Compile with Visual Studio
+	
+For X64 should be
+	cmake -G "Visual Studio 11 Win64" -DLIBUSB_LIBRARIES:STRING=C:/libusb/MS64/static/libusb-1.0.lib -DLIBUSB_INCLUDE_DIRS:STRING=C:/libusb/include/libusbx-1.0 -DBOOST_ROOT:STRING=D:/Boost64 ../
+
+To compile UHD as a static library (not working yet)
+	http://lists.ettus.com/pipermail/usrp-users_lists.ettus.com/2012-April/004106.html
 	

@@ -22,10 +22,12 @@
 #include <boost/program_options.hpp>
 #include <boost/format.hpp>
 #include <boost/thread.hpp>
+
 #include <iostream>
 #include <complex>
 
 #include "TSDRPlugin.h"
+
 #include "TSDRCodes.h"
 
 #include <stdint.h>
@@ -45,7 +47,7 @@ double req_rate = 25e6;
 volatile int is_running = 0;
 size_t items_per_call = HOW_OFTEN_TO_CALL_CALLBACK_SEC * req_rate * 2;
 
-EXTERNC void __stdcall tsdrplugin_getName(char * name) {
+EXTERNC TSDRPLUGIN_API void __stdcall tsdrplugin_getName(char * name) {
 	strcpy(name, "TSDR UHD USRP Compatible Plugin");
 }
 
@@ -60,8 +62,7 @@ double tousrpgain(float gain) {
 	}
 }
 
-EXTERNC int __stdcall tsdrplugin_init(const char * params) {
-
+EXTERNC TSDRPLUGIN_API int __stdcall tsdrplugin_init(const char * params) {
 	// simulate argv and argc
 	std::string sparams(params);
 
@@ -102,8 +103,6 @@ EXTERNC int __stdcall tsdrplugin_init(const char * params) {
 		RETURN_EXCEPTION(msg.c_str(), TSDR_PLUGIN_PARAMETERS_WRONG);
 	}
 
-	free(argv);
-
 	try {
 		//create a usrp device
 		usrp = uhd::usrp::multi_usrp::make(args);
@@ -131,13 +130,13 @@ EXTERNC int __stdcall tsdrplugin_init(const char * params) {
 		boost::this_thread::sleep(boost::posix_time::seconds(1)); //allow for some setup time
 
 		//Check Ref and LO Lock detect
-		std::vector<std::string> sensor_names;
-		sensor_names = usrp->get_rx_sensor_names(0);
-		if (std::find(sensor_names.begin(), sensor_names.end(), "lo_locked") != sensor_names.end()) {
+		std::vector<std::string> rx_sensor_names;
+		rx_sensor_names = usrp->get_rx_sensor_names(0);
+		if (std::find(rx_sensor_names.begin(), rx_sensor_names.end(), "lo_locked") != rx_sensor_names.end()) {
 			uhd::sensor_value_t lo_locked = usrp->get_rx_sensor("lo_locked",0);
 			UHD_ASSERT_THROW(lo_locked.to_bool());
 		}
-		sensor_names = usrp->get_mboard_sensor_names(0);
+		std::vector<std::string>  sensor_names = usrp->get_mboard_sensor_names(0);
 		if ((ref == "mimo") and (std::find(sensor_names.begin(), sensor_names.end(), "mimo_locked") != sensor_names.end())) {
 			uhd::sensor_value_t mimo_locked = usrp->get_mboard_sensor("mimo_locked",0);
 			UHD_ASSERT_THROW(mimo_locked.to_bool());
@@ -148,13 +147,15 @@ EXTERNC int __stdcall tsdrplugin_init(const char * params) {
 		}
 	} catch (std::exception const&  ex)
 	{
+		free(argv);
 		RETURN_EXCEPTION(ex.what(), TSDR_CANNOT_OPEN_DEVICE);
 	}
 
+	free(argv);
 	RETURN_OK();
 }
 
-EXTERNC uint32_t __stdcall tsdrplugin_setsamplerate(uint32_t rate) {
+EXTERNC TSDRPLUGIN_API uint32_t __stdcall tsdrplugin_setsamplerate(uint32_t rate) {
 	if (is_running)
 		return tsdrplugin_getsamplerate();
 
@@ -173,7 +174,7 @@ EXTERNC uint32_t __stdcall tsdrplugin_setsamplerate(uint32_t rate) {
 	return req_rate;
 }
 
-EXTERNC uint32_t __stdcall tsdrplugin_getsamplerate() {
+EXTERNC TSDRPLUGIN_API uint32_t __stdcall tsdrplugin_getsamplerate() {
 
 	try {
 		req_rate = usrp->get_rx_rate();
@@ -186,7 +187,7 @@ EXTERNC uint32_t __stdcall tsdrplugin_getsamplerate() {
 	return req_rate;
 }
 
-EXTERNC int __stdcall tsdrplugin_setbasefreq(uint32_t freq) {
+EXTERNC TSDRPLUGIN_API int __stdcall tsdrplugin_setbasefreq(uint32_t freq) {
 	req_freq = freq;
 
 	try {
@@ -199,12 +200,12 @@ EXTERNC int __stdcall tsdrplugin_setbasefreq(uint32_t freq) {
 	RETURN_OK();
 }
 
-EXTERNC int __stdcall tsdrplugin_stop(void) {
+EXTERNC TSDRPLUGIN_API int __stdcall tsdrplugin_stop(void) {
 	is_running = 0;
 	RETURN_OK();
 }
 
-EXTERNC int __stdcall tsdrplugin_setgain(float gain) {
+EXTERNC TSDRPLUGIN_API int __stdcall tsdrplugin_setgain(float gain) {
 	req_gain = gain;
 	try {
 		usrp->set_rx_gain(tousrpgain(req_gain));
@@ -215,7 +216,7 @@ EXTERNC int __stdcall tsdrplugin_setgain(float gain) {
 	RETURN_OK();
 }
 
-EXTERNC int __stdcall tsdrplugin_readasync(tsdrplugin_readasync_function cb, void *ctx) {
+EXTERNC TSDRPLUGIN_API int __stdcall tsdrplugin_readasync(tsdrplugin_readasync_function cb, void *ctx) {
 	uhd::set_thread_priority_safe();
 
 	is_running = 1;
@@ -268,8 +269,8 @@ EXTERNC int __stdcall tsdrplugin_readasync(tsdrplugin_readasync_function cb, voi
 				if (md.has_time_spec) {
 					const uint64_t roundsecs = (uint64_t) md.time_spec.get_full_secs();
 					uint64_t first_sample_id = roundsecs * samp_rate_uint;
-					first_sample_id += round(roundsecs * samp_rate_fract);
-					first_sample_id += round(md.time_spec.get_frac_secs() * req_rate);
+					first_sample_id += roundsecs * samp_rate_fract + 0.5;
+					first_sample_id += md.time_spec.get_frac_secs() * req_rate + 0.5;
 
 					// we should have the id of the first sample in our first_sample_id
 					const uint64_t expected_first_sample_id = last_firstsample + samples_in_buffer;
@@ -342,7 +343,7 @@ EXTERNC int __stdcall tsdrplugin_readasync(tsdrplugin_readasync_function cb, voi
 	RETURN_OK();
 }
 
-EXTERNC void __stdcall tsdrplugin_cleanup(void) {
+EXTERNC TSDRPLUGIN_API void __stdcall tsdrplugin_cleanup(void) {
 
 	try {
 		usrp.reset();

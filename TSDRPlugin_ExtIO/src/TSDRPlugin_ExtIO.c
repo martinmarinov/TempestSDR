@@ -17,6 +17,7 @@
 #include <setjmp.h>
 
 #include "TSDRCodes.h"
+#include "TSDRPlugin.h"
 #include "ExtIOPluginLoader.h"
 #include <windows.h>
 
@@ -84,39 +85,39 @@ void closeextio(void) {
 	source = NULL;
 }
 
-void __stdcall tsdrplugin_getName(char * name) {
+void TSDRPLUGIN_API __stdcall tsdrplugin_getName(char * name) {
 	strcpy(name, "TSDR ExtIO Plugin");
 }
 
-uint32_t __stdcall tsdrplugin_setsamplerate(uint32_t rate) {
+uint32_t TSDRPLUGIN_API __stdcall tsdrplugin_setsamplerate(uint32_t rate) {
 	if (source != NULL) return source->GetHWSR();
 	return 0;
 }
 
-uint32_t __stdcall tsdrplugin_getsamplerate() {
+uint32_t TSDRPLUGIN_API __stdcall tsdrplugin_getsamplerate() {
 	if (source != NULL) return source->GetHWSR();
 	return 0;
 }
 
-int __stdcall tsdrplugin_setbasefreq(uint32_t freq) {
+int TSDRPLUGIN_API __stdcall tsdrplugin_setbasefreq(uint32_t freq) {
 	req_freq = freq;
 
 	RETURN_OK();
 }
 
-int __stdcall tsdrplugin_stop(void) {
+int TSDRPLUGIN_API __stdcall tsdrplugin_stop(void) {
 	is_running = 0;
 
 	RETURN_OK();
 }
 
-int __stdcall tsdrplugin_setgain(float gain) {
+int TSDRPLUGIN_API __stdcall tsdrplugin_setgain(float gain) {
 	req_gain = gain;
 
 	RETURN_OK();
 }
 
-void callback(int cnt, int status, float IQoffs, void *IQdata) {
+void TSDRPLUGIN_API callback(int cnt, int status, float IQoffs, void *IQdata) {
 	if (!is_running) return;
 	if (status < 0 || cnt < 0)
 		return;
@@ -251,7 +252,7 @@ DWORD WINAPI doGuiStuff(LPVOID arg) {
 	return 0;
 }
 
-int __stdcall tsdrplugin_init(const char * params) {
+int TSDRPLUGIN_API __stdcall tsdrplugin_init(const char * params) {
 	
 	// create synchronization event
 	guisyncevent = CreateEvent(0, FALSE, FALSE, 0);
@@ -278,7 +279,7 @@ void attenuate(float gain) {
 	}
 }
 
-int __stdcall tsdrplugin_readasync(tsdrplugin_readasync_function cb, void *ctx) {
+int TSDRPLUGIN_API __stdcall tsdrplugin_readasync(tsdrplugin_readasync_function cb, void *ctx) {
 
 	if (source == NULL)
 		RETURN_EXCEPTION("Please provide a full path to a valid ExtIO dll.", TSDR_PLUGIN_PARAMETERS_WRONG);
@@ -324,7 +325,7 @@ int __stdcall tsdrplugin_readasync(tsdrplugin_readasync_function cb, void *ctx) 
 	RETURN_OK();
 }
 
-void __stdcall tsdrplugin_cleanup(void) {
+void TSDRPLUGIN_API __stdcall tsdrplugin_cleanup(void) {
 	if (outbuf != NULL) {
 		free(outbuf);
 		outbuf = NULL;

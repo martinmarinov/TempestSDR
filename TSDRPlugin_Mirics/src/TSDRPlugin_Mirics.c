@@ -49,47 +49,47 @@ static inline void announceexception(const char * message, int status) {
 	strcpy(errormsg, message);
 }
 
-char __stdcall * tsdrplugin_getlasterrortext(void) {
+char TSDRPLUGIN_API __stdcall * tsdrplugin_getlasterrortext(void) {
 	if (errormsg_code == TSDR_OK)
 		return NULL;
 	else
 		return errormsg;
 }
 
-void __stdcall tsdrplugin_getName(char * name) {
+void TSDRPLUGIN_API __stdcall tsdrplugin_getName(char * name) {
 	strcpy(name, "TSDR Mirics SDR Plugin");
 }
 
-uint32_t __stdcall tsdrplugin_setsamplerate(uint32_t rate) {
+uint32_t TSDRPLUGIN_API __stdcall tsdrplugin_setsamplerate(uint32_t rate) {
 	return SAMPLE_RATE;
 }
 
-uint32_t __stdcall tsdrplugin_getsamplerate() {
+uint32_t TSDRPLUGIN_API __stdcall tsdrplugin_getsamplerate() {
 	return SAMPLE_RATE;
 }
 
-int __stdcall tsdrplugin_setbasefreq(uint32_t freq) {
+int TSDRPLUGIN_API __stdcall tsdrplugin_setbasefreq(uint32_t freq) {
 	desiredfreq = freq;
 	RETURN_OK();
 }
 
-int __stdcall tsdrplugin_stop(void) {
+int TSDRPLUGIN_API __stdcall tsdrplugin_stop(void) {
 	working = 0;
 	RETURN_OK();
 }
 
-int __stdcall tsdrplugin_setgain(float gain) {
+int TSDRPLUGIN_API __stdcall tsdrplugin_setgain(float gain) {
 	desiredgainred = 102 - (int) (gain * 102);
 	if (desiredgainred < 0) desiredgainred = 0;
 	else if (desiredgainred > 102) desiredgainred = 102;
 	RETURN_OK();
 }
 
-int __stdcall tsdrplugin_init(const char * params) {
+int TSDRPLUGIN_API __stdcall tsdrplugin_init(const char * params) {
 	RETURN_OK();
 }
 
-int __stdcall tsdrplugin_readasync(tsdrplugin_readasync_function cb, void *ctx) {
+int TSDRPLUGIN_API __stdcall tsdrplugin_readasync(tsdrplugin_readasync_function cb, void *ctx) {
 	working = 1;
 
 	int err, sps, grc, rfc, fsc, i, id;
@@ -182,6 +182,6 @@ int __stdcall tsdrplugin_readasync(tsdrplugin_readasync_function cb, void *ctx) 
 	RETURN_EXCEPTION("The Mirics SDR dongle stopped responding.", (err == 0) ? TSDR_OK : TSDR_ERR_PLUGIN);
 }
 
-void __stdcall tsdrplugin_cleanup(void) {
+void TSDRPLUGIN_API __stdcall tsdrplugin_cleanup(void) {
 
 }
