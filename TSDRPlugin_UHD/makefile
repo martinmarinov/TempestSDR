@@ -22,7 +22,8 @@ else
 	CFLAGS+=-O3
 endif
 
-INC+=-I"$(BOOST_ROOT)/include" -I"$(UHD_ROOT)/include"
+#for statically compiling
+#INC+=-I"$(BOOST_ROOT)/include" -I"$(UHD_ROOT)/include"
 
 # END OF CONFIGURATION IF STANDARD DIR STRUCTURE IS USED
 
@@ -97,7 +98,8 @@ OBJFOLDER=obj
 # OS specific flags
 ifeq ($(OSNAME),LINUX)
 	CXXFLAGS+=-fPIC
-	LIBRARIES+=-Ldependencies/$(OSNAME)/$(ARCHNAME) -lpthread -lboost_system -lboost_thread -lboost_program_options -lboost_unit_test_framework -luhd -lboost_serialization -lboost_filesystem  -lboost_date_time -lboost_regex -lrt
+	# static version of the libraries if compiled LIBRARIES+=-Ldependencies/$(OSNAME)/$(ARCHNAME) -lpthread -lboost_system -lboost_thread -lboost_program_options -lboost_unit_test_framework -luhd -lboost_serialization -lboost_filesystem  -lboost_date_time -lboost_regex -lrt
+	LIBRARIES+=-lboost_thread -lboost_program_options -luhd
 else ifeq ($(OSNAME),WINDOWS)
 	LDFLAGS+=-Wl,--add-stdcall-alias
 	LIBRARIES+= -lboost_thread-mt -lboost_program_options-mt -lboost_system-mt -luhd 
