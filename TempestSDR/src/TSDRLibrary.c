@@ -515,7 +515,7 @@ int tsdr_loadplugin(tsdr_lib_t * tsdr, const char * pluginfilepath, const char *
 	if (status != TSDR_OK) pluginsfault =1;
 
 	tsdr->running = 0;
-	mutex_wait(&tsdr->stopsync);
+	mutex_waitforever(&tsdr->stopsync);
 	free(context);
 
 	cb_free(&context->circbuf_decimation_to_video);
