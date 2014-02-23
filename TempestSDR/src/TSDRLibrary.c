@@ -174,6 +174,46 @@ static inline void announceexception(tsdr_lib_t * tsdr, const char * message, in
 		RETURN_OK(tsdr);
 }
 
+ void fixshift(tsdr_lib_t * tsdr, float * data, int width, int height, float * widthbuffer, float * heightbuffer) {
+
+	 float darkestx = 1.0f;
+	 float darkesty = 1.0f;
+	 int dx = 0;
+	 int dy = 0;
+
+	 int i;
+	 const int size = width * height;
+	 for (i = 0; i < size; i++) {
+		 const float val = data[i];
+		 const int x = i % width;
+		 const int y = i / width;
+
+		 if (tsdr->params_int[PARAM_INT_AUTOSHIFT]) {
+			 if (y < 200 && y < x)
+				 data[i] = widthbuffer[x] / (float) height;
+			 else if (x < 200 && y > x)
+				 data[i] = heightbuffer[y] / (float) width;
+		 }
+
+		 if (val < darkestx) {
+			 darkestx = val;
+			 dx = x;
+		 }
+		 if (val < darkesty) {
+			 darkesty = val;
+			 dy = y;
+		 }
+
+	 }
+
+	 for (i = 0; i < width; i++)
+		 data[i+width*dy] = PIXEL_SPECIAL_VALUE_G;
+
+	 for (i = 0; i < height; i++)
+		 data[dx + width*i] = PIXEL_SPECIAL_VALUE_G;
+
+ }
+
 // bresenham algorithm
 // polyface filterbank
 // shielded loop antenna (magnetic)
@@ -192,6 +232,10 @@ void videodecodingthread(void * ctx) {
 	float * buffer = (float *) malloc(sizeof(float) * bufsize);
 	float * screenbuffer = (float *) malloc(sizeof(float) * bufsize);
 	float * sendbuffer = (float *) malloc(sizeof(float) * bufsize);
+
+	float * widthcollapsebuffer =  (float *) malloc(sizeof(float) * width);
+	float * heightcollapsebuffer =  (float *) malloc(sizeof(float) * height);
+
 	for (i = 0; i < bufsize; i++) screenbuffer[i] = 0.0f;
 	float lastmax = 0;
 	float lastmin = 0;
@@ -212,11 +256,18 @@ void videodecodingthread(void * ctx) {
 				buffer = (float *) realloc(buffer, sizeof(float) * bufsize);
 				screenbuffer = (float *) realloc(screenbuffer, sizeof(float) * bufsize);
 				sendbuffer = (float *) realloc(sendbuffer, sizeof(float) * bufsize);
+
+				widthcollapsebuffer =  (float *) realloc(widthcollapsebuffer, sizeof(float) * width);
+				heightcollapsebuffer =  (float *) realloc(heightcollapsebuffer, sizeof(float) * height);
+
 				for (i = 0; i < bufsize; i++) screenbuffer[i] = 0.0f;
 			}
 		}
 
 		if (cb_rem_blocking(&context->circbuf_decimation_to_video, buffer, sizetopoll) == CB_OK) {
+
+			for (i = 0; i < width; i++) widthcollapsebuffer[i] = 0.0f;
+			for (i = 0; i < height; i++) heightcollapsebuffer[i] = 0.0f;
 
 			float max = buffer[0];
 			float min = max;
@@ -230,8 +281,15 @@ void videodecodingthread(void * ctx) {
 			lastmin = oneminusnorm*lastmin + NORMALISATION_LOWPASS_COEFF*min;
 			const float span = (lastmax == lastmin) ? (1.0f) : (lastmax - lastmin);
 
-			for (i = 0; i < sizetopoll; i++)
-				sendbuffer[i] = (screenbuffer[i] - lastmin) / span;
+			for (i = 0; i < sizetopoll; i++) {
+				const float val = (screenbuffer[i] - lastmin) / span;
+				sendbuffer[i] = val;
+				widthcollapsebuffer[i % width] += val;
+				heightcollapsebuffer[i / width] += val;
+			}
+
+
+			fixshift(context->this, sendbuffer, width, height, widthcollapsebuffer, heightcollapsebuffer);
 
 			context->cb(sendbuffer, width, height, context->ctx);
 		}
