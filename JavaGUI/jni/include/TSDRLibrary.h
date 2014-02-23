@@ -15,6 +15,10 @@
 
 	#include <stdint.h>
 
+	#define PIXEL_SPECIAL_VALUE_R (256.0f)
+	#define PIXEL_SPECIAL_VALUE_G (512.0f)
+	#define PIXEL_SPECIAL_VALUE_B (1024.0f)
+
 	#define DIRECTION_CUSTOM (0)
 	#define DIRECTION_UP (1)
 	#define DIRECTION_DOWN (2)

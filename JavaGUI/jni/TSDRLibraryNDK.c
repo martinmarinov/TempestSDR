@@ -135,9 +135,22 @@ void read_async(float *buf, int width, int height, void *ctx) {
 
 	int i;
 	for (i = 0; i < context->pixelsize; i++) {
-		int col = (inverted) ? (255 - (int) (*(buf++) * 255.0f)) : ((int) (*(buf++) * 255.0f));
-		if (col > 255) col = 255; else if (col < 0) col = 0;
-		*(data++) = col | (col << 8) | (col << 16);
+		const float val = *(buf++);
+		if (val > 0.0f && val <= 1.0f) {
+			const int col = (inverted) ? (255 - (int) (val * 255.0f)) : ((int) (val * 255.0f));
+			*(data++) = col | (col << 8) | (col << 16);
+		} else if (val < 0.0f) {
+			*(data++) = (inverted) ? (255 | (255 << 8) | (255 << 16)) : 0;
+		} else if (val == PIXEL_SPECIAL_VALUE_R) {
+			*(data++) = 255 << 16;
+		} else if (val == PIXEL_SPECIAL_VALUE_G) {
+			*(data++) = 255 << 8;
+		} else if (val == PIXEL_SPECIAL_VALUE_B) {
+			*(data++) = 255;
+		} else {
+			*(data++) = (inverted) ? 0 : (255 | (255 << 8) | (255 << 16));
+		}
+
 	}
 
 	// release elements
