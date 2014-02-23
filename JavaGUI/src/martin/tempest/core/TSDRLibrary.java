@@ -46,6 +46,9 @@ public class TSDRLibrary {
 	/** The desired direction of manual synchronisation */
 	public enum SYNC_DIRECTION {ANY, UP, DOWN, LEFT, RIGHT};
 	
+	public enum PARAM {AUTOPIXELRATE, AUTOSHIFT};
+	public enum PARAM_DOUBLE {};
+	
 	/** Whether native is running or not */
 	volatile private boolean nativerunning = false;
 	
@@ -201,9 +204,6 @@ public class TSDRLibrary {
 	/** Called on initialisation to set up native buffers and variables */
 	private native void init();
 	
-	/** Set the sample rate on the fly */
-	public native void setSampleRate(long rate) throws TSDRException;
-	
 	/** Set the tuned frequency */
 	public native void setBaseFreq(long freq) throws TSDRException;
 	
@@ -249,6 +249,8 @@ public class TSDRLibrary {
 	public native boolean isRunning();
 	public native void setInvertedColors(boolean invertedEnabled);
 	public native void sync(int pixels, SYNC_DIRECTION dir);
+	public native void setParam(PARAM param, long value) throws TSDRException;
+	public native void setParamDouble(PARAM_DOUBLE param, double value) throws TSDRException;
 	public native void setResolution(int width, int height, double refreshrate) throws TSDRException;
 	public native void setMotionBlur(float gain) throws TSDRException;
 	

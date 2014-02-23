@@ -69,6 +69,12 @@ void error_translate (int exception_code, char * exceptionclass) {
 		case TSDR_INCOMPATIBLE_PLUGIN:
 			strcpy(exceptionclass, "martin/tempest/core/exceptions/TSDRIncompatiblePluginException");
 			return;
+		case TSDR_INVALID_PARAMETER:
+			strcpy(exceptionclass, "martin/tempest/core/exceptions/TSDRInvalidParameterException");
+			return;
+		case TSDR_INVALID_PARAMETER_VALUE:
+			strcpy(exceptionclass, "martin/tempest/core/exceptions/TSDRInvalidParameterValueException");
+			return;
 		default:
 			strcpy(exceptionclass, "java/lang/Exception");
 			return;
@@ -98,11 +104,6 @@ JNIEXPORT void JNICALL Java_martin_tempest_core_TSDRLibrary_init (JNIEnv * env, 
 	(*env)->GetJavaVM(env, &jvm);
 	javaversion = (*env)->GetVersion(env);
 	tsdr_init(&tsdr_instance);
-}
-
-JNIEXPORT void JNICALL Java_martin_tempest_core_TSDRLibrary_setSampleRate (JNIEnv * env, jobject obj, jlong rate) {
-	if (tsdr_instance == NULL) return;
-	THROW(tsdr_setsamplerate(tsdr_instance, (uint32_t) rate));
 }
 
 JNIEXPORT void JNICALL Java_martin_tempest_core_TSDRLibrary_setBaseFreq (JNIEnv * env, jobject obj, jlong freq) {
@@ -259,4 +260,25 @@ JNIEXPORT void JNICALL Java_martin_tempest_core_TSDRLibrary_sync (JNIEnv * env, 
 		THROW(tsdr_sync(tsdr_instance, (int) pixels, DIRECTION_RIGHT));
 
 	(*env)->ReleaseStringUTFChars(env, value, valueNative);
+}
+
+JNIEXPORT void JNICALL Java_martin_tempest_core_TSDRLibrary_setParam  (JNIEnv * env, jobject obj, jobject name, jlong value) {
+	if (tsdr_instance == NULL) return;
+
+	jclass enumClass = (*env)->FindClass(env, "martin/tempest/core/TSDRLibrary$PARAM");
+	jmethodID getOrdinalMethod = (*env)->GetMethodID(env, enumClass, "ordinal", "()I");
+	jint id = (int)(*env)->CallObjectMethod(env, name, getOrdinalMethod);
+
+	THROW(tsdr_setparameter_int(tsdr_instance, id, value));
+}
+
+
+JNIEXPORT void JNICALL Java_martin_tempest_core_TSDRLibrary_setParamDouble  (JNIEnv * env, jobject obj, jobject name, jdouble value) {
+	if (tsdr_instance == NULL) return;
+
+	jclass enumClass = (*env)->FindClass(env, "martin/tempest/core/TSDRLibrary$PARAM_DOUBLE");
+	jmethodID getOrdinalMethod = (*env)->GetMethodID(env, enumClass, "ordinal", "()I");
+	jint id = (int)(*env)->CallObjectMethod(env, name, getOrdinalMethod);
+
+	THROW(tsdr_setparameter_double(tsdr_instance, id, value));
 }

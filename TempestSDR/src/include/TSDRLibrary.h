@@ -21,12 +21,17 @@
 	#define DIRECTION_LEFT (3)
 	#define DIRECTION_RIGHT (4)
 
+	#define PARAM_INT_AUTOPIXELRATE (0)
+	#define PARAM_INT_AUTOSHIFT (1)
+	#define COUNT_PARAM_INT (2)
+
+	#define COUNT_PARAM_DOUBLE (2)
+
 	typedef struct tsdr_lib tsdr_lib_t;
 
 	typedef void(*tsdr_readasync_function)(float *buf, int width, int height, void *ctx);
 
 	void tsdr_init(tsdr_lib_t ** tsdr);
-	int tsdr_setsamplerate(tsdr_lib_t * tsdr, uint32_t rate);
 	int tsdr_setbasefreq(tsdr_lib_t * tsdr, uint32_t freq);
 	int tsdr_stop(tsdr_lib_t * tsdr);
 	int tsdr_setgain(tsdr_lib_t * tsdr, float gain);
@@ -39,5 +44,7 @@
 	int tsdr_motionblur(tsdr_lib_t * tsdr, float coeff);
 	void tsdr_free(tsdr_lib_t ** tsdr);
 	char * tsdr_getlasterrortext(tsdr_lib_t * tsdr);
+	int tsdr_setparameter_int(tsdr_lib_t * tsdr, int parameter, uint32_t value);
+	int tsdr_setparameter_double(tsdr_lib_t * tsdr, int parameter, double value);
 
 #endif

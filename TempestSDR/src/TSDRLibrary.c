@@ -64,6 +64,9 @@ struct tsdr_context {
 		char * errormsg;
 		int errormsg_size;
 		int errormsg_code;
+
+		uint32_t params_int[COUNT_PARAM_INT];
+		double params_double[COUNT_PARAM_DOUBLE];
 	};
 
 
@@ -97,6 +100,8 @@ static inline void announceexception(tsdr_lib_t * tsdr, const char * message, in
 }
 
  void tsdr_init(tsdr_lib_t ** tsdr) {
+	 int i;
+
 	*tsdr = (tsdr_lib_t *) malloc(sizeof(tsdr_lib_t));
 
 	(*tsdr)->nativerunning = 0;
@@ -108,6 +113,11 @@ static inline void announceexception(tsdr_lib_t * tsdr, const char * message, in
 	(*tsdr)->errormsg_size = 0;
 	(*tsdr)->errormsg_code = TSDR_OK;
 
+	for (i = 0; i < COUNT_PARAM_INT; i++)
+		(*tsdr)->params_int[i] = 0;
+	for (i = 0; i < COUNT_PARAM_DOUBLE; i++)
+		(*tsdr)->params_double[i] = 0.0;
+
 	semaphore_init(&(*tsdr)->threadsync);
 	mutex_init(&(*tsdr)->stopsync);
 
@@ -115,19 +125,6 @@ static inline void announceexception(tsdr_lib_t * tsdr, const char * message, in
 
  int tsdr_isrunning(tsdr_lib_t * tsdr) {
 	return tsdr->nativerunning;
-}
-
- int tsdr_setsamplerate(tsdr_lib_t * tsdr, uint32_t rate) {
-	if (!tsdr->plugin.initialized) RETURN_EXCEPTION(tsdr, "Cannot change sample rate. Plugin not loaded yet.", TSDR_ERR_PLUGIN);
-
-	tsdr->samplerate = tsdr->plugin.tsdrplugin_setsamplerate(rate);
-	if (tsdr->samplerate == 0 || tsdr->samplerate > MAX_SAMP_RATE) RETURN_EXCEPTION(tsdr, "Invalid/unsupported value for sample rate.", TSDR_SAMPLE_RATE_WRONG);
-
-	tsdr->sampletime = 1.0f / (float) tsdr->samplerate;
-	if (tsdr->sampletime != 0)
-		tsdr->pixeltimeoversampletime = tsdr->pixeltime /  tsdr->sampletime;
-
-	RETURN_OK(tsdr);
 }
 
  int tsdr_getsamplerate(tsdr_lib_t * tsdr) {
@@ -573,6 +570,20 @@ end:
 		tsdr->syncoffset-=pixels;
 		break;
 	}
+	RETURN_OK(tsdr);
+}
+
+int tsdr_setparameter_int(tsdr_lib_t * tsdr, int parameter, uint32_t value) {
+	if (parameter < 0 || parameter >= COUNT_PARAM_INT)
+		RETURN_EXCEPTION(tsdr, "Invalid integer parameter id", TSDR_INVALID_PARAMETER);
+	tsdr->params_int[parameter] = value;
+	RETURN_OK(tsdr);
+}
+
+int tsdr_setparameter_double(tsdr_lib_t * tsdr, int parameter, double value) {
+	if (parameter < 0 || parameter >= COUNT_PARAM_DOUBLE)
+		RETURN_EXCEPTION(tsdr, "Invalid double floating point parameter id", TSDR_INVALID_PARAMETER);
+	printf("Parameter %d to double value %f\n", parameter, value); fflush(stdout);
 	RETURN_OK(tsdr);
 }
 
