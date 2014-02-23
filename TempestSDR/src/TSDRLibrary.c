@@ -27,6 +27,8 @@
 #define INTEG_TYPE (0)
 #define PI (3.141592653589793238462643383279502f)
 
+#define NORMALISATION_LOWPASS_COEFF (0.1f)
+
 #define DEFAULT_DECIMATOR_TO_POLL (64)
 
 struct tsdr_context {
@@ -191,6 +193,9 @@ void videodecodingthread(void * ctx) {
 	float * screenbuffer = (float *) malloc(sizeof(float) * bufsize);
 	float * sendbuffer = (float *) malloc(sizeof(float) * bufsize);
 	for (i = 0; i < bufsize; i++) screenbuffer[i] = 0.0f;
+	float lastmax = 0;
+	float lastmin = 0;
+	const float oneminusnorm = 1.0f - NORMALISATION_LOWPASS_COEFF;
 
 	while (context->this->running) {
 
@@ -215,16 +220,18 @@ void videodecodingthread(void * ctx) {
 
 			float max = buffer[0];
 			float min = max;
-			for (i = 1; i < sizetopoll; i++) {
+			for (i = 0; i < sizetopoll; i++) {
 				const float val = screenbuffer[i] * lowpassvalue + buffer[i] * antilowpassvalue;
 				if (val > max) max = val; else if (val < min) min = val;
 				screenbuffer[i] = val;
 			}
 
-			const float span = max - min;
+			lastmax = oneminusnorm*lastmax + NORMALISATION_LOWPASS_COEFF*max;
+			lastmin = oneminusnorm*lastmin + NORMALISATION_LOWPASS_COEFF*min;
+			const float span = (lastmax == lastmin) ? (1.0f) : (lastmax - lastmin);
 
 			for (i = 0; i < sizetopoll; i++)
-				sendbuffer[i] = (screenbuffer[i] - min) / span;
+				sendbuffer[i] = (screenbuffer[i] - lastmin) / span;
 
 			context->cb(sendbuffer, width, height, context->ctx);
 		}
