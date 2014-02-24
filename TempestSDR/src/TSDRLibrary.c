@@ -198,13 +198,18 @@ int findlongeststripmean(float * data, int size, float varq) {
 	calcmeanvar(data, size, &mean, &var);
 	var = var * varq;
 
+	float colours[size];
+	int i;
+	for (i = 0; i < size; i++) colours[i] = PIXEL_SPECIAL_VALUE_TRANSPARENT;
+
 	int longest_streak = 0;
 	int longest_streak_start = 0;
 	int streak_length = 0;
 	int streak_start = 0;
 	int currid = 0;
 
-
+	int cid = 0;
+	float colour = PIXEL_SPECIAL_VALUE_B;
 	while (1) {
 		const int realid = currid % size;
 		const int nextrealid = (currid+1) % size;
@@ -214,7 +219,8 @@ int findlongeststripmean(float * data, int size, float varq) {
 		const float diffsq = diff * diff;
 
 		// check whether difference is less than a variance away
-		if (diffsq < var && val < mean) {
+		if (diffsq < var) {
+			colours[realid] = colour;
 			streak_length++;
 			if (streak_length >= size) {
 				longest_streak = streak_length;
@@ -222,6 +228,8 @@ int findlongeststripmean(float * data, int size, float varq) {
 				break;
 			}
 		} else {
+			cid = (cid + 1) % 3; colour = (cid == 0) ? (PIXEL_SPECIAL_VALUE_R) : ((cid == 1) ? (PIXEL_SPECIAL_VALUE_G) : (PIXEL_SPECIAL_VALUE_B));
+
 			if (streak_length > longest_streak) {
 				longest_streak = streak_length;
 				longest_streak_start = streak_start;
@@ -235,13 +243,27 @@ int findlongeststripmean(float * data, int size, float varq) {
 		currid++;
 	}
 
+	for (i = 0; i < size; i++) data[i] = colours[i];
+
 	return (longest_streak_start+longest_streak/2) % size;
+}
+
+void verticalline(int x, float * data, int width, int height, float val) {
+	int i;
+	for (i = 0; i < height; i++)
+		data[x + width*i] = val;
+}
+
+void horizontalline(int y, float * data, int width, int height, float val) {
+	int i;
+	for (i = 0; i < width; i++)
+		data[i+width*y] = val;
 }
 
 void fixshift(tsdr_lib_t * tsdr, float * data, int width, int height, float * widthbuffer, float * heightbuffer) {
 
-	int dx = findlongeststripmean(widthbuffer, width, 0.1f);
-	int dy = findlongeststripmean(heightbuffer, height, 1.0f);
+	const int dxorig = findlongeststripmean(widthbuffer, width, 0.01f);
+	const int dyorig = findlongeststripmean(heightbuffer, height, 1.0f);
 
 	int i;
 	const int size = width * height;
@@ -268,11 +290,8 @@ void fixshift(tsdr_lib_t * tsdr, float * data, int width, int height, float * wi
 		}
 	}
 
-	for (i = 0; i < width; i++)
-		data[i+width*dy] = PIXEL_SPECIAL_VALUE_G;
-
-	for (i = 0; i < height; i++)
-		data[dx + width*i] = PIXEL_SPECIAL_VALUE_G;
+	verticalline(dxorig, data, width, height, PIXEL_SPECIAL_VALUE_G);
+	horizontalline(dyorig, data, width, height, PIXEL_SPECIAL_VALUE_G);
 
 }
 
