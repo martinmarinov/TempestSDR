@@ -147,6 +147,8 @@ void read_async(float *buf, int width, int height, void *ctx) {
 			*(data++) = 255 << 8;
 		} else if (val == PIXEL_SPECIAL_VALUE_B) {
 			*(data++) = 255;
+		} else if (val == PIXEL_SPECIAL_VALUE_TRANSPARENT) {
+			data++;
 		} else {
 			*(data++) = (inverted) ? 0 : (255 | (255 << 8) | (255 << 16));
 		}

@@ -15,9 +15,12 @@
 
 	#include <stdint.h>
 
+	// those PIXEL_* are only used for debugging purposes and
+	// it is not required for the client to implement them
 	#define PIXEL_SPECIAL_VALUE_R (256.0f)
 	#define PIXEL_SPECIAL_VALUE_G (512.0f)
 	#define PIXEL_SPECIAL_VALUE_B (1024.0f)
+	#define PIXEL_SPECIAL_VALUE_TRANSPARENT (2048.0f)
 
 	#define DIRECTION_CUSTOM (0)
 	#define DIRECTION_UP (1)

@@ -174,45 +174,107 @@ static inline void announceexception(tsdr_lib_t * tsdr, const char * message, in
 		RETURN_OK(tsdr);
 }
 
- void fixshift(tsdr_lib_t * tsdr, float * data, int width, int height, float * widthbuffer, float * heightbuffer) {
+void calcmeanvar(float * data, int size, float * mean, float * var) {
+	float sum = 0;
+	int i;
+	for (i = 0; i < size; i++)
+		sum += data[i];
+	const float calc_mean = sum / (float) size;
 
-	 float darkestx = 1.0f;
-	 float darkesty = 1.0f;
-	 int dx = 0;
-	 int dy = 0;
+	float sum2 = 0;
+	float sum3 = 0;
+	for (i = 0; i < size; i++) {
+		const float diff = data[i] - calc_mean;
+		sum2 += diff * diff;
+		sum3 += diff;
+	}
 
-	 int i;
-	 const int size = width * height;
-	 for (i = 0; i < size; i++) {
-		 const float val = data[i];
-		 const int x = i % width;
-		 const int y = i / width;
+	*var = (sum2 - sum3*sum3/(float) size) / ((float) (size - 1));
+	*mean = calc_mean;
+}
 
-		 if (tsdr->params_int[PARAM_INT_AUTOSHIFT]) {
-			 if (y < 200 && y < x)
-				 data[i] = widthbuffer[x] / (float) height;
-			 else if (x < 200 && y > x)
-				 data[i] = heightbuffer[y] / (float) width;
-		 }
+int findlongeststripmean(float * data, int size, float varq) {
+	float mean, var;
+	calcmeanvar(data, size, &mean, &var);
+	var = var * varq;
 
-		 if (val < darkestx) {
-			 darkestx = val;
-			 dx = x;
-		 }
-		 if (val < darkesty) {
-			 darkesty = val;
-			 dy = y;
-		 }
+	int longest_streak = 0;
+	int longest_streak_start = 0;
+	int streak_length = 0;
+	int streak_start = 0;
+	int currid = 0;
 
-	 }
 
-	 for (i = 0; i < width; i++)
-		 data[i+width*dy] = PIXEL_SPECIAL_VALUE_G;
+	while (1) {
+		const int realid = currid % size;
+		const int nextrealid = (currid+1) % size;
 
-	 for (i = 0; i < height; i++)
-		 data[dx + width*i] = PIXEL_SPECIAL_VALUE_G;
+		const float val = data[realid];
+		const float diff = val - data[nextrealid];
+		const float diffsq = diff * diff;
 
- }
+		// check whether difference is less than a variance away
+		if (diffsq < var && val < mean) {
+			streak_length++;
+			if (streak_length >= size) {
+				longest_streak = streak_length;
+				longest_streak_start = streak_start;
+				break;
+			}
+		} else {
+			if (streak_length > longest_streak) {
+				longest_streak = streak_length;
+				longest_streak_start = streak_start;
+			}
+
+			streak_start = realid;
+			streak_length = 0;
+			if (currid > size) break;
+		}
+
+		currid++;
+	}
+
+	return (longest_streak_start+longest_streak/2) % size;
+}
+
+void fixshift(tsdr_lib_t * tsdr, float * data, int width, int height, float * widthbuffer, float * heightbuffer) {
+
+	int dx = findlongeststripmean(widthbuffer, width, 0.1f);
+	int dy = findlongeststripmean(heightbuffer, height, 1.0f);
+
+	int i;
+	const int size = width * height;
+
+	if (tsdr->params_int[PARAM_INT_AUTOSHIFT]) {
+		for (i = 0; i < size; i++) {
+			const int x = i % width;
+			const int y = i / width;
+
+			if (y < 200 && y < x) {
+				const float wbv = widthbuffer[x];
+				if (wbv == PIXEL_SPECIAL_VALUE_B || wbv == PIXEL_SPECIAL_VALUE_G || wbv == PIXEL_SPECIAL_VALUE_R)
+					data[i] = wbv;
+				else if (wbv != PIXEL_SPECIAL_VALUE_TRANSPARENT)
+					data[i] = wbv / (float) height;
+			} else if (x < 200 && y > x) {
+				const float hbv = heightbuffer[y];
+				if (hbv == PIXEL_SPECIAL_VALUE_B || hbv == PIXEL_SPECIAL_VALUE_G || hbv == PIXEL_SPECIAL_VALUE_R)
+					data[i] = hbv;
+				else if (hbv != PIXEL_SPECIAL_VALUE_TRANSPARENT)
+					data[i] = hbv / (float) width;
+			}
+
+		}
+	}
+
+	for (i = 0; i < width; i++)
+		data[i+width*dy] = PIXEL_SPECIAL_VALUE_G;
+
+	for (i = 0; i < height; i++)
+		data[dx + width*i] = PIXEL_SPECIAL_VALUE_G;
+
+}
 
 // bresenham algorithm
 // polyface filterbank
