@@ -174,78 +174,42 @@ static inline void announceexception(tsdr_lib_t * tsdr, const char * message, in
 		RETURN_OK(tsdr);
 }
 
-void calcmeanvar(float * data, int size, float * mean, float * var) {
-	float sum = 0;
+int findthesweetspot(float * data, int size, float varq) {
 	int i;
-	for (i = 0; i < size; i++)
-		sum += data[i];
-	const float calc_mean = sum / (float) size;
 
-	float sum2 = 0;
-	float sum3 = 0;
+	// the size of the small strip that will be looked for
+	const int stripsize = varq * size;
+	const float stripsizef = stripsize;
+	const float bigstripsizef = size - stripsizef;
+
+	float currsum = 0.0f;
+	for (i = 0; i < stripsize; i++) currsum += data[i];
+
+	float totalsum = currsum;
+	for (i = stripsize; i < size; i++) totalsum += data[i];
+
+	// totalsum - currsum is the sum in the remainder of the strip
+	// we want to maximize the difference squared
+	const float bestfitsqzero = (totalsum - currsum)/bigstripsizef - currsum/stripsizef;
+	float bestfit = bestfitsqzero * bestfitsqzero;
+	int bestfitid = 0;
+
 	for (i = 0; i < size; i++) {
-		const float diff = data[i] - calc_mean;
-		sum2 += diff * diff;
-		sum3 += diff;
-	}
-
-	*var = (sum2 - sum3*sum3/(float) size) / ((float) (size - 1));
-	*mean = calc_mean;
-}
-
-int findlongeststripmean(float * data, int size, float varq) {
-	float mean, var;
-	calcmeanvar(data, size, &mean, &var);
-	var = var * varq;
-
-	float colours[size];
-	int i;
-	for (i = 0; i < size; i++) colours[i] = PIXEL_SPECIAL_VALUE_TRANSPARENT;
-
-	int longest_streak = 0;
-	int longest_streak_start = 0;
-	int streak_length = 0;
-	int streak_start = 0;
-	int currid = 0;
-
-	int cid = 0;
-	float colour = PIXEL_SPECIAL_VALUE_B;
-	while (1) {
-		const int realid = currid % size;
-		const int nextrealid = (currid+1) % size;
-
-		const float val = data[realid];
-		const float diff = val - data[nextrealid];
-		const float diffsq = diff * diff;
-
-		// check whether difference is less than a variance away
-		if (diffsq < var) {
-			colours[realid] = colour;
-			streak_length++;
-			if (streak_length >= size) {
-				longest_streak = streak_length;
-				longest_streak_start = streak_start;
-				break;
-			}
-		} else {
-			cid = (cid + 1) % 3; colour = (cid == 0) ? (PIXEL_SPECIAL_VALUE_R) : ((cid == 1) ? (PIXEL_SPECIAL_VALUE_G) : (PIXEL_SPECIAL_VALUE_B));
-
-			if (streak_length > longest_streak) {
-				longest_streak = streak_length;
-				longest_streak_start = streak_start;
-			}
-
-			streak_start = realid;
-			streak_length = 0;
-			if (currid > size) break;
+		// i is the id to remove from the sum
+		// i + stripsize is the id to add to the sum
+		currsum = currsum - data[i] + data[(i+stripsize) % size];
+		const float bestfitsq = (totalsum - currsum)/bigstripsizef - currsum/stripsizef;
+		const float bestfitcurr = bestfitsq * bestfitsq;
+		if (bestfitcurr > bestfit) {
+			bestfit = bestfitcurr;
+			bestfitid = i;
 		}
-
-		currid++;
 	}
 
-	for (i = 0; i < size; i++) data[i] = colours[i];
+	data[bestfitid] = PIXEL_SPECIAL_VALUE_B;
+	data[(bestfitid+stripsize) % size] = PIXEL_SPECIAL_VALUE_B;
 
-	return (longest_streak_start+longest_streak/2) % size;
+	return (bestfitid + stripsize/2) % size;
 }
 
 void verticalline(int x, float * data, int width, int height, float val) {
@@ -262,8 +226,8 @@ void horizontalline(int y, float * data, int width, int height, float val) {
 
 void fixshift(tsdr_lib_t * tsdr, float * data, int width, int height, float * widthbuffer, float * heightbuffer) {
 
-	const int dxorig = findlongeststripmean(widthbuffer, width, 0.01f);
-	const int dyorig = findlongeststripmean(heightbuffer, height, 1.0f);
+	const int dxorig = findthesweetspot(widthbuffer, width, 0.25f);
+	const int dyorig = findthesweetspot(heightbuffer, height, 0.05f);
 
 	int i;
 	const int size = width * height;
