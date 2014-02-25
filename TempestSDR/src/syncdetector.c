@@ -131,7 +131,7 @@ void horizontalline(int y, float * data, int width, int height, float val) {
 		data[i+width*y] = val;
 }
 
-void fixshift(tsdr_lib_t * tsdr, float * data, int width, int height, float * widthbuffer, float * heightbuffer) {
+float * syncdetector_run(tsdr_lib_t * tsdr, float * data, float * outputdata, int width, int height, float * widthbuffer, float * heightbuffer) {
 
 	const int dxorig = findthesweetspot(widthbuffer, width, 0.25f);
 	const int dyorig = findthesweetspot(heightbuffer, height, 0.05f);
@@ -139,7 +139,7 @@ void fixshift(tsdr_lib_t * tsdr, float * data, int width, int height, float * wi
 	int i;
 	const int size = width * height;
 
-	if (tsdr->params_int[PARAM_INT_AUTOSHIFT]) {
+	if (tsdr->params_int[PARAM_INT_AUTOPIXELRATE]) {
 		for (i = 0; i < size; i++) {
 			const int x = i % width;
 			const int y = i / width;
@@ -161,7 +161,30 @@ void fixshift(tsdr_lib_t * tsdr, float * data, int width, int height, float * wi
 		}
 	}
 
-	verticalline(dxorig, data, width, height, PIXEL_SPECIAL_VALUE_G);
-	horizontalline(dyorig, data, width, height, PIXEL_SPECIAL_VALUE_G);
+
+
+	// do the shift itself
+	if (tsdr->params_int[PARAM_INT_AUTOSHIFT]) {
+		// fix the y offset
+		const int ypixels = dyorig*width;
+		const int ypixelsrem = size-ypixels;
+		const int xrem = width - dxorig;
+
+		int yshift = 0;
+		for (yshift = 0; yshift < ypixels; yshift+=width) {
+			memcpy(&outputdata[ypixelsrem+yshift+xrem], &data[yshift], dxorig*sizeof(float)); // TL to BR
+			memcpy(&outputdata[ypixelsrem+yshift], &data[yshift+dxorig], xrem*sizeof(float)); // TR to BL
+		}
+		for (yshift = ypixels; yshift < size; yshift+=width) {
+			memcpy(&outputdata[yshift - ypixels+xrem], &data[yshift], dxorig*sizeof(float)); // BL to TR
+			memcpy(&outputdata[yshift - ypixels], &data[yshift+dxorig], xrem*sizeof(float)); // BR to TL
+		}
+
+		return outputdata;
+	} else {
+		verticalline(dxorig, data, width, height, PIXEL_SPECIAL_VALUE_G);
+		horizontalline(dyorig, data, width, height, PIXEL_SPECIAL_VALUE_G);
+		return data;
+	}
 
 }

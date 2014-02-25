@@ -170,6 +170,7 @@ void videodecodingthread(void * ctx) {
 	float * buffer = (float *) malloc(sizeof(float) * bufsize);
 	float * screenbuffer = (float *) malloc(sizeof(float) * bufsize);
 	float * sendbuffer = (float *) malloc(sizeof(float) * bufsize);
+	float * corrected_sendbuffer = (float *) malloc(sizeof(float) * bufsize);
 
 	float * widthcollapsebuffer =  (float *) malloc(sizeof(float) * width);
 	float * heightcollapsebuffer =  (float *) malloc(sizeof(float) * height);
@@ -194,6 +195,7 @@ void videodecodingthread(void * ctx) {
 				buffer = (float *) realloc(buffer, sizeof(float) * bufsize);
 				screenbuffer = (float *) realloc(screenbuffer, sizeof(float) * bufsize);
 				sendbuffer = (float *) realloc(sendbuffer, sizeof(float) * bufsize);
+				corrected_sendbuffer = (float *) realloc(corrected_sendbuffer, sizeof(float) * bufsize);
 
 				widthcollapsebuffer =  (float *) realloc(widthcollapsebuffer, sizeof(float) * width);
 				heightcollapsebuffer =  (float *) realloc(heightcollapsebuffer, sizeof(float) * height);
@@ -227,9 +229,9 @@ void videodecodingthread(void * ctx) {
 			}
 
 
-			fixshift(context->this, sendbuffer, width, height, widthcollapsebuffer, heightcollapsebuffer);
+			float * buf_to_send = syncdetector_run(context->this, sendbuffer, corrected_sendbuffer, width, height, widthcollapsebuffer, heightcollapsebuffer);
 
-			context->cb(sendbuffer, width, height, context->ctx);
+			context->cb(buf_to_send, width, height, context->ctx);
 		}
 	}
 

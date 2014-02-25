@@ -13,6 +13,6 @@
 
 #include "internaldefinitions.h"
 
-void fixshift(tsdr_lib_t * tsdr, float * data, int width, int height, float * widthbuffer, float * heightbuffer);
+float * syncdetector_run(tsdr_lib_t * tsdr, float * data, float * outputdata, int width, int height, float * widthbuffer, float * heightbuffer);
 
 #endif
