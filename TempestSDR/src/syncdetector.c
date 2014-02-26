@@ -78,73 +78,22 @@ void gaussianblur(float * data, int size) {
 	}
 }
 
-
-
-// calculate the flattness of a strip in circular data
-// sum is the sum of all of the elements in the strip
-// offset is where the strip starts
-// stripsize is the size of the strip
-// return value is >=0. The bigger it is the less flat the curve is
-float calculateroughness(float * data, int size, int offset, int stripsize, float sum) {
-	// feedback loop, if we were growing and this is giving worse results, stop growing or the other way around
-		int i;
-		const int stripend = offset+stripsize;
-		int c = 0;
-		const int halfstripsize = stripsize >> 1;
-		const double quorterstripsizef = stripsize / 4.0;
-		float trianglecenteredsum = 0.0;
-		for (i = offset; i < stripend; i++) {
-			const int realid = (i < size) ? (i) : (i - size); // i % size
-			const double coeff = ((c < halfstripsize) ? (c/quorterstripsizef) : (4.0-c/quorterstripsizef));
-			trianglecenteredsum += coeff * data[realid];
-			c++;
-		}
-
-		// difference between bestfitsum and triangled sum
-		const double dbestfitcurrent = (sum - trianglecenteredsum) / (float) stripsize;
-
-		// the bigger the value is, the less flat the data is
-		return dbestfitcurrent * dbestfitcurrent;
-}
-
-#define SWEETSPOT_INIT {.growsize=0, .stripsize_val=0, .bestfit = 0.0f}
-typedef struct sweetspot_data {
-	int growsize;
-	int stripsize_val;
-
-	double bestfit;
-} sweetspot_data_t;
-
-int findthesweetspot(sweetspot_data_t * db, float * data, int size, int minsize) {
-	int i;
-	const int size2 = size >> 1;
-
-	db->stripsize_val+=db->growsize;
-
-	if (db->stripsize_val > size2) db->stripsize_val = size2;
-	if (db->stripsize_val < minsize) db->stripsize_val = minsize;
-
-	const int stripsize = db->stripsize_val;
-	const double stripsizef = stripsize;
+static inline void findbestfit(float * data, const int size, const float totalsum, const int stripsize, double * bestfit, int * bestfitid) {
 	const double bigstripsizef = size - stripsize;
+	const double stripsizef = stripsize;
 
-	gaussianblur(data, size);
-
+	int i;
 	double currsum = 0.0;
 	for (i = 0; i < stripsize; i++) currsum += data[i];
-
-	double totalsum = currsum;
-	for (i = stripsize; i < size; i++) totalsum += data[i];
 
 	// totalsum - currsum is the sum in the remainder of the strip
 	// we want to maximize the difference squared
 	const double bestfitsqzero = (totalsum - currsum)/bigstripsizef - currsum/stripsizef;
-	double bestfit = bestfitsqzero * bestfitsqzero;
-	int bestfitid = 0;
+	*bestfit = bestfitsqzero * bestfitsqzero;
+	*bestfitid = 0;
 
 	const int size1 = size - 1;
 	const int sizemstepsize = size-stripsize;
-	float roughness = INFINITY;
 	for (i = 0; i < size1; i++) {
 		// i is the id to remove from the sum
 		// i + stripsize is the id to add to the sum
@@ -156,28 +105,59 @@ int findthesweetspot(sweetspot_data_t * db, float * data, int size, int minsize)
 		const double bestfitsq = (totalsum - currsum)/bigstripsizef - currsum/stripsizef;
 		const double bestfitcurr = bestfitsq * bestfitsq;
 
-		if (bestfitcurr > bestfit) {
-			const float roughnesscurr = calculateroughness(data, size, i, stripsize, currsum);
-			if (roughnesscurr < roughness) {
-				roughness = roughnesscurr;
-				bestfit = bestfitcurr;
-				bestfitid = i;
-			}
+		if (bestfitcurr > *bestfit) {
+				*bestfit = bestfitcurr;
+				*bestfitid = i;
 		}
 	}
+}
 
-	int dirtochange = 0;
-	if (bestfit < db->bestfit) dirtochange++;
-	db->growsize = (db->growsize > 0) ? (-dirtochange) : (dirtochange);
-	db->bestfit = bestfit;
+#define SWEETSPOT_INIT {.curr_stripsize=0}
+typedef struct sweetspot_data {
+	int curr_stripsize;
+} sweetspot_data_t;
 
-	const double sqrtbestfit = sqrtf(bestfit);
-	const int stripend = bestfitid+stripsize;
-	for (i = bestfitid; i < stripend; i++) data[i % size] = sqrtbestfit;
-	data[bestfitid] = PIXEL_SPECIAL_VALUE_B;
-	data[stripend % size] = PIXEL_SPECIAL_VALUE_B;
+#define RUNWITH_SIZE(newsize) \
+	stripsize = newsize; \
+	if (stripsize >= minsize && stripsize < size2 && stripsize != db->curr_stripsize) { \
+		findbestfit(data, size, totalsum, stripsize, &bestfit_temp, &beststripstart_temp); \
+		if (bestfit_temp > bestfit) { \
+			bestfit = bestfit_temp; \
+			beststripstart = beststripstart_temp; \
+			beststripsize = stripsize; \
+		}; \
+	}
 
-	return (bestfitid + stripsize/2) % size;
+int findthesweetspot(sweetspot_data_t * db, float * data, int size, int minsize) {
+	int i;
+	const int size2 = size >> 1;
+
+	if (db->curr_stripsize < minsize) db->curr_stripsize = minsize;
+	else if (db->curr_stripsize > size2) db->curr_stripsize = size2;
+
+	gaussianblur(data, size);
+
+	double totalsum = 0.0;
+	for (i = 0; i < size; i++) totalsum += data[i];
+
+	int beststripstart, beststripstart_temp, beststripsize = db->curr_stripsize, stripsize = db->curr_stripsize;
+	double bestfit, bestfit_temp;
+
+	// look for the best fit of strip size stripsize
+	findbestfit(data, size, totalsum, stripsize, &bestfit, &beststripstart);
+
+	RUNWITH_SIZE(db->curr_stripsize-4);
+	RUNWITH_SIZE(db->curr_stripsize+4);
+	RUNWITH_SIZE(db->curr_stripsize >> 1);
+	RUNWITH_SIZE(db->curr_stripsize << 1);
+
+	db->curr_stripsize = beststripsize;
+
+
+	data[beststripstart] = PIXEL_SPECIAL_VALUE_B;
+	data[(beststripstart+beststripsize) % size] = PIXEL_SPECIAL_VALUE_B;
+
+	return (beststripstart + beststripsize/2) % size;
 }
 
 void verticalline(int x, float * data, int width, int height, float val) {
@@ -196,19 +176,8 @@ float * syncdetector_run(tsdr_lib_t * tsdr, float * data, float * outputdata, in
 
 	static sweetspot_data_t db_x = SWEETSPOT_INIT, db_y = SWEETSPOT_INIT;
 
-	static float olddx = 0.0f, olddy = 0.0f;
-
-	int origdx = findthesweetspot(&db_x, widthbuffer, width, width * 0.1f );
-	int origdy = findthesweetspot(&db_y, heightbuffer, height, height * 0.01f );
-
-	if (origdx - olddx > width / 2) olddx += width; else if (olddx - origdx > width / 2) origdx += width;
-	if (origdy - olddy > height / 2) olddy += height; else if (olddy - origdy > height / 2) origdy += height;
-
-	olddx = ((int) (0.5f*origdx + 0.5f*olddx)) % width;
-	olddy = ((int) (0.5f*origdy + 0.5f*olddy)) % height;
-
-	const int dx = olddx;
-	const int dy = olddy;
+	const int dx = findthesweetspot(&db_x, widthbuffer, width, width * 0.05f );
+	const int dy = findthesweetspot(&db_y, heightbuffer, height, height * 0.01f );
 
 	int i;
 	const int size = width * height;
