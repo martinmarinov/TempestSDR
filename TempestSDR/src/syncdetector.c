@@ -78,7 +78,6 @@ void gaussianblur(float * data, int size) {
 	}
 }
 
-
 int findthesweetspot(float * data, int size, float varq) {
 	int i;
 
@@ -104,9 +103,13 @@ int findthesweetspot(float * data, int size, float varq) {
 	for (i = 0; i < size; i++) {
 		// i is the id to remove from the sum
 		// i + stripsize is the id to add to the sum
-		currsum = currsum - data[i] + data[(i+stripsize) % size];
+		const float datatoremove = data[i];
+		const float datatoadd = data[(i+stripsize) % size];
+
+		currsum = currsum - datatoremove + datatoadd;
 		const float bestfitsq = (totalsum - currsum)/bigstripsizef - currsum/stripsizef;
 		const float bestfitcurr = bestfitsq * bestfitsq;
+
 		if (bestfitcurr > bestfit) {
 			bestfit = bestfitcurr;
 			bestfitid = i;
@@ -161,23 +164,25 @@ float * syncdetector_run(tsdr_lib_t * tsdr, float * data, float * outputdata, in
 		}
 	}
 
-
-
 	// do the shift itself
 	if (tsdr->params_int[PARAM_INT_AUTOSHIFT]) {
 		// fix the y offset
 		const int ypixels = dyorig*width;
 		const int ypixelsrem = size-ypixels;
 		const int xrem = width - dxorig;
+		const int xremfloatsize = xrem * sizeof(float);
+		const int dxorigfloatsize = dxorig * sizeof(float);
 
 		int yshift = 0;
 		for (yshift = 0; yshift < ypixels; yshift+=width) {
-			memcpy(&outputdata[ypixelsrem+yshift+xrem], &data[yshift], dxorig*sizeof(float)); // TL to BR
-			memcpy(&outputdata[ypixelsrem+yshift], &data[yshift+dxorig], xrem*sizeof(float)); // TR to BL
+			const int offset = ypixelsrem+yshift;
+			memcpy(&outputdata[offset+xrem], &data[yshift], dxorigfloatsize); // TL to BR
+			memcpy(&outputdata[offset], &data[yshift+dxorig], xremfloatsize); // TR to BL
 		}
 		for (yshift = ypixels; yshift < size; yshift+=width) {
-			memcpy(&outputdata[yshift - ypixels+xrem], &data[yshift], dxorig*sizeof(float)); // BL to TR
-			memcpy(&outputdata[yshift - ypixels], &data[yshift+dxorig], xrem*sizeof(float)); // BR to TL
+			const int offset = yshift - ypixels;
+			memcpy(&outputdata[offset+xrem], &data[yshift], dxorigfloatsize); // BL to TR
+			memcpy(&outputdata[offset], &data[yshift+dxorig], xremfloatsize); // BR to TL
 		}
 
 		return outputdata;
