@@ -116,6 +116,7 @@ public class Main implements TSDRLibrary.FrameReadyCallback, TSDRSourceParamChan
 	private JButton btnStartStop;
 	private final TSDRLibrary mSdrlib;
 	private ImageVisualizer visualizer;
+	private FFTVisualizer fft_visualizer;
 	private Rectangle visualizer_bounds;
 	private double framerate = 25;
 	private JTextField txtFramerate;
@@ -179,7 +180,7 @@ public class Main implements TSDRLibrary.FrameReadyCallback, TSDRSourceParamChan
 		frmTempestSdr.addKeyListener(keyhook);
 		frmTempestSdr.setResizable(false);
 		frmTempestSdr.setTitle("TempestSDR");
-		frmTempestSdr.setBounds(100, 100, 749, 654);
+		frmTempestSdr.setBounds(100, 100, 749, 738);
 		frmTempestSdr.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 		frmTempestSdr.addMouseListener(new MouseAdapter() {
 			@Override
@@ -189,7 +190,7 @@ public class Main implements TSDRLibrary.FrameReadyCallback, TSDRSourceParamChan
 		});
 		
 		visualizer = new ImageVisualizer();
-		visualizer.setBounds(12, 13, 551, 422);
+		visualizer.setBounds(12, 13, 551, 372);
 		visualizer.addKeyListener(keyhook);
 		visualizer.setFocusable(true);
 		visualizer.addMouseListener(new MouseAdapter() {
@@ -217,8 +218,12 @@ public class Main implements TSDRLibrary.FrameReadyCallback, TSDRSourceParamChan
 		frmTempestSdr.getContentPane().setLayout(null);
 		frmTempestSdr.getContentPane().add(visualizer);
 		
+		fft_visualizer = new FFTVisualizer();
+		fft_visualizer.setBounds(12, 398, 551, 121);
+		frmTempestSdr.getContentPane().add(fft_visualizer);
+		
 		cbDevice = new JComboBox();
-		cbDevice.setBounds(12, 448, 218, 22);
+		cbDevice.setBounds(12, 532, 218, 22);
 		final int cbDeviceIndex = prefs.getInt(PREF_SOURCE_ID, 0);
 		current_plugin_name = souces[cbDeviceIndex < souces.length ? cbDeviceIndex : 0].descr;
 		cbDevice.setModel(new DefaultComboBoxModel(souces));
@@ -302,12 +307,12 @@ public class Main implements TSDRLibrary.FrameReadyCallback, TSDRSourceParamChan
 		frmTempestSdr.getContentPane().add(slGain);
 		
 		lblFrequency = new JLabel("Frequency:");
-		lblFrequency.setBounds(242, 448, 65, 16);
+		lblFrequency.setBounds(242, 532, 65, 16);
 		lblFrequency.setHorizontalAlignment(SwingConstants.RIGHT);
 		frmTempestSdr.getContentPane().add(lblFrequency);
 		
 		spFrequency = new JSpinner();
-		spFrequency.setBounds(319, 448, 244, 22);
+		spFrequency.setBounds(319, 532, 244, 22);
 		spFrequency.addChangeListener(new ChangeListener() {
 			public void stateChanged(ChangeEvent arg0) {
 				onCenterFreqChange();
@@ -426,13 +431,13 @@ public class Main implements TSDRLibrary.FrameReadyCallback, TSDRSourceParamChan
 		frmTempestSdr.getContentPane().add(lblMotionBlur);
 		
 		pnInputDeviceSettings = new JPanel();
-		pnInputDeviceSettings.setBounds(12, 483, 551, 123);
+		pnInputDeviceSettings.setBounds(12, 567, 551, 123);
 		pnInputDeviceSettings.setBorder(new TitledBorder(UIManager.getBorder("TitledBorder.border"), "Input device settings", TitledBorder.LEADING, TitledBorder.TOP, null, null));
 		frmTempestSdr.getContentPane().add(pnInputDeviceSettings);
 		pnInputDeviceSettings.setLayout(null);
 		
 		JScrollPane scrAdvancedTweaks = new JScrollPane();
-		scrAdvancedTweaks.setBounds(575, 448, 159, 158);
+		scrAdvancedTweaks.setBounds(575, 532, 159, 158);
 		scrAdvancedTweaks.setViewportBorder(new TitledBorder(null, "Advanced tweaks", TitledBorder.LEADING, TitledBorder.TOP, null, null));
 		frmTempestSdr.getContentPane().add(scrAdvancedTweaks);
 		
@@ -760,7 +765,8 @@ public class Main implements TSDRLibrary.FrameReadyCallback, TSDRSourceParamChan
 		if (frameid < 0) frameid = 0;
 		if (frameid % FFT_FREQ == 0) {
 			try {
-				mSdrlib.getFFT(fft_buff);
+				final long samplerate = mSdrlib.getFFT(fft_buff);
+				fft_visualizer.drawFFT(fft_buff, samplerate);
 			} catch (TSDRException e) {}
 		}
 	}
