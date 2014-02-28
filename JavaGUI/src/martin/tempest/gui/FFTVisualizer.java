@@ -23,7 +23,7 @@ public class FFTVisualizer extends JPanel {
 	private Object locker = new Object();
 	float[] data = null;
 
-	private int nwidth = 1, nheight = 1;
+	private int nwidth = 1, nheight = 1, nheighthalf = 1;
 	
 	public void drawFFT(float[] fft, long samplerate) {
 		
@@ -40,6 +40,7 @@ public class FFTVisualizer extends JPanel {
 	public void setBounds(int x, int y, int width, int height) {
 		this.nwidth = width;
 		this.nheight = height;
+		this.nheighthalf = height/2;
 		super.setBounds(x, y, width, height);
 	}
 	
@@ -47,6 +48,7 @@ public class FFTVisualizer extends JPanel {
 	public void setBounds(Rectangle r) {
 		this.nwidth = r.width;
 		this.nheight = r.height;
+		this.nheighthalf = r.height/2;
 		super.setBounds(r);
 	}
 	
@@ -57,11 +59,11 @@ public class FFTVisualizer extends JPanel {
 			g.fillRect(0, 0, nwidth, nheight);
 			if (data != null) {
 				g.setColor(Color.white);
-				int ly = (int) (data[0] * nheight);
+				int ly = nheight + (int) (Math.log(data[0]*data[0]));
 				int lx = 0;
 				for (int i = 1; i < data.length; i++) {
 					final int x = nwidth * i / data.length;
-					final int y = (int) (data[i] * nheight);
+					final int y = nheight + (int) (Math.log(data[i]*data[i]));
 					g.drawLine(lx, ly, x, y);
 					lx = x;
 					ly = y;
