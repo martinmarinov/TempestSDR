@@ -15,6 +15,11 @@
 
 	#include <stdint.h>
 
+	#define FFT_SIZE_2048 (11)
+	#define FFT_SIZE_1024 (10)
+	#define FFT_SIZE_512 (9)
+	#define FFT_SIZE_256 (8)
+
 	// those PIXEL_* are only used for debugging purposes and
 	// it is not required for the client to implement them
 	#define PIXEL_SPECIAL_VALUE_R (256.0f)
@@ -53,5 +58,8 @@
 	char * tsdr_getlasterrortext(tsdr_lib_t * tsdr);
 	int tsdr_setparameter_int(tsdr_lib_t * tsdr, int parameter, uint32_t value);
 	int tsdr_setparameter_double(tsdr_lib_t * tsdr, int parameter, double value);
+
+	// fft_size is the log2(size). i.e. if data is 1024, fft_size should be defined to 10
+	int tsdr_getfft(tsdr_lib_t * tsdr, float * buffer, int fft_size, uint32_t * samplerate);
 
 #endif

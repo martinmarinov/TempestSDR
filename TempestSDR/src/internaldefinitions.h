@@ -30,6 +30,12 @@
 
 		uint32_t params_int[COUNT_PARAM_INT];
 		double params_double[COUNT_PARAM_DOUBLE];
+
+		float * fft_buffer;
+		int fft_size;
+		volatile int fft_exception;
+		volatile int fft_requested;
+		mutex_t fft_mutex;
 	};
 
 #endif

@@ -67,6 +67,9 @@ import javax.swing.JScrollPane;
 
 public class Main implements TSDRLibrary.FrameReadyCallback, TSDRSourceParamChangedListener, OnTSDRParamChangedCallback {
 	
+	private final static int FFT_SIZE = 10; // power of two; FFT_SIZE == 10 means fft_buff.length == 1024
+	private final static int FFT_FREQ = 10; // every FFT_FREQ frames, a FFT will be calculated
+	
 	private final static String SNAPSHOT_FORMAT = "png";
 	private final static int OSD_TIME = 2000;
 	
@@ -86,6 +89,9 @@ public class Main implements TSDRLibrary.FrameReadyCallback, TSDRSourceParamChan
 	private final static String PREF_GAIN = "gain";
 	private final static String PREF_MOTIONBLUR = "motionblur";
 	private final static String PREF_SOURCE_ID = "source_id";
+	
+	private final float[] fft_buff = new float[1 << FFT_SIZE];
+	private long frameid = 0;
 
 	private final JComponent additionalTweaks[] = new JComponent[] {
 			new ParametersCheckbox(PARAM.AUTOPIXELRATE, "Auto pixel rate", this, prefs, false),
@@ -748,6 +754,15 @@ public class Main implements TSDRLibrary.FrameReadyCallback, TSDRSourceParamChan
 			
 		}
 		visualizer.drawImage(frame);
+		
+		// fft
+		frameid++;
+		if (frameid < 0) frameid = 0;
+		if (frameid % FFT_FREQ == 0) {
+			try {
+				mSdrlib.getFFT(fft_buff);
+			} catch (TSDRException e) {}
+		}
 	}
 
 	@Override

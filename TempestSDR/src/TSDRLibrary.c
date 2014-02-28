@@ -22,6 +22,7 @@
 #include "circbuff.h"
 #include "syncdetector.h"
 #include "internaldefinitions.h"
+#include "fft.h"
 
 #define MAX_ARR_SIZE (4000*4000)
 #define MAX_SAMP_RATE (500e6)
@@ -53,6 +54,18 @@ struct tsdr_context {
 #define RETURN_EXCEPTION(tsdr, message, status) {announceexception(tsdr, message, status); return status;}
 #define RETURN_OK(tsdr) {tsdr->errormsg_code = TSDR_OK; return TSDR_OK;}
 #define RETURN_PLUGIN_RESULT(tsdr,plugin,result) {if ((result) == TSDR_OK) RETURN_OK(tsdr) else RETURN_EXCEPTION(tsdr,plugin.tsdrplugin_getlasterrortext(),result);}
+
+void dofft(tsdr_lib_t * tsdr, float * srcbuff, int srcbuffsize) {
+	// do fft
+	if (tsdr->fft_requested) {
+		if (tsdr->fft_size < srcbuffsize) {
+			tsdr->fft_exception = 0;
+			memcpy(tsdr->fft_buffer,srcbuff,sizeof(float)*tsdr->fft_size);
+		} else
+			tsdr->fft_exception = 1;
+		mutex_signal(&tsdr->fft_mutex);
+	}
+}
 
 static inline void announceexception(tsdr_lib_t * tsdr, const char * message, int status) {
 	tsdr->errormsg_code = status;
@@ -92,6 +105,7 @@ static inline void announceexception(tsdr_lib_t * tsdr, const char * message, in
 	(*tsdr)->syncoffset = 0;
 	(*tsdr)->errormsg_size = 0;
 	(*tsdr)->errormsg_code = TSDR_OK;
+	(*tsdr)->fft_requested = 0;
 
 	for (i = 0; i < COUNT_PARAM_INT; i++)
 		(*tsdr)->params_int[i] = 0;
@@ -100,6 +114,7 @@ static inline void announceexception(tsdr_lib_t * tsdr, const char * message, in
 
 	semaphore_init(&(*tsdr)->threadsync);
 	mutex_init(&(*tsdr)->stopsync);
+	mutex_init(&(*tsdr)->fft_mutex);
 
 }
 
@@ -404,6 +419,7 @@ void decimatingthread(void * ctx) {
 				dropped_samples = 0;
 			}
 
+			dofft(context->this,outbuf,pid);
 
 			if (todrop >= pid)
 				todrop -= pid;
@@ -600,8 +616,33 @@ int tsdr_setparameter_double(tsdr_lib_t * tsdr, int parameter, double value) {
 
 	 semaphore_free(&(*tsdr)->threadsync);
 	 mutex_free(&(*tsdr)->stopsync);
+	 mutex_free(&(*tsdr)->fft_mutex);
 
 	 free (*tsdr);
 	 *tsdr = NULL;
  }
 
+ int tsdr_getfft(tsdr_lib_t * tsdr, float * buffer, int fft_size, uint32_t * samplerate) {
+
+	 if (!tsdr->running || !tsdr->nativerunning)
+	 	RETURN_EXCEPTION(tsdr, "Cannot return FFT since the library is not running!", TSDR_NOT_RUNNING);
+	 if (fft_size <= 5 || fft_size > 20)
+		 RETURN_EXCEPTION(tsdr, "fft_size must be between 5 and 20!", TSDR_INVALID_PARAMETER_VALUE);
+
+	 tsdr->fft_buffer = buffer;
+	 tsdr->fft_size = 1 << fft_size;
+
+	 tsdr->fft_requested = 1;
+
+	 mutex_waitforever(&tsdr->fft_mutex);
+
+	 tsdr->fft_requested = 0;
+	 *samplerate = tsdr->samplerate / tsdr->pixeltimeoversampletime;
+
+	 if (tsdr->fft_exception)
+		 RETURN_EXCEPTION(tsdr, "fft_size too big!", TSDR_INVALID_PARAMETER_VALUE);
+
+	 fft_real(buffer, fft_size);
+
+	 RETURN_OK(tsdr);
+ }
