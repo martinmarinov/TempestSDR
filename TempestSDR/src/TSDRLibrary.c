@@ -116,6 +116,8 @@ static inline void announceexception(tsdr_lib_t * tsdr, const char * message, in
 	mutex_init(&(*tsdr)->stopsync);
 	mutex_init(&(*tsdr)->fft_mutex);
 
+	frameratedetector_init(&(*tsdr)->frameratedetect);
+
 }
 
  int tsdr_isrunning(tsdr_lib_t * tsdr) {
@@ -220,6 +222,9 @@ void videodecodingthread(void * ctx) {
 		}
 
 		if (cb_rem_blocking(&context->circbuf_decimation_to_video, buffer, sizetopoll) == CB_OK) {
+
+			// framerate detection
+			frameratedetector_run(&context->this->frameratedetect, context->this, buffer, sizetopoll, context->this->samplerate / context->this->pixeltimeoversampletime);
 
 			for (i = 0; i < width; i++) widthcollapsebuffer[i] = 0.0f;
 			for (i = 0; i < height; i++) heightcollapsebuffer[i] = 0.0f;
@@ -617,6 +622,8 @@ int tsdr_setparameter_double(tsdr_lib_t * tsdr, int parameter, double value) {
 	 semaphore_free(&(*tsdr)->threadsync);
 	 mutex_free(&(*tsdr)->stopsync);
 	 mutex_free(&(*tsdr)->fft_mutex);
+
+	frameratedetector_free(&(*tsdr)->frameratedetect);
 
 	 free (*tsdr);
 	 *tsdr = NULL;

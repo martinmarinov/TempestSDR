@@ -9,10 +9,10 @@
 #     Martin Marinov - initial API and implementation
 #-------------------------------------------------------------------------------
 # Define all of the C files here
-OBJS = TSDRLibrary.o TSDRPluginLoader.o threading.o circbuff.o syncdetector.o fft.o
+OBJS = TSDRLibrary.o TSDRPluginLoader.o threading.o circbuff.o syncdetector.o fft.o frameratedetector.o
 
 # Define all of the dependencies here
-DEPS = include/TSDRLibrary.h TSDRPluginLoader.h include/TSDRPlugin.h osdetect.h threading.h circbuff.h syncdetector.h internaldefinitions.h fft.h
+DEPS = include/TSDRLibrary.h TSDRPluginLoader.h include/TSDRPlugin.h osdetect.h threading.h circbuff.h syncdetector.h internaldefinitions.h fft.h frameratedetector.h
 
 # Flags
 ifeq ($(BUILD_TYPE),Debug)

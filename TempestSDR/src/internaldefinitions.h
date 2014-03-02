@@ -4,6 +4,7 @@
 #include "threading.h"
 #include "circbuff.h"
 #include "TSDRPluginLoader.h"
+#include "frameratedetector.h"
 
 #include "include/TSDRLibrary.h"
 
@@ -36,6 +37,8 @@
 		volatile int fft_exception;
 		volatile int fft_requested;
 		mutex_t fft_mutex;
+
+		frameratedetector_t frameratedetect;
 	};
 
 #endif
