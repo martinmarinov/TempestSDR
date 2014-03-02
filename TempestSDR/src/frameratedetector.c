@@ -21,13 +21,8 @@ void frameratedetector_init(frameratedetector_t * frameratedetector) {
 
 	frameratedetector->bestfit = 0.0;
 
-	frameratedetector->brighteststpot = 0;
-	frameratedetector->darkeststspot = 0;
-	frameratedetector->last_brighteststpot = 0;
-	frameratedetector->last_darkeststspot = 0;
-
-	frameratedetector->maxval = 0;
-	frameratedetector->minval = 0;
+	frameratedetector->centerofmass = 0.0;
+	frameratedetector->lastfractionalcenterofmass = 0.0;
 
 	frameratedetector->mode = 0;
 }
@@ -37,21 +32,13 @@ void frameratedetector_run(frameratedetector_t * frameratedetector, tsdr_lib_t *
 	for (i = 0; i < size; i++) {
 		const float val = data[i];
 
-		if (frameratedetector->id < frameratedetector->totallength) {
-			if (val < frameratedetector->minval) {
-				frameratedetector->brighteststpot = frameratedetector->id;
-				frameratedetector->minval = val;
-			} else if (val > frameratedetector->maxval){
-				frameratedetector->darkeststspot = frameratedetector->id;
-				frameratedetector->maxval = val;
-			}
-		} else {
+		if (frameratedetector->id < frameratedetector->totallength)
+			frameratedetector->centerofmass += val * i;
+		else {
 
-			const int diff_bright = frameratedetector->last_brighteststpot - frameratedetector->brighteststpot;
-			const int bestfit_bright = diff_bright * diff_bright;
-			const int diff_dark = frameratedetector->last_darkeststspot - frameratedetector->darkeststspot;
-			const int bestfit_dark = diff_dark * diff_dark;
-			const int bestfit = bestfit_bright + bestfit_dark;
+			const double fractionalcenterofmass = frameratedetector->centerofmass / (double) frameratedetector->totallength;
+			const double centmassdiff = fractionalcenterofmass - frameratedetector->lastfractionalcenterofmass;
+			const double bestfit = centmassdiff*centmassdiff;
 
 			if (bestfit > frameratedetector->bestfit)
 				frameratedetector->mode = !frameratedetector->mode;
@@ -63,12 +50,8 @@ void frameratedetector_run(frameratedetector_t * frameratedetector, tsdr_lib_t *
 			if (samplerate > 100 * tsdr->height * frameratedetector->totallength) frameratedetector->totallength = samplerate / (100.0 * tsdr->height);
 
 			frameratedetector->bestfit = bestfit;
-			frameratedetector->last_brighteststpot = frameratedetector->brighteststpot;
-			frameratedetector->last_darkeststspot = frameratedetector->darkeststspot;
-			frameratedetector->maxval = val;
-			frameratedetector->minval = val;
-			frameratedetector->brighteststpot = 0;
-			frameratedetector->darkeststspot = 0;
+			frameratedetector->centerofmass = 0.0;
+			frameratedetector->lastfractionalcenterofmass = fractionalcenterofmass;
 			frameratedetector->id = 0;
 		}
 

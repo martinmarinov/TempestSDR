@@ -19,14 +19,10 @@ typedef struct frameratedetector {
 
 	int totallength;
 
-	int brighteststpot;
-	int darkeststspot;
-	int last_brighteststpot;
-	int last_darkeststspot;
+	double centerofmass;
+	double lastfractionalcenterofmass;
 
 	int bestfit;
-	float minval;
-	float maxval;
 
 	int mode;
 } frameratedetector_t;
