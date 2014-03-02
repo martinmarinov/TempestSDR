@@ -15,15 +15,19 @@
 #include "include/TSDRLibrary.h"
 
 typedef struct frameratedetector {
-	int last_id;
+	int id;
 
-	double last_small_sum;
-	double last_big_sum;
-
-	int smalllength;
 	int totallength;
 
-	double last_bestfit;
+	int brighteststpot;
+	int darkeststspot;
+	int last_brighteststpot;
+	int last_darkeststspot;
+
+	int bestfit;
+	float minval;
+	float maxval;
+
 	int mode;
 } frameratedetector_t;
 

@@ -130,7 +130,7 @@ static inline void announceexception(tsdr_lib_t * tsdr, const char * message, in
 	tsdr->samplerate = tsdr->plugin.tsdrplugin_getsamplerate();
 	if (tsdr->samplerate == 0 || tsdr->samplerate > 500e6) RETURN_EXCEPTION(tsdr, "Invalid/unsupported value for sample rate.", TSDR_SAMPLE_RATE_WRONG);
 
-	tsdr->sampletime = 1.0f / (float) tsdr->samplerate;
+	tsdr->sampletime = 1.0 / (double) tsdr->samplerate;
 	if (tsdr->sampletime != 0)
 		tsdr->pixeltimeoversampletime = tsdr->pixeltime /  tsdr->sampletime;
 
