@@ -19,10 +19,12 @@ typedef struct frameratedetector {
 
 	int totallength;
 
-	double centerofmass;
-	double lastfractionalcenterofmass;
+	float * buff;
+	double sumdiff;
+	int buff_size;
 
-	int bestfit;
+	double bestfit;
+	double fps;
 
 	int mode;
 } frameratedetector_t;

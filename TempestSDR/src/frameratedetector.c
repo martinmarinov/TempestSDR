@@ -13,6 +13,9 @@
 #include "internaldefinitions.h"
 #include <stdio.h>
 
+#define MIN_FRAMERATE (40)
+#define MAX_FRAMERATE (90)
+
 
 void frameratedetector_init(frameratedetector_t * frameratedetector) {
 	frameratedetector->totallength = 200;
@@ -20,38 +23,54 @@ void frameratedetector_init(frameratedetector_t * frameratedetector) {
 	frameratedetector->id = 0;
 
 	frameratedetector->bestfit = 0.0;
+	frameratedetector->sumdiff = 0.0;
 
-	frameratedetector->centerofmass = 0.0;
-	frameratedetector->lastfractionalcenterofmass = 0.0;
+	frameratedetector->buff_size = frameratedetector->totallength;
+	frameratedetector->buff = malloc(sizeof(float) * frameratedetector->buff_size);
+	int i;
+	for (i = 0; i < frameratedetector->buff_size; i++)  {
+		frameratedetector->buff[i] = 0.0f;
+
+	}
 
 	frameratedetector->mode = 0;
+	frameratedetector->fps = 0.0;
 }
 
 void frameratedetector_run(frameratedetector_t * frameratedetector, tsdr_lib_t * tsdr, float * data, int size, uint32_t samplerate) {
 	int i;
 	for (i = 0; i < size; i++) {
 		const float val = data[i];
+		const int id = frameratedetector->id;
 
-		if (frameratedetector->id < frameratedetector->totallength)
-			frameratedetector->centerofmass += val * i;
-		else {
+		if (id < frameratedetector->totallength) {
+			const float oldval = frameratedetector->buff[id];
+			const double diff = (val - oldval);
+			frameratedetector->sumdiff += diff * diff;
+			frameratedetector->buff[id] = val;
 
-			const double fractionalcenterofmass = frameratedetector->centerofmass / (double) frameratedetector->totallength;
-			const double centmassdiff = fractionalcenterofmass - frameratedetector->lastfractionalcenterofmass;
-			const double bestfit = centmassdiff*centmassdiff;
+		} else {
+			const double bestfit = frameratedetector->sumdiff / (double) frameratedetector->totallength;
 
 			if (bestfit > frameratedetector->bestfit)
 				frameratedetector->mode = !frameratedetector->mode;
-			else
-				printf("Detected fps is %.4f\n", samplerate / (double) ((tsdr->height) * (frameratedetector->totallength)));
+			else {
+				const double fps = samplerate / (double) (frameratedetector->totallength);
+				frameratedetector->fps = fps;
+				printf("Detected fps is %.4f (bestfit %f < %f) -> %s\n", frameratedetector->fps, bestfit, frameratedetector->bestfit, (frameratedetector->mode) ? "Increasing" : "Decreasing"); fflush(stdout);
+			}
 
 			frameratedetector->totallength += (frameratedetector->mode) ? (1) : (-1);
-			if (samplerate < 40 * tsdr->height * frameratedetector->totallength) frameratedetector->totallength = samplerate / (40.0 * tsdr->height);
-			if (samplerate > 100 * tsdr->height * frameratedetector->totallength) frameratedetector->totallength = samplerate / (100.0 * tsdr->height);
+			if (samplerate < MIN_FRAMERATE * frameratedetector->totallength) frameratedetector->totallength = samplerate / (double) (MIN_FRAMERATE);
+			else if (samplerate > MAX_FRAMERATE * frameratedetector->totallength) frameratedetector->totallength = samplerate / (double) (MAX_FRAMERATE);
+
+			if (frameratedetector->totallength > frameratedetector->buff_size) {
+				frameratedetector->buff_size = frameratedetector->totallength;
+				frameratedetector->buff = realloc(frameratedetector->buff, sizeof(float) * frameratedetector->buff_size);
+			}
 
 			frameratedetector->bestfit = bestfit;
-			frameratedetector->centerofmass = 0.0;
-			frameratedetector->lastfractionalcenterofmass = fractionalcenterofmass;
+			frameratedetector->sumdiff = 0.0;
 			frameratedetector->id = 0;
 		}
 
@@ -61,5 +80,5 @@ void frameratedetector_run(frameratedetector_t * frameratedetector, tsdr_lib_t *
 }
 
 void frameratedetector_free(frameratedetector_t * frameratedetector) {
-
+	free (frameratedetector->buff);
 }
