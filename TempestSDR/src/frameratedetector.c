@@ -12,73 +12,71 @@
 #include "frameratedetector.h"
 #include "internaldefinitions.h"
 #include <stdio.h>
+#include <assert.h>
 
 #define MIN_FRAMERATE (40)
 #define MAX_FRAMERATE (90)
 
+#define FRAMERATE_RUNS (50)
+
 
 void frameratedetector_init(frameratedetector_t * frameratedetector) {
-	frameratedetector->totallength = 200;
 
-	frameratedetector->id = 0;
+}
 
-	frameratedetector->bestfit = 0.0;
-	frameratedetector->sumdiff = 0.0;
-
-	frameratedetector->buff_size = frameratedetector->totallength;
-	frameratedetector->buff = malloc(sizeof(float) * frameratedetector->buff_size);
+inline static double frameratedetector_fitvalue(float * data, int offset, int length) {
+	double sum = 0.0;
 	int i;
-	for (i = 0; i < frameratedetector->buff_size; i++)  {
-		frameratedetector->buff[i] = 0.0f;
+	for (i = 0; i < length; i++) {
+		const float val1 = data[i];
+		const float val2 = data[i+offset];
+		const double diff = val1 - val2;
+		sum += diff * diff;
+	}
+	return sum;
+}
 
+inline static double frameratedetector_findone(tsdr_lib_t * tsdr, float * data, uint32_t samplerate, int maxlength, int minlength) {
+	int bestlength = minlength;
+	int l = minlength;
+	float bestfitvalue = frameratedetector_fitvalue(data, l, maxlength);
+	l++;
+	while (l < maxlength) {
+		const float fitvalue = frameratedetector_fitvalue(data, l, maxlength);
+		if (fitvalue < bestfitvalue) {
+			bestfitvalue = fitvalue;
+			bestlength = l;
+		}
+		l++;
 	}
 
-	frameratedetector->mode = 0;
-	frameratedetector->fps = 0.0;
+	return samplerate / (double) (bestlength * tsdr->height);
 }
 
 void frameratedetector_run(frameratedetector_t * frameratedetector, tsdr_lib_t * tsdr, float * data, int size, uint32_t samplerate) {
+	const int maxlength = samplerate / (double) (MIN_FRAMERATE * tsdr->height);
+	const int minlength = samplerate / (double) (MAX_FRAMERATE * tsdr->height);
+
+	const int searchsize = maxlength + maxlength;
+	const int lastindex = size - searchsize;
+
+	assert (lastindex > 1);
+
+	const int offsetstep = lastindex / FRAMERATE_RUNS;
+
+	assert (offsetstep > 1);
+
 	int i;
-	for (i = 0; i < size; i++) {
-		const float val = data[i];
-		const int id = frameratedetector->id;
-
-		if (id < frameratedetector->totallength) {
-			const float oldval = frameratedetector->buff[id];
-			const double diff = (val - oldval);
-			frameratedetector->sumdiff += diff * diff;
-			frameratedetector->buff[id] = val;
-
-		} else {
-			const double bestfit = frameratedetector->sumdiff / (double) frameratedetector->totallength;
-
-			if (bestfit > frameratedetector->bestfit)
-				frameratedetector->mode = !frameratedetector->mode;
-			else {
-				const double fps = samplerate / (double) (frameratedetector->totallength);
-				frameratedetector->fps = fps;
-				printf("Detected fps is %.4f (bestfit %f < %f) -> %s\n", frameratedetector->fps, bestfit, frameratedetector->bestfit, (frameratedetector->mode) ? "Increasing" : "Decreasing"); fflush(stdout);
-			}
-
-			frameratedetector->totallength += (frameratedetector->mode) ? (1) : (-1);
-			if (samplerate < MIN_FRAMERATE * frameratedetector->totallength) frameratedetector->totallength = samplerate / (double) (MIN_FRAMERATE);
-			else if (samplerate > MAX_FRAMERATE * frameratedetector->totallength) frameratedetector->totallength = samplerate / (double) (MAX_FRAMERATE);
-
-			if (frameratedetector->totallength > frameratedetector->buff_size) {
-				frameratedetector->buff_size = frameratedetector->totallength;
-				frameratedetector->buff = realloc(frameratedetector->buff, sizeof(float) * frameratedetector->buff_size);
-			}
-
-			frameratedetector->bestfit = bestfit;
-			frameratedetector->sumdiff = 0.0;
-			frameratedetector->id = 0;
-		}
-
-		frameratedetector->id++;
+	double averagefps = 0.0;
+	for (i = 0; i < FRAMERATE_RUNS; i++) {
+		const double currfps = frameratedetector_findone(tsdr, &data[i*offsetstep], samplerate, maxlength, minlength);
+		//printf("%f\n", currfps);
+		averagefps += currfps / (double) FRAMERATE_RUNS;
 	}
 
+	printf("Detected %.6f fps. Offsetstep %d. Length between %d and %d\n", averagefps, offsetstep, minlength, maxlength);  fflush(stdout);
 }
 
 void frameratedetector_free(frameratedetector_t * frameratedetector) {
-	free (frameratedetector->buff);
+
 }
