@@ -15,7 +15,8 @@
 #include "include/TSDRLibrary.h"
 
 typedef struct frameratedetector {
-
+	double crudefpserr;
+	double fpserr;
 } frameratedetector_t;
 
 void frameratedetector_init(frameratedetector_t * frameratedetector);
