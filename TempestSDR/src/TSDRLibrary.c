@@ -55,6 +55,13 @@ struct tsdr_context {
 #define RETURN_OK(tsdr) {tsdr->errormsg_code = TSDR_OK; return TSDR_OK;}
 #define RETURN_PLUGIN_RESULT(tsdr,plugin,result) {if ((result) == TSDR_OK) RETURN_OK(tsdr) else RETURN_EXCEPTION(tsdr,plugin.tsdrplugin_getlasterrortext(),result);}
 
+	void setframerate(tsdr_lib_t * tsdr, double refreshrate) {
+		tsdr->pixelrate = tsdr->width * tsdr->height * refreshrate;
+		tsdr->pixeltime = 1.0/tsdr->pixelrate;
+		if (tsdr->sampletime != 0)
+			tsdr->pixeltimeoversampletime = tsdr->pixeltime /  tsdr->sampletime;
+	}
+
 void dofft(tsdr_lib_t * tsdr, float * srcbuff, int srcbuffsize) {
 	// do fft
 	if (tsdr->fft_requested) {
@@ -224,7 +231,7 @@ void videodecodingthread(void * ctx) {
 		if (cb_rem_blocking(&context->circbuf_decimation_to_video, buffer, sizetopoll) == CB_OK) {
 
 			// framerate detection
-			frameratedetector_run(&context->this->frameratedetect, context->this, buffer, sizetopoll, context->this->samplerate / context->this->pixeltimeoversampletime);
+			setframerate(context->this, frameratedetector_run(&context->this->frameratedetect, context->this, buffer, sizetopoll, context->this->samplerate / context->this->pixeltimeoversampletime));
 
 			for (i = 0; i < width; i++) widthcollapsebuffer[i] = 0.0f;
 			for (i = 0; i < height; i++) heightcollapsebuffer[i] = 0.0f;

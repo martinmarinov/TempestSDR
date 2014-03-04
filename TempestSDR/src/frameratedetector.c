@@ -17,15 +17,11 @@
 #define MIN_FRAMERATE (40)
 #define MAX_FRAMERATE (90)
 
-#define FRAMERATE_RUNS (50)
-#define FRAMERATE_ESTIMATED_CRUDE_PIXEL_ERROR (2)
-#define MIN_MULTIPLIER (20)
-#define MAX_MULTIPLIER (50)
+#define FRAMERATE_RUNS (5)
 
 
 void frameratedetector_init(frameratedetector_t * frameratedetector) {
-	frameratedetector->crudefpserr = 0.0;
-	frameratedetector->fpserr = 0.0;
+	frameratedetector->fps = -1.0;
 }
 
 inline static double frameratedetector_fitvalue(float * data, int offset, int length) {
@@ -57,11 +53,7 @@ inline static int frameratedetector_estimateintlength(float * data, int length, 
 	return bestlength;
 }
 
-inline static double frameratedetector_estimatebetterlength(float * data, int lengthtocompare, double crudelength, int multiplier) {
-	return frameratedetector_estimateintlength(data, lengthtocompare, (crudelength + FRAMERATE_ESTIMATED_CRUDE_PIXEL_ERROR)*multiplier, (crudelength - FRAMERATE_ESTIMATED_CRUDE_PIXEL_ERROR)*multiplier) / (double) multiplier;
-}
-
-void frameratedetector_run(frameratedetector_t * frameratedetector, tsdr_lib_t * tsdr, float * data, int size, uint32_t samplerate) {
+float frameratedetector_run(frameratedetector_t * frameratedetector, tsdr_lib_t * tsdr, float * data, int size, uint32_t samplerate) {
 	const int maxlength = samplerate / (double) (MIN_FRAMERATE * tsdr->height);
 	const int minlength = samplerate / (double) (MAX_FRAMERATE * tsdr->height);
 
@@ -80,22 +72,16 @@ void frameratedetector_run(frameratedetector_t * frameratedetector, tsdr_lib_t *
 	for (i = 0; i < FRAMERATE_RUNS; i++)
 		crudelength += frameratedetector_estimateintlength(&data[i*offsetstep], maxlength, maxlength, minlength) / (double) FRAMERATE_RUNS;
 
-	int number_of_better_estimators = ((size - crudelength) / (crudelength + FRAMERATE_ESTIMATED_CRUDE_PIXEL_ERROR));
-	if (number_of_better_estimators > MAX_MULTIPLIER) number_of_better_estimators = MAX_MULTIPLIER;
+	const double fps = samplerate / (double) (crudelength * tsdr->height);
 
-	assert(number_of_better_estimators > MIN_MULTIPLIER);
+	if (frameratedetector->fps == -1.0)
+		frameratedetector->fps = fps;
+	else
+		frameratedetector->fps = frameratedetector->fps * 0.99 + fps * 0.01;
 
-	double bestlength = 0.0;
-	for (i = MIN_MULTIPLIER; i < number_of_better_estimators; i++)
-		bestlength += frameratedetector_estimatebetterlength(data, crudelength, crudelength, i) / (double) (number_of_better_estimators-MIN_MULTIPLIER);
+	printf("%f\n", frameratedetector->fps); fflush(stdout);
 
-	const double crudefps = samplerate / (double) (crudelength * tsdr->height);
-	const double fps = samplerate / (double) (bestlength * tsdr->height);
-
-	frameratedetector->crudefpserr = frameratedetector->crudefpserr * 0.5 + 0.5 * (crudefps - 59.980925) * (crudefps - 59.980925);
-	frameratedetector->fpserr = frameratedetector->fpserr * 0.5 + 0.5 * (fps - 59.980925) * (fps - 59.980925);
-
-	printf("Crudefpserr is %.2f%% bigger\n", -100.0 + 100.0 * frameratedetector->crudefpserr / frameratedetector->fpserr); fflush(stdout);
+	return frameratedetector->fps;
 }
 
 void frameratedetector_free(frameratedetector_t * frameratedetector) {
