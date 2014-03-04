@@ -17,11 +17,10 @@
 #define MIN_FRAMERATE (40)
 #define MAX_FRAMERATE (90)
 
-#define FRAMERATE_RUNS (5)
+#define FRAMERATE_RUNS (10)
 
 
 void frameratedetector_init(frameratedetector_t * frameratedetector) {
-	frameratedetector->fps = -1.0;
 }
 
 inline static double frameratedetector_fitvalue(float * data, int offset, int length) {
@@ -30,13 +29,13 @@ inline static double frameratedetector_fitvalue(float * data, int offset, int le
 	for (i = 0; i < length; i++) {
 		const float val1 = data[i];
 		const float val2 = data[i+offset];
-		const double diff = val1 - val2;
-		sum += diff * diff;
+		const double difff = val1 - val2;
+		sum += difff * difff;
 	}
 	return sum;
 }
 
-inline static int frameratedetector_estimateintlength(float * data, int length, int endlength, int startlength) {
+inline static int frameratedetector_estimatedirectlength(float * data, int length, int endlength, int startlength) {
 	int bestlength = startlength;
 	int l = startlength;
 	float bestfitvalue = frameratedetector_fitvalue(data, l, length);
@@ -53,11 +52,16 @@ inline static int frameratedetector_estimateintlength(float * data, int length, 
 	return bestlength;
 }
 
+inline static int frameratedetector_estimateintlength(float * data, int length, int endlength, int startlength) {
+	const int bestintestimate = frameratedetector_estimatedirectlength(data, length, endlength, startlength);
+	return bestintestimate;
+}
+
 float frameratedetector_run(frameratedetector_t * frameratedetector, tsdr_lib_t * tsdr, float * data, int size, uint32_t samplerate) {
 	const int maxlength = samplerate / (double) (MIN_FRAMERATE * tsdr->height);
 	const int minlength = samplerate / (double) (MAX_FRAMERATE * tsdr->height);
 
-	const int searchsize = maxlength + maxlength;
+	const int searchsize = 2*minlength + maxlength;
 	const int lastindex = size - searchsize;
 
 	assert (lastindex > 1);
@@ -70,18 +74,13 @@ float frameratedetector_run(frameratedetector_t * frameratedetector, tsdr_lib_t 
 	double crudelength = 0.0;
 	int i;
 	for (i = 0; i < FRAMERATE_RUNS; i++)
-		crudelength += frameratedetector_estimateintlength(&data[i*offsetstep], maxlength, maxlength, minlength) / (double) FRAMERATE_RUNS;
+		crudelength += frameratedetector_estimateintlength(&data[i*offsetstep], minlength, maxlength, minlength) / (double) FRAMERATE_RUNS;
 
 	const double fps = samplerate / (double) (crudelength * tsdr->height);
 
-	if (frameratedetector->fps == -1.0)
-		frameratedetector->fps = fps;
-	else
-		frameratedetector->fps = frameratedetector->fps * 0.99 + fps * 0.01;
+	printf("%f\n", fps); fflush(stdout);
 
-	printf("%f\n", frameratedetector->fps); fflush(stdout);
-
-	return frameratedetector->fps;
+	return fps;
 }
 
 void frameratedetector_free(frameratedetector_t * frameratedetector) {

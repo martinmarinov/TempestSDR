@@ -230,8 +230,7 @@ void videodecodingthread(void * ctx) {
 
 		if (cb_rem_blocking(&context->circbuf_decimation_to_video, buffer, sizetopoll) == CB_OK) {
 
-			// framerate detection
-			setframerate(context->this, frameratedetector_run(&context->this->frameratedetect, context->this, buffer, sizetopoll, context->this->samplerate / context->this->pixeltimeoversampletime));
+			frameratedetector_run(&context->this->frameratedetect, context->this, buffer, sizetopoll, context->this->samplerate / context->this->pixeltimeoversampletime);
 
 			for (i = 0; i < width; i++) widthcollapsebuffer[i] = 0.0f;
 			for (i = 0; i < height; i++) heightcollapsebuffer[i] = 0.0f;
@@ -363,11 +362,22 @@ void decimatingthread(void * ctx) {
 			int id;
 
 			float * bref = buffer;
+			float * brefout = buffer;
 			for (id = 0; id < size; id++) {
 				const float I = *(bref++);
 				const float Q = *(bref++);
 
-				const float val = sqrtf(I*I+Q*Q);
+				*(brefout++) = sqrtf(I*I+Q*Q);
+			}
+
+			// we have the AM demodulated signal in buff
+			//setframerate(context->this, frameratedetector_run(&context->this->frameratedetect, context->this, buffer, size, context->this->samplerate / context->this->pixeltimeoversampletime));
+			//frameratedetector_run(&context->this->frameratedetect, context->this, buffer, size, context->this->samplerate / context->this->pixeltimeoversampletime);
+
+			bref = buffer;
+			for (id = 0; id < size; id++) {
+
+				const float val = *(bref++);
 
 				// we are in case:
 				//    pid
