@@ -182,28 +182,6 @@ float * syncdetector_run(tsdr_lib_t * tsdr, float * data, float * outputdata, in
 	int i;
 	const int size = width * height;
 
-	if (tsdr->params_int[PARAM_INT_AUTOPIXELRATE]) {
-		for (i = 0; i < size; i++) {
-			const int x = i % width;
-			const int y = i / width;
-
-			if (y < 200 && y < x) {
-				const float wbv = widthbuffer[x];
-				if (wbv == PIXEL_SPECIAL_VALUE_B || wbv == PIXEL_SPECIAL_VALUE_G || wbv == PIXEL_SPECIAL_VALUE_R)
-					data[i] = wbv;
-				else if (wbv != PIXEL_SPECIAL_VALUE_TRANSPARENT)
-					data[i] = wbv / (float) height;
-			} else if (x < 200 && y > x) {
-				const float hbv = heightbuffer[y];
-				if (hbv == PIXEL_SPECIAL_VALUE_B || hbv == PIXEL_SPECIAL_VALUE_G || hbv == PIXEL_SPECIAL_VALUE_R)
-					data[i] = hbv;
-				else if (hbv != PIXEL_SPECIAL_VALUE_TRANSPARENT)
-					data[i] = hbv / (float) width;
-			}
-
-		}
-	}
-
 	// do the shift itself
 	if (tsdr->params_int[PARAM_INT_AUTOSHIFT]) {
 		// fix the y offset

@@ -31,6 +31,34 @@ inline static double frameratedetector_fitvalue(float * data, int offset, int le
 	return sum / (double) length;
 }
 
+inline static double frameratedetector_fitvalue_subpixel(float * data, int offset, int length, float subpixel) {
+	double sum = 0.0;
+	int i;
+
+	if (subpixel >= 0) {
+		const float subpixelcomplement = 1.0f - subpixel;
+		for (i = 0; i < length; i++) {
+			const float val1 = data[i];
+
+			const int ioffset = i + offset;
+			const float val2 = data[ioffset] * subpixelcomplement + data[ioffset+1] * subpixel;
+			const double difff = val1 - val2;
+			sum += difff * difff;
+		}
+	} else {
+		subpixel = - subpixel;
+		const float subpixelcomplement = 1.0f - subpixel;
+		for (i = 0; i < length; i++) {
+			const float val1 = data[i] * subpixelcomplement + data[i+1] * subpixel;
+
+			const float val2 = data[i+offset];
+			const double difff = val1 - val2;
+			sum += difff * difff;
+		}
+	}
+	return sum / (double) length;
+}
+
 // estimate the next repetition of a size of datah length starting from data
 // for distances from startlength to endlength in samples
 inline static int frameratedetector_estimatedirectlength(float * data, int length, int endlength, int startlength, float * bestfitvalue) {
@@ -48,6 +76,23 @@ inline static int frameratedetector_estimatedirectlength(float * data, int lengt
 	}
 
 	return bestlength;
+}
+
+inline static double frameratedetector_estimatedirectlength_subpixel(float * data, int length, int roughlength, float * bestfitvalue, int iterations) {
+	float bestlength = 0.0f;
+
+	*bestfitvalue = frameratedetector_fitvalue_subpixel(data, roughlength, length, 0.0f);
+	float subpixel;
+	const float step = 2.0f / (float) iterations;
+	for (subpixel = -1.0f; subpixel <= 1.0f; subpixel += step) {
+		const float fitvalue = frameratedetector_fitvalue_subpixel(data, roughlength, length, subpixel);
+		if (fitvalue < *bestfitvalue) {
+			*bestfitvalue = fitvalue;
+			bestlength = subpixel;
+		}
+	}
+
+	return roughlength + bestlength;
 }
 
 double framedetector_estimatelinelength(tsdr_lib_t * tsdr, float * data, int size, uint32_t samplerate) {
@@ -77,19 +122,26 @@ double framedetector_estimatelinelength(tsdr_lib_t * tsdr, float * data, int siz
 void frameratedetector_runontodata(frameratedetector_t * frameratedetector) {
 	const double linelength = framedetector_estimatelinelength(frameratedetector->tsdr, frameratedetector->data, frameratedetector->desireddatalength, frameratedetector->samplerate);
 
-	const int maxlength = (linelength+2)*frameratedetector->tsdr->height;
-	const int minlength = (linelength-2)*frameratedetector->tsdr->height;
+	const int maxlength = (linelength+3)*frameratedetector->tsdr->height;
+	const int minlength = (linelength-3)*frameratedetector->tsdr->height;
 
 	// estimate the length of a horizontal line in samples
 	float bestfit;
 	int crudelength = frameratedetector_estimatedirectlength(frameratedetector->data, minlength, maxlength, minlength, &bestfit);
 
-	const double fps = frameratedetector->samplerate / (double) (crudelength);
+
 	//const double maxerror = frameratedetector->samplerate / (double) (crudelength * (crudelength-1));
 
 	if (frameratedetector->bestfitvalue == 0 || bestfit < frameratedetector->bestfitvalue) {
-		frameratedetector->setframerate(frameratedetector->tsdr, fps);
-		printf("%f bestfit %f crudelength %d\n", fps, bestfit, crudelength); fflush(stdout);
+
+		// calculate subpixel shift
+		float bestsubfit;
+		double length = frameratedetector_estimatedirectlength_subpixel(frameratedetector->data, minlength, crudelength, &bestsubfit, 100);
+
+		const double fps = frameratedetector->samplerate / length;
+		if (frameratedetector->tsdr->params_int[PARAM_INT_AUTOPIXELRATE])
+			frameratedetector->setframerate(frameratedetector->tsdr, fps);
+		printf("%f bestfit %f crudelength %d length %f\n", fps, bestfit, crudelength, length); fflush(stdout);
 		frameratedetector->bestfitvalue = bestfit;
 	} else
 		frameratedetector->bestfitvalue = frameratedetector->bestfitvalue*0.99f + 0.01f * bestfit;
