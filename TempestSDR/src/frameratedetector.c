@@ -17,10 +17,12 @@
 #define MIN_FRAMERATE (40)
 #define MAX_FRAMERATE (90)
 
-#define FRAMERATE_RUNS (10)
-
+#define FRAMERATE_RUNS (50)
 
 void frameratedetector_init(frameratedetector_t * frameratedetector) {
+	frameratedetector->data = NULL;
+	frameratedetector->size = 0;
+	frameratedetector->data_size = 0;
 }
 
 inline static double frameratedetector_fitvalue(float * data, int offset, int length) {
@@ -52,16 +54,36 @@ inline static int frameratedetector_estimatedirectlength(float * data, int lengt
 	return bestlength;
 }
 
-inline static int frameratedetector_estimateintlength(float * data, int length, int endlength, int startlength) {
+inline static double frameratedetector_estimatelength(float * data, int length, int endlength, int startlength) {
+	// accuracy is
+	// estmated framerate =  samplerate / (bestintestimate * tsdr->height)
+	// there is +- 1 uncertainty in bestintestimate therefore difference could be as much as
+	// 2 * samplerate / ((bestintestimate^2 - 1) * tsdr->height)
+
 	const int bestintestimate = frameratedetector_estimatedirectlength(data, length, endlength, startlength);
-	return bestintestimate;
+
+	// we would expect the next image to be 2*bestintestimates away
+	const double doublebest = frameratedetector_estimatedirectlength(data, bestintestimate, 2*bestintestimate + 2, 2*bestintestimate - 2) / 2.0;
+	const double triplebest = frameratedetector_estimatedirectlength(data, doublebest, 3*doublebest + 2, 3*doublebest - 2) / 3.0;
+
+	return triplebest;
 }
 
-float frameratedetector_run(frameratedetector_t * frameratedetector, tsdr_lib_t * tsdr, float * data, int size, uint32_t samplerate) {
+/**
+ * NOTE: For trying to estimate the size of the full frame, the error would be
+ * err = 2 * samplerate / ((samplerate/framerate)^2 - 1)
+ *  = 0.0009 for mirics/LCD at 60 fps
+ *
+ * For trying to estimate the size of a line
+ * err = 2 * samplerate / (((samplerate/(framerate*tsdr->height))^2 - 1) * tsdr->height)
+ *  = 0.8406 for mirics/LCD at 60 fps
+ */
+
+float frameratedetector_runontodata(tsdr_lib_t * tsdr, float * data, int size, uint32_t samplerate) {
 	const int maxlength = samplerate / (double) (MIN_FRAMERATE * tsdr->height);
 	const int minlength = samplerate / (double) (MAX_FRAMERATE * tsdr->height);
 
-	const int searchsize = 2*minlength + maxlength;
+	const int searchsize = 3*maxlength + maxlength;
 	const int lastindex = size - searchsize;
 
 	assert (lastindex > 1);
@@ -74,15 +96,51 @@ float frameratedetector_run(frameratedetector_t * frameratedetector, tsdr_lib_t 
 	double crudelength = 0.0;
 	int i;
 	for (i = 0; i < FRAMERATE_RUNS; i++)
-		crudelength += frameratedetector_estimateintlength(&data[i*offsetstep], minlength, maxlength, minlength) / (double) FRAMERATE_RUNS;
+		crudelength += frameratedetector_estimatelength(&data[i*offsetstep], minlength, maxlength, minlength) / (double) FRAMERATE_RUNS;
 
 	const double fps = samplerate / (double) (crudelength * tsdr->height);
+	const double maxerror = samplerate / (double) (crudelength * (crudelength-1) * tsdr->height);
 
-	printf("%f\n", fps); fflush(stdout);
+	printf("%f max error %f\n", fps, maxerror); fflush(stdout);
 
 	return fps;
 }
 
-void frameratedetector_free(frameratedetector_t * frameratedetector) {
+int frameratedetector_run(frameratedetector_t * frameratedetector, tsdr_lib_t * tsdr, float * data, int size, uint32_t samplerate) {
+	int run = 0;
 
+	// we need to have at least two frames of data present
+	const int desireddatalength = 2.0 * samplerate / (double) (MIN_FRAMERATE);
+
+	// resize the data to fit
+	if (desireddatalength > frameratedetector->data_size) {
+		frameratedetector->data_size = desireddatalength;
+		if (frameratedetector->data == NULL)
+			frameratedetector->data = malloc(sizeof(float)*frameratedetector->data_size);
+		else
+			frameratedetector->data = realloc((void *) frameratedetector->data, sizeof(float)*frameratedetector->data_size);
+	}
+
+	const int newsize = frameratedetector->size + size;
+	if (newsize < desireddatalength) {
+		// copy the data into the buffer
+		memcpy(&frameratedetector->data[frameratedetector->size], data, size * sizeof(float));
+		frameratedetector->size = newsize;
+	} else {
+		const int rem = desireddatalength - frameratedetector->size;
+
+		memcpy(&frameratedetector->data[frameratedetector->size], data, rem * sizeof(float));
+
+		// run algorithm
+		frameratedetector_runontodata(tsdr, frameratedetector->data, desireddatalength, samplerate);
+
+		run = 1;
+		frameratedetector->size = 0;
+	}
+
+	return run;
+}
+
+void frameratedetector_free(frameratedetector_t * frameratedetector) {
+	free (frameratedetector->data);
 }

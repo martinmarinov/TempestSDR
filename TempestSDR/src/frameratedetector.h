@@ -15,11 +15,14 @@
 #include "include/TSDRLibrary.h"
 
 typedef struct frameratedetector {
+	float * data;
+	int data_size;
 
+	int size;
 } frameratedetector_t;
 
 void frameratedetector_init(frameratedetector_t * frameratedetector);
 void frameratedetector_free(frameratedetector_t * frameratedetector);
-float frameratedetector_run(frameratedetector_t * frameratedetector, tsdr_lib_t * tsdr, float * data, int size, uint32_t samplerate);
+int frameratedetector_run(frameratedetector_t * frameratedetector, tsdr_lib_t * tsdr, float * data, int size, uint32_t samplerate);
 
 #endif

@@ -230,8 +230,6 @@ void videodecodingthread(void * ctx) {
 
 		if (cb_rem_blocking(&context->circbuf_decimation_to_video, buffer, sizetopoll) == CB_OK) {
 
-			frameratedetector_run(&context->this->frameratedetect, context->this, buffer, sizetopoll, context->this->samplerate / context->this->pixeltimeoversampletime);
-
 			for (i = 0; i < width; i++) widthcollapsebuffer[i] = 0.0f;
 			for (i = 0; i < height; i++) heightcollapsebuffer[i] = 0.0f;
 
@@ -372,7 +370,7 @@ void decimatingthread(void * ctx) {
 
 			// we have the AM demodulated signal in buff
 			//setframerate(context->this, frameratedetector_run(&context->this->frameratedetect, context->this, buffer, size, context->this->samplerate / context->this->pixeltimeoversampletime));
-			//frameratedetector_run(&context->this->frameratedetect, context->this, buffer, size, context->this->samplerate / context->this->pixeltimeoversampletime);
+			frameratedetector_run(&context->this->frameratedetect, context->this, buffer, size, context->this->samplerate);
 
 			bref = buffer;
 			for (id = 0; id < size; id++) {
