@@ -152,7 +152,7 @@ void frameratedetector_runontodata(frameratedetector_t * frameratedetector) {
 		if (frameratedetector->roughsize == crudelength) {
 			// if we see the same length being calculated twice, switch state
 				frameratedetector->state = FRAMERATEDETECTOR_STATE_SAMPLE_ACCURACY;
-				printf("Change of state!\n");fflush(stdout);
+				//printf("Change of state!\n");fflush(stdout);
 		}
 
 		frameratedetector->roughsize = crudelength;
@@ -176,7 +176,7 @@ void frameratedetector_runontodata(frameratedetector_t * frameratedetector) {
 						frameratedetector->state = FRAMERATEDETECTOR_STATE_OFF;
 						frameratedetector->size = 0;
 						frameratedetector->samp_counter = 0;
-						printf("Switching off!\n");
+						//printf("Switching off!\n");
 					}
 				} else
 					frameratedetector->count_numer = 0;
@@ -184,7 +184,7 @@ void frameratedetector_runontodata(frameratedetector_t * frameratedetector) {
 
 			if (frameratedetector->tsdr->params_int[PARAM_INT_AUTOPIXELRATE])
 				frameratedetector->setframerate(frameratedetector->tsdr, frameratedetector->fps);
-			printf("%f bestfit %f crudelength %d length %f\n", fps, bestsubfit, frameratedetector->roughsize, length); fflush(stdout);
+			//printf("%f bestfit %f crudelength %d length %f\n", fps, bestsubfit, frameratedetector->roughsize, length); fflush(stdout);
 	}
 
 }

@@ -39,11 +39,14 @@
 
 	#define COUNT_PARAM_DOUBLE (2)
 
+	#define VALUE_ID_FRAMERATE (0)
+
 	typedef struct tsdr_lib tsdr_lib_t;
 
 	typedef void(*tsdr_readasync_function)(float *buf, int width, int height, void *ctx);
+	typedef void(*tsdr_value_changed_callback)(int value_id, double value);
 
-	void tsdr_init(tsdr_lib_t ** tsdr);
+	void tsdr_init(tsdr_lib_t ** tsdr, tsdr_value_changed_callback callback);
 	int tsdr_setbasefreq(tsdr_lib_t * tsdr, uint32_t freq);
 	int tsdr_stop(tsdr_lib_t * tsdr);
 	int tsdr_setgain(tsdr_lib_t * tsdr, float gain);

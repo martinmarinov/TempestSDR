@@ -26,7 +26,7 @@ volatile int working = 0;
 volatile double desiredfreq = 200;
 volatile int desiredgainred = 40;
 
-#define SAMPLES_TO_PROCESS_AT_ONCE (20)
+#define SAMPLES_TO_PROCESS_AT_ONCE (200)
 
 int errormsg_code;
 char * errormsg;

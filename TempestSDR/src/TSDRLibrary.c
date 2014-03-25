@@ -60,6 +60,7 @@ struct tsdr_context {
 		tsdr->pixeltime = 1.0/tsdr->pixelrate;
 		if (tsdr->sampletime != 0)
 			tsdr->pixeltimeoversampletime = tsdr->pixeltime /  tsdr->sampletime;
+		announce_callback_changed(tsdr, VALUE_ID_FRAMERATE, refreshrate);
 	}
 
 void dofft(tsdr_lib_t * tsdr, float * srcbuff, int srcbuffsize) {
@@ -99,7 +100,12 @@ static inline void announceexception(tsdr_lib_t * tsdr, const char * message, in
 		return tsdr->errormsg;
 }
 
- void tsdr_init(tsdr_lib_t ** tsdr) {
+ void announce_callback_changed(tsdr_lib_t * tsdr, int value_id, double value) {
+	 if (tsdr->callback != NULL)
+		 tsdr->callback(value_id, value);
+ }
+
+ void tsdr_init(tsdr_lib_t ** tsdr, tsdr_value_changed_callback callback) {
 	 int i;
 
 	*tsdr = (tsdr_lib_t *) malloc(sizeof(tsdr_lib_t));
@@ -113,6 +119,7 @@ static inline void announceexception(tsdr_lib_t * tsdr, const char * message, in
 	(*tsdr)->errormsg_size = 0;
 	(*tsdr)->errormsg_code = TSDR_OK;
 	(*tsdr)->fft_requested = 0;
+	(*tsdr)->callback = callback;
 
 	for (i = 0; i < COUNT_PARAM_INT; i++)
 		(*tsdr)->params_int[i] = 0;

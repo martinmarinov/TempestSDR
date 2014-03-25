@@ -103,10 +103,14 @@ void announce_jni_error(JNIEnv * env, int exception_code)
     (*env)->DeleteLocalRef(env, cls);
 }
 
+void on_value_changed(int value_id, double value) {
+	printf("On value changed %d = %f\n", value_id, value); fflush(stdout);
+}
+
 JNIEXPORT void JNICALL Java_martin_tempest_core_TSDRLibrary_init (JNIEnv * env, jobject obj) {
 	(*env)->GetJavaVM(env, &jvm);
 	javaversion = (*env)->GetVersion(env);
-	tsdr_init(&tsdr_instance);
+	tsdr_init(&tsdr_instance, on_value_changed);
 }
 
 JNIEXPORT void JNICALL Java_martin_tempest_core_TSDRLibrary_setBaseFreq (JNIEnv * env, jobject obj, jlong freq) {
