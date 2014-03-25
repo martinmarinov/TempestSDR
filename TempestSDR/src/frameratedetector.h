@@ -13,16 +13,36 @@
 #define FRAMERATEDETECTOR_H_
 
 #include "include/TSDRLibrary.h"
+#include "threading.h"
+
+typedef void(*frameratedetector_setframerate_function)(tsdr_lib_t * tsdr, double refreshrate);
 
 typedef struct frameratedetector {
+	frameratedetector_setframerate_function setframerate;
+
 	float * data;
 	int data_size;
 
+	tsdr_lib_t * tsdr;
+	uint32_t samplerate;
+
 	int size;
+
+	volatile int processing;
+	volatile int alive;
+	mutex_t processing_mutex;
+	int desireddatalength;
+
+	float bestfitvalue;
+
 } frameratedetector_t;
 
-void frameratedetector_init(frameratedetector_t * frameratedetector);
+void frameratedetector_startthread(frameratedetector_t * frameratedetector);
+void frameratedetector_stopthread(frameratedetector_t * frameratedetector);
+void frameratedetector_flushcachedestimation(frameratedetector_t * frameratedetector);
+
+void frameratedetector_init(frameratedetector_t * frameratedetector, frameratedetector_setframerate_function f);
 void frameratedetector_free(frameratedetector_t * frameratedetector);
-int frameratedetector_run(frameratedetector_t * frameratedetector, tsdr_lib_t * tsdr, float * data, int size, uint32_t samplerate);
+void frameratedetector_run(frameratedetector_t * frameratedetector, tsdr_lib_t * tsdr, float * data, int size, uint32_t samplerate, int reset);
 
 #endif
