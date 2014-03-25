@@ -41,6 +41,7 @@
 		frameratedetector_t frameratedetect;
 
 		tsdr_value_changed_callback callback;
+		void * callbackctx;
 	};
 
 	void announce_callback_changed(tsdr_lib_t * tsdr, int value_id, double value);

@@ -102,10 +102,14 @@ static inline void announceexception(tsdr_lib_t * tsdr, const char * message, in
 
  void announce_callback_changed(tsdr_lib_t * tsdr, int value_id, double value) {
 	 if (tsdr->callback != NULL)
-		 tsdr->callback(value_id, value);
+		 tsdr->callback(value_id, value, tsdr->callbackctx);
  }
 
- void tsdr_init(tsdr_lib_t ** tsdr, tsdr_value_changed_callback callback) {
+ void * tsdr_getctx(tsdr_lib_t * tsdr) {
+	 return tsdr->callbackctx;
+ }
+
+ void tsdr_init(tsdr_lib_t ** tsdr, tsdr_value_changed_callback callback, void * ctx) {
 	 int i;
 
 	*tsdr = (tsdr_lib_t *) malloc(sizeof(tsdr_lib_t));
@@ -120,6 +124,7 @@ static inline void announceexception(tsdr_lib_t * tsdr, const char * message, in
 	(*tsdr)->errormsg_code = TSDR_OK;
 	(*tsdr)->fft_requested = 0;
 	(*tsdr)->callback = callback;
+	(*tsdr)->callbackctx = ctx;
 
 	for (i = 0; i < COUNT_PARAM_INT; i++)
 		(*tsdr)->params_int[i] = 0;

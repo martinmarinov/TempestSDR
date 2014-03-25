@@ -58,6 +58,8 @@ public class TSDRLibrary {
 	/** A list of all of the callbacks that will receive a frame when it is ready */
 	private final List<FrameReadyCallback> callbacks = new ArrayList<FrameReadyCallback>();
 	
+	private final List<ValueChangedCallback> value_callbacks = new ArrayList<ValueChangedCallback>();
+	
 	/**
 	 * Returns a OS specific library filename. If you supply "abc" on Windows, this function
 	 * will return abc.dll. On Linux this will return libabc.so, etc.
@@ -370,6 +372,17 @@ public class TSDRLibrary {
 		return callbacks.remove(callback);
 	}
 	
+	public boolean registerValueChangedCallback(final ValueChangedCallback callback) {
+		if (value_callbacks.contains(callback))
+			return false;
+		else
+			return value_callbacks.add(callback);
+	}
+	
+	public boolean unregisterValueChangedCallback(final ValueChangedCallback callback) {
+		return callbacks.remove(callback);
+	}
+	
 	/**
 	 * This interface will allow you to asynchronously receive information about video frames and exceptions from the library.
 	 * 
@@ -403,6 +416,11 @@ public class TSDRLibrary {
 		void onStopped(final TSDRLibrary lib);
 	}
 	
+	public interface ValueChangedCallback {
+		public static enum VALUE_ID {framerate};
+		public void onValueChanged(final VALUE_ID id, double value);
+	}
+	
 	/**
 	 * The native code should call this method to initialize or resize the buffer array before accessing it
 	 * @param x the width of the frame
@@ -425,6 +443,19 @@ public class TSDRLibrary {
 	 */
 	private void notifyCallbacks() {
 		for (final FrameReadyCallback callback : callbacks) callback.onFrameReady(this, bimage);
+	}
+	
+	private void onValueChanged(final int value_id, final double value) {
+		final ValueChangedCallback.VALUE_ID[] values = ValueChangedCallback.VALUE_ID.values();
+		
+		if (value_id < 0 || value_id >= values.length) {
+			System.err.println("Warning: Received unrecognized callback id "+value_id+" with value "+value+" from JNI!");
+			return;
+		}
+		
+		final ValueChangedCallback.VALUE_ID val = values[value_id];
+		
+		for (final ValueChangedCallback callback : value_callbacks) callback.onValueChanged(val, value);
 	}
 	
 }

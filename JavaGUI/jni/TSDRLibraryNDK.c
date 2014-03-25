@@ -24,6 +24,10 @@ tsdr_lib_t * tsdr_instance = NULL;
 
 #define THROW(x) announce_jni_error(env, x)
 
+struct java_obj_context {
+	jobject obj;
+} typedef java_obj_context_t;
+
 struct java_context {
 		jobject obj;
 		jobject obj_pixels;
@@ -103,14 +107,32 @@ void announce_jni_error(JNIEnv * env, int exception_code)
     (*env)->DeleteLocalRef(env, cls);
 }
 
-void on_value_changed(int value_id, double value) {
-	printf("On value changed %d = %f\n", value_id, value); fflush(stdout);
+void on_value_changed(int value_id, double value, void * ctx) {
+	if (tsdr_instance == NULL) return;
+
+	java_obj_context_t * context = (java_obj_context_t *) ctx;
+
+	JNIEnv *env;
+
+	if ((*jvm)->GetEnv(jvm, (void **)&env, javaversion) == JNI_EDETACHED)
+		(*jvm)->AttachCurrentThread(jvm, (void **) &env, 0);
+
+
+	jclass cls = (*env)->GetObjectClass(env, context->obj);
+	jmethodID msghandler = (*env)->GetMethodID(env, cls, "onValueChanged", "(ID)V");
+
+	(*env)->CallVoidMethod(env, context->obj, msghandler, value_id, value);
 }
 
 JNIEXPORT void JNICALL Java_martin_tempest_core_TSDRLibrary_init (JNIEnv * env, jobject obj) {
 	(*env)->GetJavaVM(env, &jvm);
 	javaversion = (*env)->GetVersion(env);
-	tsdr_init(&tsdr_instance, on_value_changed);
+
+	java_obj_context_t * ctx = malloc(sizeof(java_obj_context_t));
+
+	ctx->obj = (*env)->NewGlobalRef(env, obj);
+
+	tsdr_init(&tsdr_instance, on_value_changed, ctx);
 }
 
 JNIEXPORT void JNICALL Java_martin_tempest_core_TSDRLibrary_setBaseFreq (JNIEnv * env, jobject obj, jlong freq) {
@@ -232,6 +254,13 @@ JNIEXPORT void JNICALL Java_martin_tempest_core_TSDRLibrary_unloadPlugin (JNIEnv
 
 JNIEXPORT void JNICALL Java_martin_tempest_core_TSDRLibrary_free (JNIEnv * env, jobject obj) {
 	if (tsdr_instance == NULL) return;
+
+	java_obj_context_t * ctx = (java_obj_context_t *) tsdr_getctx(tsdr_instance);
+	if (ctx != NULL) {
+		(*env)->DeleteGlobalRef(env, ctx->obj);
+		free(ctx);
+	}
+
 	tsdr_free(&tsdr_instance);
 }
 

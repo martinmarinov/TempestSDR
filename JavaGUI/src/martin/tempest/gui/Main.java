@@ -65,7 +65,7 @@ import javax.swing.border.TitledBorder;
 import javax.swing.UIManager;
 import javax.swing.JScrollPane;
 
-public class Main implements TSDRLibrary.FrameReadyCallback, TSDRSourceParamChangedListener, OnTSDRParamChangedCallback {
+public class Main implements TSDRLibrary.FrameReadyCallback, TSDRLibrary.ValueChangedCallback, TSDRSourceParamChangedListener, OnTSDRParamChangedCallback {
 	
 	private final static int FFT_SIZE = 10; // power of two; FFT_SIZE == 10 means fft_buff.length == 1024
 	private final static int FFT_FREQ = 10; // every FFT_FREQ frames, a FFT will be calculated
@@ -161,6 +161,7 @@ public class Main implements TSDRLibrary.FrameReadyCallback, TSDRSourceParamChan
 	public Main() throws TSDRException {
 		mSdrlib = new TSDRLibrary();
 		mSdrlib.registerFrameReadyCallback(this);
+		mSdrlib.registerValueChangedCallback(this);
 		initialize();
 	}
 
@@ -845,6 +846,11 @@ public class Main implements TSDRLibrary.FrameReadyCallback, TSDRSourceParamChan
 			displayException(frmTempestSdr, e);
 			return;
 		}
+	}
+
+	@Override
+	public void onValueChanged(VALUE_ID id, double value) {
+		System.out.println("Java Main received notification that value "+id+" has changed to "+value);
 	}
 
  }

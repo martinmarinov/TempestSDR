@@ -183,3 +183,25 @@ extern "C" {
 }
 #endif
 #endif
+/* Header for class martin_tempest_core_TSDRLibrary_ValueChangedCallback */
+
+#ifndef _Included_martin_tempest_core_TSDRLibrary_ValueChangedCallback
+#define _Included_martin_tempest_core_TSDRLibrary_ValueChangedCallback
+#ifdef __cplusplus
+extern "C" {
+#endif
+#ifdef __cplusplus
+}
+#endif
+#endif
+/* Header for class martin_tempest_core_TSDRLibrary_ValueChangedCallback_VALUE_ID */
+
+#ifndef _Included_martin_tempest_core_TSDRLibrary_ValueChangedCallback_VALUE_ID
+#define _Included_martin_tempest_core_TSDRLibrary_ValueChangedCallback_VALUE_ID
+#ifdef __cplusplus
+extern "C" {
+#endif
+#ifdef __cplusplus
+}
+#endif
+#endif
