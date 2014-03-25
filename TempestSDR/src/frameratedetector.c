@@ -19,6 +19,17 @@
 
 #define FRAMERATE_RUNS (50)
 
+// a state machine conserves energy
+#define FRAMERATEDETECTOR_STATE_UNKNOWN (0)
+#define FRAMERATEDETECTOR_STATE_SAMPLE_ACCURACY (1)
+#define FRAMERATEDETECTOR_STATE_OFF (3)
+
+#define FRAMERATEDETECTOR_OCCURANCES_COUNT (2)
+
+#define FRAMERATEDETECTOR_DESIRED_FRAMERATE_ACCURACY (0.00001)
+
+#define FRAMERATEDETECTOR_RUN_EVERY_N_SECONDS (5)
+
 inline static double frameratedetector_fitvalue(float * data, int offset, int length) {
 	double sum = 0.0;
 	int i;
@@ -120,32 +131,61 @@ double framedetector_estimatelinelength(tsdr_lib_t * tsdr, float * data, int siz
  */
 
 void frameratedetector_runontodata(frameratedetector_t * frameratedetector) {
-	const double linelength = framedetector_estimatelinelength(frameratedetector->tsdr, frameratedetector->data, frameratedetector->desireddatalength, frameratedetector->samplerate);
 
-	const int maxlength = (linelength+3)*frameratedetector->tsdr->height;
-	const int minlength = (linelength-3)*frameratedetector->tsdr->height;
+	if (frameratedetector->state == FRAMERATEDETECTOR_STATE_UNKNOWN) {
+		// State 1 of the state machine
+		// Obtain rough estimation, CPU intensive
 
-	// estimate the length of a horizontal line in samples
-	float bestfit;
-	int crudelength = frameratedetector_estimatedirectlength(frameratedetector->data, minlength, maxlength, minlength, &bestfit);
+		const double linelength = framedetector_estimatelinelength(frameratedetector->tsdr, frameratedetector->data, frameratedetector->desireddatalength, frameratedetector->samplerate);
+
+		const int maxlength = (linelength+3)*frameratedetector->tsdr->height;
+		const int minlength = (linelength-3)*frameratedetector->tsdr->height;
+
+		// estimate the length of a horizontal line in samples
+		float bestfit;
+		int crudelength = frameratedetector_estimatedirectlength(frameratedetector->data, minlength, maxlength, minlength, &bestfit);
 
 
-	//const double maxerror = frameratedetector->samplerate / (double) (crudelength * (crudelength-1));
+		//const double maxerror = frameratedetector->samplerate / (double) (crudelength * (crudelength-1));
 
-	if (frameratedetector->bestfitvalue == 0 || bestfit < frameratedetector->bestfitvalue) {
+		frameratedetector->minlength = minlength;
+		if (frameratedetector->roughsize == crudelength) {
+			// if we see the same length being calculated twice, switch state
+				frameratedetector->state = FRAMERATEDETECTOR_STATE_SAMPLE_ACCURACY;
+				printf("Change of state!\n");fflush(stdout);
+		}
 
-		// calculate subpixel shift
+		frameratedetector->roughsize = crudelength;
+	}
+
+	if (frameratedetector->state == FRAMERATEDETECTOR_STATE_SAMPLE_ACCURACY) {
+		// State 2 of the state machine, refine
 		float bestsubfit;
-		double length = frameratedetector_estimatedirectlength_subpixel(frameratedetector->data, minlength, crudelength, &bestsubfit, 100);
+			double length = frameratedetector_estimatedirectlength_subpixel(frameratedetector->data, frameratedetector->minlength, frameratedetector->roughsize, &bestsubfit, 100);
 
-		const double fps = frameratedetector->samplerate / length;
-		if (frameratedetector->tsdr->params_int[PARAM_INT_AUTOPIXELRATE])
-			frameratedetector->setframerate(frameratedetector->tsdr, fps);
-		printf("%f bestfit %f crudelength %d length %f\n", fps, bestfit, crudelength, length); fflush(stdout);
-		frameratedetector->bestfitvalue = bestfit;
-	} else
-		frameratedetector->bestfitvalue = frameratedetector->bestfitvalue*0.99f + 0.01f * bestfit;
+			const double fps = frameratedetector->samplerate / length;
 
+			if (frameratedetector->fps == 0)
+				frameratedetector->fps = fps;
+			else {
+				const double newfps  = 0.01*fps + 0.99*frameratedetector->fps;
+				const double diff = frameratedetector->fps - newfps;
+				const double absdiff = (diff < 0) ? (-diff) : (diff);
+				if (absdiff < FRAMERATEDETECTOR_DESIRED_FRAMERATE_ACCURACY) {
+					if (frameratedetector->count_numer++ > FRAMERATEDETECTOR_OCCURANCES_COUNT) {
+						frameratedetector->state = FRAMERATEDETECTOR_STATE_OFF;
+						frameratedetector->size = 0;
+						frameratedetector->samp_counter = 0;
+						printf("Switching off!\n");
+					}
+				} else
+					frameratedetector->count_numer = 0;
+			}
+
+			if (frameratedetector->tsdr->params_int[PARAM_INT_AUTOPIXELRATE])
+				frameratedetector->setframerate(frameratedetector->tsdr, frameratedetector->fps);
+			printf("%f bestfit %f crudelength %d length %f\n", fps, bestsubfit, frameratedetector->roughsize, length); fflush(stdout);
+	}
 
 }
 
@@ -171,10 +211,14 @@ void frameratedetector_init(frameratedetector_t * frameratedetector, frameratede
 	frameratedetector->data_size = 0;
 
 	frameratedetector->processing = 0;
+	frameratedetector->samp_counter = 0;
 }
 
 void frameratedetector_flushcachedestimation(frameratedetector_t * frameratedetector) {
-	frameratedetector->bestfitvalue = 0;
+	frameratedetector->roughsize = 0;
+	frameratedetector->state = FRAMERATEDETECTOR_STATE_UNKNOWN;
+	frameratedetector->fps = 0;
+	frameratedetector->count_numer = 0;
 }
 
 void frameratedetector_startthread(frameratedetector_t * frameratedetector) {
@@ -196,6 +240,16 @@ void frameratedetector_run(frameratedetector_t * frameratedetector, tsdr_lib_t *
 
 	// if processing has not finished, wait
 	if (frameratedetector->processing) return;
+
+	if (frameratedetector->state == FRAMERATEDETECTOR_STATE_OFF) {
+		frameratedetector->samp_counter+=size;
+		if (frameratedetector->samp_counter > FRAMERATEDETECTOR_RUN_EVERY_N_SECONDS * samplerate) {
+			// rerun the algorithm every n seconds
+			frameratedetector->state = FRAMERATEDETECTOR_STATE_UNKNOWN;
+			frameratedetector->size = 0;
+		}
+		return;
+	}
 
 	if (reset) {
 		frameratedetector->size = 0;

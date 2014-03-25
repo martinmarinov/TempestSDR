@@ -179,7 +179,6 @@ float * syncdetector_run(tsdr_lib_t * tsdr, float * data, float * outputdata, in
 	const int dx = findthesweetspot(&db_x, widthbuffer, width, width * 0.05f );
 	const int dy = findthesweetspot(&db_y, heightbuffer, height, height * 0.01f );
 
-	int i;
 	const int size = width * height;
 
 	// do the shift itself
