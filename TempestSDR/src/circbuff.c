@@ -13,7 +13,7 @@
 #include "circbuff.h"
 #include <errno.h>
 
-#define SIZE_COEFF (7)
+#define SIZE_COEFF (15)
 
 void cb_init(CircBuff_t * cb) {
     cb->desired_buf_size = SIZE_COEFF; // initial size of buffer
