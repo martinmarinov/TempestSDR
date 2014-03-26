@@ -192,9 +192,18 @@ void frameratedetector_runontodata(frameratedetector_t * frameratedetector) {
 void frameratedetector_thread(void * ctx) {
 	frameratedetector_t * frameratedetector = (frameratedetector_t *) ctx;
 
+	int first = 1;
 	while (1) {
-		mutex_waitforever(&frameratedetector->processing_mutex);
+		int waitres = THREAD_OK;
+
+		if (first) {
+			mutex_waitforever(&frameratedetector->processing_mutex);
+			first = 0;
+		} else
+			waitres = mutex_wait(&frameratedetector->processing_mutex);
+
 		if (!frameratedetector->alive) break;
+		if (waitres == THREAD_TIMEOUT) continue;
 
 		frameratedetector_runontodata(frameratedetector);
 		frameratedetector->processing = 0;

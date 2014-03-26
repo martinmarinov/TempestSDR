@@ -850,7 +850,28 @@ public class Main implements TSDRLibrary.FrameReadyCallback, TSDRLibrary.ValueCh
 
 	@Override
 	public void onValueChanged(VALUE_ID id, double value) {
-		System.out.println("Java Main received notification that value "+id+" has changed to "+value);
+		switch (id) {
+		case framerate: {
+			framerate = value;
+			final String frameratetext = String.format(FRAMERATE_FORMAT, value);
+			txtFramerate.setText(frameratetext);
+
+			final int width = (Integer) spWidth.getValue();
+			final int height = (Integer) spHeight.getValue();
+
+			prefs.putDouble(PREF_FRAMERATE, value);
+
+			final int closest_videomode_id = findClosestVideoModeId(width, height, value, videomodes);
+			video_mode_change_manually_triggered = true;
+			if (closest_videomode_id != -1) cbVideoModes.setSelectedIndex(closest_videomode_id);
+			video_mode_change_manually_triggered = false;
+
+		} break;
+		default:
+			System.out.println("Java Main received notification that value "+id+" has changed to "+value);
+			break;
+		}
+
 	}
 
- }
+}
