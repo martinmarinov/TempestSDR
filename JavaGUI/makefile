@@ -101,6 +101,14 @@ PLUGINS_FILES=$(addprefix $(LIBPREFIX),$(addsuffix $(EXT),$(PLUGINS)))
 # Build the directory names of the plugins
 PLUGINS_DIRS=$(addprefix ../,$(addsuffix /,$(PLUGINS)))
 
+debug : BUILD_TYPE = Debug
+
+debugjnilib : BUILD_TYPE = Debug
+
+debug : all
+
+debugjnilib : jnilib
+
 # When compiling from command line with all
 # make sure we compile both jni and java files
 all : jnilib jar

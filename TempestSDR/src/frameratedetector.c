@@ -106,7 +106,9 @@ inline static double frameratedetector_estimatedirectlength_subpixel(float * dat
 	return roughlength + bestlength;
 }
 
-double framedetector_estimatelinelength(tsdr_lib_t * tsdr, float * data, int size, uint32_t samplerate) {
+#define MIN(x, y) (((x) < (y)) ? ((x)) : ((y)))
+#define MAX(x, y) (((x) > (y)) ? ((x)) : ((y)))
+void framedetector_estimatelinelength(tsdr_lib_t * tsdr, float * data, int size, uint32_t samplerate, double * min, double * max) {
 	const int maxlength = samplerate / (double) (MIN_FRAMERATE * tsdr->height);
 	const int minlength = samplerate / (double) (MAX_FRAMERATE * tsdr->height);
 
@@ -117,7 +119,8 @@ double framedetector_estimatelinelength(tsdr_lib_t * tsdr, float * data, int siz
 	const double doublebest = frameratedetector_estimatedirectlength(data, bestintestimate, 2*bestintestimate + 2, 2*bestintestimate - 2, &best2) / 2.0;
 	const double triplebest = frameratedetector_estimatedirectlength(data, doublebest, 3*doublebest + 2, 3*doublebest - 2, &best3) / 3.0;
 
-	return (best1 < best2 && best1 < best3) ? (bestintestimate) : ((best2 < best3) ? (doublebest) : (triplebest));
+	*min = MIN(MIN(bestintestimate, doublebest), triplebest);
+	*max = MAX(MAX(bestintestimate, doublebest), triplebest);
 }
 
 /**
@@ -136,10 +139,11 @@ void frameratedetector_runontodata(frameratedetector_t * frameratedetector) {
 		// State 1 of the state machine
 		// Obtain rough estimation, CPU intensive
 
-		const double linelength = framedetector_estimatelinelength(frameratedetector->tsdr, frameratedetector->data, frameratedetector->desireddatalength, frameratedetector->samplerate);
+		double min, max;
+		framedetector_estimatelinelength(frameratedetector->tsdr, frameratedetector->data, frameratedetector->desireddatalength, frameratedetector->samplerate, &min, &max);
 
-		const int maxlength = (linelength+3)*frameratedetector->tsdr->height;
-		const int minlength = (linelength-3)*frameratedetector->tsdr->height;
+		const int maxlength = (max+3)*frameratedetector->tsdr->height;
+		const int minlength = (min > 3) ?  ((min-3)*frameratedetector->tsdr->height) : (frameratedetector->tsdr->height);
 
 		// estimate the length of a horizontal line in samples
 		float bestfit;
@@ -149,13 +153,16 @@ void frameratedetector_runontodata(frameratedetector_t * frameratedetector) {
 		//const double maxerror = frameratedetector->samplerate / (double) (crudelength * (crudelength-1));
 
 		frameratedetector->minlength = minlength;
-		if (frameratedetector->roughsize == crudelength) {
+		printf("crudelength %d!\n", crudelength);fflush(stdout);
+		if (stack_contains(&frameratedetector->stack, crudelength)) {
 			// if we see the same length being calculated twice, switch state
-				frameratedetector->state = FRAMERATEDETECTOR_STATE_SAMPLE_ACCURACY;
-				//printf("Change of state!\n");fflush(stdout);
+			frameratedetector->roughsize = crudelength;
+			frameratedetector->state = FRAMERATEDETECTOR_STATE_SAMPLE_ACCURACY;
+			stack_purge(&frameratedetector->stack);
+			printf("Change of state!\n");fflush(stdout);
 		}
 
-		frameratedetector->roughsize = crudelength;
+		stack_push(&frameratedetector->stack, crudelength);
 	}
 
 	if (frameratedetector->state == FRAMERATEDETECTOR_STATE_SAMPLE_ACCURACY) {
@@ -176,7 +183,7 @@ void frameratedetector_runontodata(frameratedetector_t * frameratedetector) {
 						frameratedetector->state = FRAMERATEDETECTOR_STATE_OFF;
 						frameratedetector->size = 0;
 						frameratedetector->samp_counter = 0;
-						//printf("Switching off!\n");
+						printf("Switching off!\n");
 					}
 				} else
 					frameratedetector->count_numer = 0;
@@ -209,6 +216,7 @@ void frameratedetector_thread(void * ctx) {
 		frameratedetector->processing = 0;
 	}
 
+	//printf("Thread dying\n");fflush(stdout);
 	mutex_free(&frameratedetector->processing_mutex);
 }
 
@@ -221,10 +229,12 @@ void frameratedetector_init(frameratedetector_t * frameratedetector, frameratede
 
 	frameratedetector->processing = 0;
 	frameratedetector->samp_counter = 0;
+
+	stack_init(&frameratedetector->stack);
 }
 
 void frameratedetector_flushcachedestimation(frameratedetector_t * frameratedetector) {
-	frameratedetector->roughsize = 0;
+	stack_purge(&frameratedetector->stack);
 	frameratedetector->state = FRAMERATEDETECTOR_STATE_UNKNOWN;
 	frameratedetector->fps = 0;
 	frameratedetector->count_numer = 0;
@@ -247,6 +257,10 @@ void frameratedetector_stopthread(frameratedetector_t * frameratedetector) {
 
 void frameratedetector_run(frameratedetector_t * frameratedetector, tsdr_lib_t * tsdr, float * data, int size, uint32_t samplerate, int reset) {
 
+	// if we don't want to call this at all
+	if (!frameratedetector->tsdr->params_int[PARAM_INT_AUTOPIXELRATE])
+		return;
+
 	// if processing has not finished, wait
 	if (frameratedetector->processing) return;
 
@@ -254,8 +268,8 @@ void frameratedetector_run(frameratedetector_t * frameratedetector, tsdr_lib_t *
 		frameratedetector->samp_counter+=size;
 		if (frameratedetector->samp_counter > FRAMERATEDETECTOR_RUN_EVERY_N_SECONDS * samplerate) {
 			// rerun the algorithm every n seconds
-			frameratedetector->state = FRAMERATEDETECTOR_STATE_UNKNOWN;
-			frameratedetector->size = 0;
+			frameratedetector_flushcachedestimation(frameratedetector);
+			frameratedetector->samp_counter = 0;
 		}
 		return;
 	}
@@ -301,4 +315,5 @@ void frameratedetector_run(frameratedetector_t * frameratedetector, tsdr_lib_t *
 
 void frameratedetector_free(frameratedetector_t * frameratedetector) {
 	free (frameratedetector->data);
+	stack_free(&frameratedetector->stack);
 }

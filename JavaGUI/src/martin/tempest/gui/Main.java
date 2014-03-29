@@ -12,6 +12,7 @@ package martin.tempest.gui;
 
 import java.awt.Component;
 import java.awt.EventQueue;
+import java.awt.Insets;
 import java.awt.Rectangle;
 import java.awt.Toolkit;
 
@@ -64,6 +65,7 @@ import javax.swing.JPanel;
 import javax.swing.border.TitledBorder;
 import javax.swing.UIManager;
 import javax.swing.JScrollPane;
+import javax.swing.JToggleButton;
 
 public class Main implements TSDRLibrary.FrameReadyCallback, TSDRLibrary.ValueChangedCallback, TSDRSourceParamChangedListener, OnTSDRParamChangedCallback {
 	
@@ -94,7 +96,6 @@ public class Main implements TSDRLibrary.FrameReadyCallback, TSDRLibrary.ValueCh
 	private long frameid = 0;
 
 	private final JComponent additionalTweaks[] = new JComponent[] {
-			new ParametersCheckbox(PARAM.AUTOPIXELRATE, "Auto pixel rate", this, prefs, false),
 			new ParametersCheckbox(PARAM.AUTOSHIFT, "Auto shift", this, prefs, false),
 	};
 
@@ -123,6 +124,7 @@ public class Main implements TSDRLibrary.FrameReadyCallback, TSDRLibrary.ValueCh
 	private HoldButton btnLowerFramerate, btnHigherFramerate, btnUp, btnDown, btnLeft, btnRight;
 	private String current_plugin_name = "";
 	private JPanel pnInputDeviceSettings;
+	private JToggleButton tglbtnA;
 	
 	private final TSDRSource[] souces = TSDRSource.getAvailableSources();
 	private final VideoMode[] videomodes = VideoMode.getVideoModes();
@@ -181,7 +183,7 @@ public class Main implements TSDRLibrary.FrameReadyCallback, TSDRLibrary.ValueCh
 		frmTempestSdr.addKeyListener(keyhook);
 		frmTempestSdr.setResizable(false);
 		frmTempestSdr.setTitle("TempestSDR");
-		frmTempestSdr.setBounds(100, 100, 749, 738);
+		frmTempestSdr.setBounds(100, 100, 802, 738);
 		frmTempestSdr.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 		frmTempestSdr.addMouseListener(new MouseAdapter() {
 			@Override
@@ -237,7 +239,7 @@ public class Main implements TSDRLibrary.FrameReadyCallback, TSDRLibrary.ValueCh
 		frmTempestSdr.getContentPane().add(cbDevice);
 		
 		btnStartStop = new JButton("Start");
-		btnStartStop.setBounds(575, 13, 159, 25);
+		btnStartStop.setBounds(575, 13, 209, 25);
 		btnStartStop.setEnabled(false);
 		btnStartStop.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
@@ -247,7 +249,7 @@ public class Main implements TSDRLibrary.FrameReadyCallback, TSDRLibrary.ValueCh
 		frmTempestSdr.getContentPane().add(btnStartStop);
 		
 		cbVideoModes = new JComboBox();
-		cbVideoModes.setBounds(575, 43, 159, 22);
+		cbVideoModes.setBounds(575, 43, 209, 22);
 		cbVideoModes.setModel(new DefaultComboBoxModel(videomodes));
 		if (closest_videomode_id != -1) cbVideoModes.setSelectedIndex(closest_videomode_id);
 		cbVideoModes.addActionListener(new ActionListener() {
@@ -263,7 +265,7 @@ public class Main implements TSDRLibrary.FrameReadyCallback, TSDRLibrary.ValueCh
 		frmTempestSdr.getContentPane().add(lblWidth);
 		
 		spWidth = new JSpinner();
-		spWidth.setBounds(645, 70, 89, 22);
+		spWidth.setBounds(645, 70, 139, 22);
 		spWidth.addChangeListener(new ChangeListener() {
 			public void stateChanged(ChangeEvent arg0) {
 				onResolutionChange();
@@ -278,7 +280,7 @@ public class Main implements TSDRLibrary.FrameReadyCallback, TSDRLibrary.ValueCh
 		frmTempestSdr.getContentPane().add(lblHeight);
 		
 		spHeight = new JSpinner();
-		spHeight.setBounds(645, 97, 89, 22);
+		spHeight.setBounds(645, 97, 139, 22);
 		spHeight.addChangeListener(new ChangeListener() {
 			public void stateChanged(ChangeEvent arg0) {
 				onResolutionChange();
@@ -298,7 +300,7 @@ public class Main implements TSDRLibrary.FrameReadyCallback, TSDRLibrary.ValueCh
 		frmTempestSdr.getContentPane().add(lblGain);
 		
 		slGain = new JSlider();
-		slGain.setBounds(575, 399, 159, 26);
+		slGain.setBounds(575, 399, 209, 26);
 		slGain.setValue((int) (prefs.getFloat(PREF_GAIN, 0.5f) * (slGain.getMaximum() - slGain.getMinimum()) + slGain.getMinimum()));
 		slGain.addChangeListener(new ChangeListener() {
 			public void stateChanged(ChangeEvent e) {
@@ -333,7 +335,7 @@ public class Main implements TSDRLibrary.FrameReadyCallback, TSDRLibrary.ValueCh
 		frmTempestSdr.getContentPane().add(chckbxInvertedColours);
 		
 		btnUp = new HoldButton("Up");
-		btnUp.setBounds(615, 255, 78, 25);
+		btnUp.setBounds(645, 247, 70, 25);
 		btnUp.addHoldListener(new HoldListener() {
 			public void onHold(final int clickssofar) {
 				onSync(SYNC_DIRECTION.UP, clickssofar);
@@ -342,7 +344,7 @@ public class Main implements TSDRLibrary.FrameReadyCallback, TSDRLibrary.ValueCh
 		frmTempestSdr.getContentPane().add(btnUp);
 		
 		btnLeft = new HoldButton("Left");
-		btnLeft.setBounds(575, 280, 65, 25);
+		btnLeft.setBounds(575, 272, 65, 25);
 		btnLeft.addHoldListener(new HoldListener() {
 			public void onHold(final int clickssofar) {
 				onSync(SYNC_DIRECTION.LEFT, clickssofar);
@@ -351,7 +353,7 @@ public class Main implements TSDRLibrary.FrameReadyCallback, TSDRLibrary.ValueCh
 		frmTempestSdr.getContentPane().add(btnLeft);
 		
 		btnRight = new HoldButton("Right");
-		btnRight.setBounds(669, 280, 65, 25);
+		btnRight.setBounds(719, 272, 65, 25);
 		btnRight.addHoldListener(new HoldListener() {
 			public void onHold(final int clickssofar) {
 				onSync(SYNC_DIRECTION.RIGHT, clickssofar);
@@ -360,7 +362,7 @@ public class Main implements TSDRLibrary.FrameReadyCallback, TSDRLibrary.ValueCh
 		frmTempestSdr.getContentPane().add(btnRight);
 		
 		btnDown = new HoldButton("Down");
-		btnDown.setBounds(615, 306, 78, 25);
+		btnDown.setBounds(645, 297, 70, 25);
 		btnDown.addHoldListener(new HoldListener() {
 			public void onHold(final int clickssofar) {
 				onSync(SYNC_DIRECTION.DOWN, clickssofar);
@@ -369,7 +371,7 @@ public class Main implements TSDRLibrary.FrameReadyCallback, TSDRLibrary.ValueCh
 		frmTempestSdr.getContentPane().add(btnDown);
 		
 		txtFramerate = new JTextField();
-		txtFramerate.setBounds(645, 124, 89, 22);
+		txtFramerate.setBounds(645, 124, 110, 22);
 		txtFramerate.setText(String.format(FRAMERATE_FORMAT, framerate_initial));
 		framerate = framerate_initial;
 		txtFramerate.addFocusListener(new FocusAdapter() {
@@ -398,7 +400,7 @@ public class Main implements TSDRLibrary.FrameReadyCallback, TSDRLibrary.ValueCh
 		frmTempestSdr.getContentPane().add(btnLowerFramerate);
 		
 		btnHigherFramerate = new HoldButton(">");
-		btnHigherFramerate.setBounds(693, 146, 41, 25);
+		btnHigherFramerate.setBounds(714, 146, 41, 25);
 		btnHigherFramerate.addHoldListener(new HoldListener() {
 			public void onHold(final int clickssofar) {
 				onFrameRateChanged(false, clickssofar);
@@ -407,7 +409,7 @@ public class Main implements TSDRLibrary.FrameReadyCallback, TSDRLibrary.ValueCh
 		frmTempestSdr.getContentPane().add(btnHigherFramerate);
 		
 		slMotionBlur = new JSlider();
-		slMotionBlur.setBounds(645, 212, 89, 22);
+		slMotionBlur.setBounds(645, 212, 139, 22);
 		slMotionBlur.setValue((int) (prefs.getFloat(PREF_MOTIONBLUR, 0.0f) * (slMotionBlur.getMaximum() - slMotionBlur.getMinimum()) + slMotionBlur.getMinimum()));
 		slMotionBlur.addChangeListener(new ChangeListener() {
 			public void stateChanged(ChangeEvent e) {
@@ -417,7 +419,7 @@ public class Main implements TSDRLibrary.FrameReadyCallback, TSDRLibrary.ValueCh
 		frmTempestSdr.getContentPane().add(slMotionBlur);
 		
 		JButton btnSnapshot = new HoldButton("Snapshot");
-		btnSnapshot.setBounds(575, 336, 159, 25);
+		btnSnapshot.setBounds(575, 336, 209, 25);
 		btnSnapshot.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(ActionEvent arg0) {
@@ -438,13 +440,24 @@ public class Main implements TSDRLibrary.FrameReadyCallback, TSDRLibrary.ValueCh
 		pnInputDeviceSettings.setLayout(null);
 		
 		JScrollPane scrAdvancedTweaks = new JScrollPane();
-		scrAdvancedTweaks.setBounds(575, 532, 159, 158);
+		scrAdvancedTweaks.setBounds(575, 532, 209, 158);
 		scrAdvancedTweaks.setViewportBorder(new TitledBorder(null, "Advanced tweaks", TitledBorder.LEADING, TitledBorder.TOP, null, null));
 		frmTempestSdr.getContentPane().add(scrAdvancedTweaks);
 		
 		JPanel pnAdvancedTweaksContainer = new JPanel();
 		scrAdvancedTweaks.setViewportView(pnAdvancedTweaksContainer);
 		pnAdvancedTweaksContainer.setLayout(null);
+		
+		tglbtnA = new ParametersToggleButton(PARAM.AUTOPIXELRATE, "A", this, prefs, false);
+		tglbtnA.setMargin(new Insets(0, 0, 0, 0));
+		tglbtnA.setBounds(759, 124, 25, 22);
+		frmTempestSdr.getContentPane().add(tglbtnA);
+		tglbtnA.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent arg0) {
+				onAutoFramerateChanged();
+			}
+		});
 		
 		int containery = 0;
 		for (int i = 0; i < additionalTweaks.length; i++) {
@@ -471,6 +484,7 @@ public class Main implements TSDRLibrary.FrameReadyCallback, TSDRLibrary.ValueCh
 		fullscreenframe.setLocation(0, 0);
 		
 		onPluginSelected();
+		onAutoFramerateChanged();
 	}
 	
 	private int findClosestVideoModeId(final int width, final int height, final double framerate, final VideoMode[] modes) {
@@ -719,6 +733,20 @@ public class Main implements TSDRLibrary.FrameReadyCallback, TSDRLibrary.ValueCh
 		setFrameRate(framerate);
 	}
 	
+	private void onAutoFramerateChanged() {
+		if (tglbtnA.isSelected()) {
+			txtFramerate.setEnabled(false);
+			txtFramerate.setText("----");
+			btnLowerFramerate.setEnabled(false);
+			btnHigherFramerate.setEnabled(false);
+		} else {
+			txtFramerate.setText(String.format(FRAMERATE_FORMAT, framerate));
+			txtFramerate.setEnabled(true);
+			btnLowerFramerate.setEnabled(true);
+			btnHigherFramerate.setEnabled(true);
+		}
+	}
+	
 	private void onPluginSelected() {
 		
 		if (!mSdrlib.isRunning()) btnStartStop.setEnabled(false);
@@ -873,5 +901,4 @@ public class Main implements TSDRLibrary.FrameReadyCallback, TSDRLibrary.ValueCh
 		}
 
 	}
-
 }

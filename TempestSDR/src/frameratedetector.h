@@ -14,6 +14,7 @@
 
 #include "include/TSDRLibrary.h"
 #include "threading.h"
+#include "stack.h"
 
 typedef void(*frameratedetector_setframerate_function)(tsdr_lib_t * tsdr, double refreshrate);
 
@@ -37,6 +38,7 @@ typedef struct frameratedetector {
 
 	uint64_t samp_counter;
 
+	stack_t stack;
 	int roughsize;
 	int state;
 	int minlength;
