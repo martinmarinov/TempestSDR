@@ -233,12 +233,14 @@ void frameratedetector_init(frameratedetector_t * frameratedetector, frameratede
 
 	frameratedetector->data = NULL;
 	frameratedetector->size = 0;
-	frameratedetector->data_size = 0;
+	frameratedetector->data_size = 1;
 
 	frameratedetector->processing = 0;
 	frameratedetector->samp_counter = 0;
 
 	frameratedetector->tsdr = tsdr;
+
+	frameratedetector->data = malloc(sizeof(float)*1);
 
 	stack_init(&frameratedetector->stack);
 	semaphore_init(&frameratedetector->freesemaphore);
@@ -291,7 +293,6 @@ void frameratedetector_run(frameratedetector_t * frameratedetector, float * data
 		frameratedetector->size = 0;
 		return;
 	}
-
 	if (frameratedetector->data == NULL)
 		return;
 
@@ -305,10 +306,7 @@ void frameratedetector_run(frameratedetector_t * frameratedetector, float * data
 	// resize the data to fit
 	if (frameratedetector->desireddatalength > frameratedetector->data_size) {
 		frameratedetector->data_size = frameratedetector->desireddatalength;
-		if (frameratedetector->data == NULL)
-			frameratedetector->data = malloc(sizeof(float)*frameratedetector->data_size);
-		else
-			frameratedetector->data = realloc((void *) frameratedetector->data, sizeof(float)*frameratedetector->data_size);
+		frameratedetector->data = realloc((void *) frameratedetector->data, sizeof(float)*frameratedetector->data_size);
 	}
 
 	const int newsize = frameratedetector->size + size;
@@ -334,7 +332,7 @@ void frameratedetector_run(frameratedetector_t * frameratedetector, float * data
 
 void frameratedetector_free(frameratedetector_t * frameratedetector) {
 	semaphore_wait(&frameratedetector->freesemaphore);
-	free (frameratedetector->data);
+	if (frameratedetector->data != NULL) free (frameratedetector->data);
 	frameratedetector->data = NULL;
 	semaphore_free(&frameratedetector->freesemaphore);
 	stack_free(&frameratedetector->stack);
