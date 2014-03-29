@@ -301,7 +301,7 @@ void frameratedetector_run(frameratedetector_t * frameratedetector, float * data
 	frameratedetector->samplerate = samplerate;
 
 	// we need to have at least two frames of data present
-	frameratedetector->desireddatalength = 2.0 * samplerate / (double) (MIN_FRAMERATE);
+	frameratedetector->desireddatalength = 2.5 * samplerate / (double) (MIN_FRAMERATE);
 
 	// resize the data to fit
 	if (frameratedetector->desireddatalength > frameratedetector->data_size) {
