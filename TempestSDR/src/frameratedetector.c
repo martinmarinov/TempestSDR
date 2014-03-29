@@ -145,6 +145,8 @@ void frameratedetector_runontodata(frameratedetector_t * frameratedetector) {
 		const int maxlength = (max+3)*frameratedetector->tsdr->height;
 		const int minlength = (min > 3) ?  ((min-3)*frameratedetector->tsdr->height) : (frameratedetector->tsdr->height);
 
+		assert(maxlength * 2 < frameratedetector->desireddatalength);
+
 		// estimate the length of a horizontal line in samples
 		float bestfit;
 		int crudelength = frameratedetector_estimatedirectlength(frameratedetector->data, minlength, maxlength, minlength, &bestfit);
@@ -153,13 +155,13 @@ void frameratedetector_runontodata(frameratedetector_t * frameratedetector) {
 		//const double maxerror = frameratedetector->samplerate / (double) (crudelength * (crudelength-1));
 
 		frameratedetector->minlength = minlength;
-		printf("crudelength %d!\n", crudelength);fflush(stdout);
+		//printf("crudelength %d!\n", crudelength);fflush(stdout);
 		if (stack_contains(&frameratedetector->stack, crudelength)) {
 			// if we see the same length being calculated twice, switch state
 			frameratedetector->roughsize = crudelength;
 			frameratedetector->state = FRAMERATEDETECTOR_STATE_SAMPLE_ACCURACY;
 			stack_purge(&frameratedetector->stack);
-			printf("Change of state!\n");fflush(stdout);
+			//printf("Change of state!\n");fflush(stdout);
 		}
 
 		stack_push(&frameratedetector->stack, crudelength);
@@ -183,13 +185,13 @@ void frameratedetector_runontodata(frameratedetector_t * frameratedetector) {
 						frameratedetector->state = FRAMERATEDETECTOR_STATE_OFF;
 						frameratedetector->size = 0;
 						frameratedetector->samp_counter = 0;
-						printf("Switching off!\n");
+						//printf("Switching off!\n");
 					}
 				} else
 					frameratedetector->count_numer = 0;
 			}
 
-			if (frameratedetector->tsdr->params_int[PARAM_INT_AUTOPIXELRATE])
+			if (frameratedetector->tsdr->params_int[PARAM_INT_AUTOPIXELRATE] && (frameratedetector->fps >= MIN_FRAMERATE) && (frameratedetector->fps <= MAX_FRAMERATE))
 				frameratedetector->setframerate(frameratedetector->tsdr, frameratedetector->fps);
 			//printf("%f bestfit %f crudelength %d length %f\n", fps, bestsubfit, frameratedetector->roughsize, length); fflush(stdout);
 	}
@@ -212,7 +214,13 @@ void frameratedetector_thread(void * ctx) {
 		if (!frameratedetector->alive) break;
 		if (waitres == THREAD_TIMEOUT) continue;
 
+		if (frameratedetector->data == NULL)
+			break;
+
+		semaphore_enter(&frameratedetector->freesemaphore);
 		frameratedetector_runontodata(frameratedetector);
+		semaphore_leave(&frameratedetector->freesemaphore);
+
 		frameratedetector->processing = 0;
 	}
 
@@ -220,7 +228,7 @@ void frameratedetector_thread(void * ctx) {
 	mutex_free(&frameratedetector->processing_mutex);
 }
 
-void frameratedetector_init(frameratedetector_t * frameratedetector, frameratedetector_setframerate_function f) {
+void frameratedetector_init(frameratedetector_t * frameratedetector, frameratedetector_setframerate_function f, tsdr_lib_t * tsdr) {
 	frameratedetector->setframerate = f;
 
 	frameratedetector->data = NULL;
@@ -230,7 +238,10 @@ void frameratedetector_init(frameratedetector_t * frameratedetector, frameratede
 	frameratedetector->processing = 0;
 	frameratedetector->samp_counter = 0;
 
+	frameratedetector->tsdr = tsdr;
+
 	stack_init(&frameratedetector->stack);
+	semaphore_init(&frameratedetector->freesemaphore);
 }
 
 void frameratedetector_flushcachedestimation(frameratedetector_t * frameratedetector) {
@@ -255,7 +266,8 @@ void frameratedetector_stopthread(frameratedetector_t * frameratedetector) {
 	mutex_signal(&frameratedetector->processing_mutex);
 }
 
-void frameratedetector_run(frameratedetector_t * frameratedetector, tsdr_lib_t * tsdr, float * data, int size, uint32_t samplerate, int reset) {
+void frameratedetector_run(frameratedetector_t * frameratedetector, float * data, int size, uint32_t samplerate, int reset) {
+
 
 	// if we don't want to call this at all
 	if (!frameratedetector->tsdr->params_int[PARAM_INT_AUTOPIXELRATE])
@@ -271,6 +283,7 @@ void frameratedetector_run(frameratedetector_t * frameratedetector, tsdr_lib_t *
 			frameratedetector_flushcachedestimation(frameratedetector);
 			frameratedetector->samp_counter = 0;
 		}
+
 		return;
 	}
 
@@ -279,7 +292,11 @@ void frameratedetector_run(frameratedetector_t * frameratedetector, tsdr_lib_t *
 		return;
 	}
 
-	frameratedetector->tsdr = tsdr;
+	if (frameratedetector->data == NULL)
+		return;
+
+	semaphore_enter(&frameratedetector->freesemaphore);
+
 	frameratedetector->samplerate = samplerate;
 
 	// we need to have at least two frames of data present
@@ -311,9 +328,14 @@ void frameratedetector_run(frameratedetector_t * frameratedetector, tsdr_lib_t *
 		frameratedetector->size = 0;
 	}
 
+	semaphore_leave(&frameratedetector->freesemaphore);
+
 }
 
 void frameratedetector_free(frameratedetector_t * frameratedetector) {
+	semaphore_wait(&frameratedetector->freesemaphore);
 	free (frameratedetector->data);
+	frameratedetector->data = NULL;
+	semaphore_free(&frameratedetector->freesemaphore);
 	stack_free(&frameratedetector->stack);
 }

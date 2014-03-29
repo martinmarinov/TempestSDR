@@ -192,6 +192,12 @@
 	}
 
 	void semaphore_wait(semaphore_t * semaphore) {
+		int locked = 1;
+		critical_enter(&semaphore->locker);
+		if (semaphore -> count == 0)
+			locked = 0;
+		critical_leave(&semaphore->locker);
+		if (!locked) return;
 		mutex_waitforever(&semaphore->signaller);
 	}
 

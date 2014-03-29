@@ -44,14 +44,16 @@ typedef struct frameratedetector {
 	int minlength;
 	double fps;
 
+	semaphore_t freesemaphore;
+
 } frameratedetector_t;
 
 void frameratedetector_startthread(frameratedetector_t * frameratedetector);
 void frameratedetector_stopthread(frameratedetector_t * frameratedetector);
 void frameratedetector_flushcachedestimation(frameratedetector_t * frameratedetector);
 
-void frameratedetector_init(frameratedetector_t * frameratedetector, frameratedetector_setframerate_function f);
+void frameratedetector_init(frameratedetector_t * frameratedetector, frameratedetector_setframerate_function f, tsdr_lib_t * tsdr);
 void frameratedetector_free(frameratedetector_t * frameratedetector);
-void frameratedetector_run(frameratedetector_t * frameratedetector, tsdr_lib_t * tsdr, float * data, int size, uint32_t samplerate, int reset);
+void frameratedetector_run(frameratedetector_t * frameratedetector, float * data, int size, uint32_t samplerate, int reset);
 
 #endif

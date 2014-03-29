@@ -135,7 +135,7 @@ static inline void announceexception(tsdr_lib_t * tsdr, const char * message, in
 	mutex_init(&(*tsdr)->stopsync);
 	mutex_init(&(*tsdr)->fft_mutex);
 
-	frameratedetector_init(&(*tsdr)->frameratedetect, setframerate);
+	frameratedetector_init(&(*tsdr)->frameratedetect, setframerate, *tsdr);
 
 }
 
@@ -382,7 +382,7 @@ void decimatingthread(void * ctx) {
 
 			// we have the AM demodulated signal in buff
 			//setframerate(context->this, frameratedetector_run(&context->this->frameratedetect, context->this, buffer, size, context->this->samplerate / context->this->pixeltimeoversampletime));
-			frameratedetector_run(&context->this->frameratedetect, context->this, buffer, size, context->this->samplerate, context->device_items_dropped != 0);
+			frameratedetector_run(&context->this->frameratedetect, buffer, size, context->this->samplerate, context->device_items_dropped != 0);
 
 			bref = buffer;
 			for (id = 0; id < size; id++) {
@@ -557,9 +557,9 @@ int tsdr_loadplugin(tsdr_lib_t * tsdr, const char * pluginfilepath, const char *
 	cb_init(&context->circbuf_decimation_to_video);
 	cb_init(&context->circbuf_device_to_decimation);
 
+	frameratedetector_startthread(&tsdr->frameratedetect);
 	thread_start(decimatingthread, (void *) context);
 	thread_start(videodecodingthread, (void *) context);
-	frameratedetector_startthread(&tsdr->frameratedetect);
 
 	status = tsdr->plugin.tsdrplugin_readasync(process, (void *) context);
 
