@@ -36,6 +36,7 @@ public class HoldButton extends JButton {
 	}
 	
 	public void doHold() {
+		if (!isEnabled()) return;
 		if (running) return;
 		running = true;
 		clickssofar = 0;
@@ -49,6 +50,7 @@ public class HoldButton extends JButton {
 	}
 	
 	public void doRelease() {
+		if (!isEnabled()) return;
 		if (!running) return;
 		if (task != null) {
 			task.cancel();
