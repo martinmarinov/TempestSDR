@@ -5,12 +5,12 @@ struct stack;
 typedef struct stack * stack_t;
 
 void stack_init(stack_t * stack);
-void stack_push(stack_t * stack, int val);
-int stack_pop(stack_t * stack, int * val);
+void stack_push(stack_t * stack, int val0, int val1);
+int stack_pop(stack_t * stack, int * val0, int * val1);
 void stack_free(stack_t * stack);
 void stack_purge(stack_t * stack);
 int stack_size(stack_t * stack);
-int stack_contains(stack_t * stack, int val);
+int stack_contains(stack_t * stack, int val0, int val1);
 
 /** USAGE **\
 
