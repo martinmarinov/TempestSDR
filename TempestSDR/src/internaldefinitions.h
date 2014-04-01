@@ -44,6 +44,6 @@
 		void * callbackctx;
 	};
 
-	void announce_callback_changed(tsdr_lib_t * tsdr, int value_id, double value);
+	void announce_callback_changed(tsdr_lib_t * tsdr, int value_id, double arg0, int arg1);
 
 #endif

@@ -208,10 +208,11 @@ void frameratedetector_runontodata(frameratedetector_t * frameratedetector) {
 		//const double maxerror = frameratedetector->samplerate / (double) (crudelength * (crudelength-1));
 
 		frameratedetector->minlength = minlength;
-		printf("crudelength %d; framerate %.4f, height %d!\n", crudelength, frameratedetector->samplerate / (float) crudelength, estheight);fflush(stdout);
+		//printf("crudelength %d; framerate %.4f, height %d!\n", crudelength, frameratedetector->samplerate / (float) crudelength, estheight);fflush(stdout);
 		if (stack_contains(&frameratedetector->stack, crudelength, estheight)) {
 			// if we see the same length being calculated twice, switch state
 			frameratedetector->roughsize = crudelength;
+			frameratedetector->height = estheight;
 			frameratedetector->state = FRAMERATEDETECTOR_STATE_SAMPLE_ACCURACY;
 			stack_purge(&frameratedetector->stack);
 			//printf("Change of state!\n");fflush(stdout);
@@ -235,6 +236,10 @@ void frameratedetector_runontodata(frameratedetector_t * frameratedetector) {
 				const double absdiff = (diff < 0) ? (-diff) : (diff);
 				if (absdiff < FRAMERATEDETECTOR_DESIRED_FRAMERATE_ACCURACY) {
 					if (frameratedetector->count_numer++ > FRAMERATEDETECTOR_OCCURANCES_COUNT) {
+
+						if (frameratedetector->tsdr->params_int[PARAM_INT_AUTORESOLUTION] && (frameratedetector->fps >= MIN_FRAMERATE) && (frameratedetector->fps <= MAX_FRAMERATE))
+							announce_callback_changed(frameratedetector->tsdr, VALUE_ID_AUTO_RESOLUTION, frameratedetector->fps, frameratedetector->height);
+
 						frameratedetector->state = FRAMERATEDETECTOR_STATE_OFF;
 						frameratedetector->size = 0;
 						frameratedetector->samp_counter = 0;
@@ -244,8 +249,6 @@ void frameratedetector_runontodata(frameratedetector_t * frameratedetector) {
 					frameratedetector->count_numer = 0;
 			}
 
-			if (frameratedetector->tsdr->params_int[PARAM_INT_AUTOPIXELRATE] && (frameratedetector->fps >= MIN_FRAMERATE) && (frameratedetector->fps <= MAX_FRAMERATE))
-				frameratedetector->setframerate(frameratedetector->tsdr, frameratedetector->fps);
 			//printf("%f bestfit %f crudelength %d length %f\n", fps, bestsubfit, frameratedetector->roughsize, length); fflush(stdout);
 	}
 
@@ -281,8 +284,7 @@ void frameratedetector_thread(void * ctx) {
 	mutex_free(&frameratedetector->processing_mutex);
 }
 
-void frameratedetector_init(frameratedetector_t * frameratedetector, frameratedetector_setframerate_function f, tsdr_lib_t * tsdr) {
-	frameratedetector->setframerate = f;
+void frameratedetector_init(frameratedetector_t * frameratedetector, tsdr_lib_t * tsdr) {
 
 	frameratedetector->data = NULL;
 	frameratedetector->size = 0;
@@ -325,7 +327,7 @@ void frameratedetector_run(frameratedetector_t * frameratedetector, float * data
 
 
 	// if we don't want to call this at all
-	if (!frameratedetector->tsdr->params_int[PARAM_INT_AUTOPIXELRATE])
+	if (!frameratedetector->tsdr->params_int[PARAM_INT_AUTORESOLUTION])
 		return;
 
 	// if processing has not finished, wait

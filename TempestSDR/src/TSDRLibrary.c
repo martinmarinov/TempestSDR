@@ -55,14 +55,6 @@ struct tsdr_context {
 #define RETURN_OK(tsdr) {tsdr->errormsg_code = TSDR_OK; return TSDR_OK;}
 #define RETURN_PLUGIN_RESULT(tsdr,plugin,result) {if ((result) == TSDR_OK) RETURN_OK(tsdr) else RETURN_EXCEPTION(tsdr,plugin.tsdrplugin_getlasterrortext(),result);}
 
-	void setframerate(tsdr_lib_t * tsdr, double refreshrate) {
-		tsdr->pixelrate = tsdr->width * tsdr->height * refreshrate;
-		tsdr->pixeltime = 1.0/tsdr->pixelrate;
-		if (tsdr->sampletime != 0)
-			tsdr->pixeltimeoversampletime = tsdr->pixeltime /  tsdr->sampletime;
-		announce_callback_changed(tsdr, VALUE_ID_FRAMERATE, refreshrate);
-	}
-
 void dofft(tsdr_lib_t * tsdr, float * srcbuff, int srcbuffsize) {
 	// do fft
 	if (tsdr->fft_requested) {
@@ -100,9 +92,9 @@ static inline void announceexception(tsdr_lib_t * tsdr, const char * message, in
 		return tsdr->errormsg;
 }
 
- void announce_callback_changed(tsdr_lib_t * tsdr, int value_id, double value) {
+ void announce_callback_changed(tsdr_lib_t * tsdr, int value_id, double arg0, int arg1) {
 	 if (tsdr->callback != NULL)
-		 tsdr->callback(value_id, value, tsdr->callbackctx);
+		 tsdr->callback(value_id, arg0, arg1, tsdr->callbackctx);
  }
 
  void * tsdr_getctx(tsdr_lib_t * tsdr) {
@@ -135,7 +127,7 @@ static inline void announceexception(tsdr_lib_t * tsdr, const char * message, in
 	mutex_init(&(*tsdr)->stopsync);
 	mutex_init(&(*tsdr)->fft_mutex);
 
-	frameratedetector_init(&(*tsdr)->frameratedetect, setframerate, *tsdr);
+	frameratedetector_init(&(*tsdr)->frameratedetect, *tsdr);
 
 }
 

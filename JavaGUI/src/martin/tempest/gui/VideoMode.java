@@ -113,6 +113,18 @@ public class VideoMode {
 		return MODES;
 	}
 	
+	@Override
+	public boolean equals(Object obj) {
+		if (super.equals(obj))
+			return true;
+		
+		if (obj instanceof VideoMode) {
+			final VideoMode m = (VideoMode) obj;
+			return m.height == height && m.width == width && m.refreshrate == refreshrate;
+		}
+		return false;
+	}
+	
 	/**
 	 * Construct a video mode
 	 * @param name a user friendly name
@@ -130,5 +142,37 @@ public class VideoMode {
 	@Override
 	public String toString() {
 		return name;
+	}
+	
+	public static int findClosestVideoModeId(final int width, final int height, final double framerate, final VideoMode[] modes) {
+		int mode = -1;
+		double diff = 5000.0d;
+		for (int i = 0; i < modes.length; i++) {
+			final VideoMode m = modes[i];
+			if (m.height == height && m.width == width) {
+				final double delta = Math.abs(m.refreshrate-framerate);
+				if (delta < diff) {
+					diff = delta;
+					mode = i;
+				}
+			}
+		}
+		return mode;
+	}
+	
+	public static int findClosestVideoModeId(final double framerate, final int height, final VideoMode[] modes) {
+		int mode = -1;
+		double diff = 5000.0d;
+		for (int i = 0; i < modes.length; i++) {
+			final VideoMode m = modes[i];
+			if (m.height == height) {
+				final double delta = Math.abs(m.refreshrate-framerate);
+				if (delta < diff) {
+					diff = delta;
+					mode = i;
+				}
+			}
+		}
+		return mode;
 	}
 }

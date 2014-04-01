@@ -46,7 +46,7 @@ public class TSDRLibrary {
 	/** The desired direction of manual synchronisation */
 	public enum SYNC_DIRECTION {ANY, UP, DOWN, LEFT, RIGHT};
 	
-	public enum PARAM {AUTOPIXELRATE, AUTOSHIFT};
+	public enum PARAM {AUTORESOLUTION, AUTOSHIFT};
 	public enum PARAM_DOUBLE {};
 	
 	/** Whether native is running or not */
@@ -417,8 +417,8 @@ public class TSDRLibrary {
 	}
 	
 	public interface ValueChangedCallback {
-		public static enum VALUE_ID {framerate};
-		public void onValueChanged(final VALUE_ID id, double value);
+		public static enum VALUE_ID {AUTO_RESOLUTION_RESULT};
+		public void onValueChanged(final VALUE_ID id, double arg0, int arg1);
 	}
 	
 	/**
@@ -445,17 +445,17 @@ public class TSDRLibrary {
 		for (final FrameReadyCallback callback : callbacks) callback.onFrameReady(this, bimage);
 	}
 	
-	private void onValueChanged(final int value_id, final double value) {
+	private void onValueChanged(final int value_id, final double arg0, final int arg1) {
 		final ValueChangedCallback.VALUE_ID[] values = ValueChangedCallback.VALUE_ID.values();
 		
 		if (value_id < 0 || value_id >= values.length) {
-			System.err.println("Warning: Received unrecognized callback id "+value_id+" with value "+value+" from JNI!");
+			System.err.println("Warning: Received unrecognized callback id "+value_id+" with arg0="+arg0+" and arg1="+arg1+" from JNI!");
 			return;
 		}
 		
 		final ValueChangedCallback.VALUE_ID val = values[value_id];
 		
-		for (final ValueChangedCallback callback : value_callbacks) callback.onValueChanged(val, value);
+		for (final ValueChangedCallback callback : value_callbacks) callback.onValueChanged(val, arg0, arg1);
 	}
 	
 }

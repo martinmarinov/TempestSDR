@@ -16,10 +16,7 @@
 #include "threading.h"
 #include "stack.h"
 
-typedef void(*frameratedetector_setframerate_function)(tsdr_lib_t * tsdr, double refreshrate);
-
 typedef struct frameratedetector {
-	frameratedetector_setframerate_function setframerate;
 
 	float * data;
 	int data_size;
@@ -43,6 +40,7 @@ typedef struct frameratedetector {
 	int state;
 	int minlength;
 	double fps;
+	int height;
 
 	semaphore_t freesemaphore;
 
@@ -52,7 +50,7 @@ void frameratedetector_startthread(frameratedetector_t * frameratedetector);
 void frameratedetector_stopthread(frameratedetector_t * frameratedetector);
 void frameratedetector_flushcachedestimation(frameratedetector_t * frameratedetector);
 
-void frameratedetector_init(frameratedetector_t * frameratedetector, frameratedetector_setframerate_function f, tsdr_lib_t * tsdr);
+void frameratedetector_init(frameratedetector_t * frameratedetector, tsdr_lib_t * tsdr);
 void frameratedetector_free(frameratedetector_t * frameratedetector);
 void frameratedetector_run(frameratedetector_t * frameratedetector, float * data, int size, uint32_t samplerate, int reset);
 

@@ -107,7 +107,7 @@ void announce_jni_error(JNIEnv * env, int exception_code)
     (*env)->DeleteLocalRef(env, cls);
 }
 
-void on_value_changed(int value_id, double value, void * ctx) {
+void on_value_changed(int value_id, double arg0, int arg1, void * ctx) {
 	if (tsdr_instance == NULL) return;
 
 	java_obj_context_t * context = (java_obj_context_t *) ctx;
@@ -119,9 +119,9 @@ void on_value_changed(int value_id, double value, void * ctx) {
 
 
 	jclass cls = (*env)->GetObjectClass(env, context->obj);
-	jmethodID msghandler = (*env)->GetMethodID(env, cls, "onValueChanged", "(ID)V");
+	jmethodID msghandler = (*env)->GetMethodID(env, cls, "onValueChanged", "(IDI)V");
 
-	(*env)->CallVoidMethod(env, context->obj, msghandler, value_id, value);
+	(*env)->CallVoidMethod(env, context->obj, msghandler, value_id, arg0, arg1);
 }
 
 JNIEXPORT void JNICALL Java_martin_tempest_core_TSDRLibrary_init (JNIEnv * env, jobject obj) {

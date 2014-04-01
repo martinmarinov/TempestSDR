@@ -33,18 +33,18 @@
 	#define DIRECTION_LEFT (3)
 	#define DIRECTION_RIGHT (4)
 
-	#define PARAM_INT_AUTOPIXELRATE (0)
+	#define PARAM_INT_AUTORESOLUTION (0)
 	#define PARAM_INT_AUTOSHIFT (1)
 	#define COUNT_PARAM_INT (2)
 
 	#define COUNT_PARAM_DOUBLE (2)
 
-	#define VALUE_ID_FRAMERATE (0)
+	#define VALUE_ID_AUTO_RESOLUTION (0)
 
 	typedef struct tsdr_lib tsdr_lib_t;
 
 	typedef void(*tsdr_readasync_function)(float *buf, int width, int height, void *ctx);
-	typedef void(*tsdr_value_changed_callback)(int value_id, double value, void * ctx);
+	typedef void(*tsdr_value_changed_callback)(int value_id, double arg0, int arg1, void * ctx);
 
 	void tsdr_init(tsdr_lib_t ** tsdr, tsdr_value_changed_callback callback, void * ctx);
 	void * tsdr_getctx(tsdr_lib_t * tsdr);
