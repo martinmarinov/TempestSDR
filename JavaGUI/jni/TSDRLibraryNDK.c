@@ -318,7 +318,7 @@ JNIEXPORT void JNICALL Java_martin_tempest_core_TSDRLibrary_setParam  (JNIEnv * 
 
 	jclass enumClass = (*env)->FindClass(env, "martin/tempest/core/TSDRLibrary$PARAM");
 	jmethodID getOrdinalMethod = (*env)->GetMethodID(env, enumClass, "ordinal", "()I");
-	jint id = (int)(*env)->CallObjectMethod(env, name, getOrdinalMethod);
+	jint id = (int)(*env)->CallIntMethod(env, name, getOrdinalMethod);
 
 	THROW(tsdr_setparameter_int(tsdr_instance, id, value));
 }
@@ -329,7 +329,7 @@ JNIEXPORT void JNICALL Java_martin_tempest_core_TSDRLibrary_setParamDouble  (JNI
 
 	jclass enumClass = (*env)->FindClass(env, "martin/tempest/core/TSDRLibrary$PARAM_DOUBLE");
 	jmethodID getOrdinalMethod = (*env)->GetMethodID(env, enumClass, "ordinal", "()I");
-	jint id = (int)(*env)->CallObjectMethod(env, name, getOrdinalMethod);
+	jint id = (int)(*env)->CallIntMethod(env, name, getOrdinalMethod);
 
 	THROW(tsdr_setparameter_double(tsdr_instance, id, value));
 }
