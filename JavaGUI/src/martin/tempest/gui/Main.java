@@ -65,6 +65,7 @@ import javax.swing.JPanel;
 import javax.swing.border.TitledBorder;
 import javax.swing.UIManager;
 import javax.swing.JScrollPane;
+import javax.swing.JToggleButton;
 
 public class Main implements TSDRLibrary.FrameReadyCallback, TSDRLibrary.ValueChangedCallback, TSDRSourceParamChangedListener, OnTSDRParamChangedCallback {
 	
@@ -91,6 +92,7 @@ public class Main implements TSDRLibrary.FrameReadyCallback, TSDRLibrary.ValueCh
 	private final static String PREF_GAIN = "gain";
 	private final static String PREF_MOTIONBLUR = "motionblur";
 	private final static String PREF_SOURCE_ID = "source_id";
+	private final static String PREF_HEIGHT_LOCK = "height_lock";
 	
 	private final float[] fft_buff = new float[1 << FFT_SIZE];
 	private long frameid = 0;
@@ -125,6 +127,7 @@ public class Main implements TSDRLibrary.FrameReadyCallback, TSDRLibrary.ValueCh
 	private String current_plugin_name = "";
 	private JPanel pnInputDeviceSettings;
 	private ParametersToggleButton tglbtnAutoResolution, tglbtnAutoPosition, tglbtnPllFramerate;
+	private JToggleButton tglbtnLockHeightAndFramerate;
 	
 	private final TSDRSource[] souces = TSDRSource.getAvailableSources();
 	private final VideoMode[] videomodes = VideoMode.getVideoModes();
@@ -176,6 +179,7 @@ public class Main implements TSDRLibrary.FrameReadyCallback, TSDRLibrary.ValueCh
 		final int height_initial = prefs.getInt(PREF_HEIGHT, 625);
 		final double framerate_initial = prefs.getDouble(PREF_FRAMERATE, framerate);
 		final int closest_videomode_id = VideoMode.findClosestVideoModeId(width_initial, height_initial, framerate_initial, videomodes);
+		final boolean heightlock_enabled = prefs.getBoolean(PREF_HEIGHT_LOCK, true);
 		
 		frmTempestSdr = new JFrame();
 		frmTempestSdr.setFocusable(true);
@@ -270,7 +274,7 @@ public class Main implements TSDRLibrary.FrameReadyCallback, TSDRLibrary.ValueCh
 		frmTempestSdr.getContentPane().add(lblWidth);
 		
 		spWidth = new JSpinner();
-		spWidth.setBounds(645, 70, 139, 22);
+		spWidth.setBounds(645, 70, 102, 22);
 		spWidth.addChangeListener(new ChangeListener() {
 			public void stateChanged(ChangeEvent arg0) {
 				onResolutionChange((Integer) spWidth.getValue(), (Integer) spHeight.getValue(), framerate);
@@ -285,10 +289,20 @@ public class Main implements TSDRLibrary.FrameReadyCallback, TSDRLibrary.ValueCh
 		frmTempestSdr.getContentPane().add(lblHeight);
 		
 		spHeight = new JSpinner();
-		spHeight.setBounds(645, 97, 139, 22);
+		spHeight.setBounds(645, 97, 102, 22);
 		spHeight.addChangeListener(new ChangeListener() {
+			private Integer oldheight = null;
 			public void stateChanged(ChangeEvent arg0) {
-				onResolutionChange((Integer) spWidth.getValue(), (Integer) spHeight.getValue(), framerate);
+				
+				final Integer width = (Integer) spWidth.getValue();
+				final Integer newheight = (Integer) spHeight.getValue();
+				
+				if (oldheight != null && tglbtnLockHeightAndFramerate.isSelected())
+					onResolutionChange(width, newheight, framerate * oldheight / (double) newheight);
+				else
+					onResolutionChange(width, newheight, framerate);
+				
+				oldheight = newheight;
 			}
 		});
 		spHeight.setModel(new SpinnerNumberModel(height_initial, 1, 10000, 1));
@@ -460,6 +474,7 @@ public class Main implements TSDRLibrary.FrameReadyCallback, TSDRLibrary.ValueCh
 		pnAdvancedTweaksContainer.setLayout(null);
 		
 		tglbtnAutoResolution = new ParametersToggleButton(PARAM.AUTORESOLUTION, "A", prefs, true);
+		tglbtnAutoResolution.setToolTipText("Automatically detect resolution");
 		tglbtnAutoResolution.setParaChangeCallback(this);
 		tglbtnAutoResolution.setMargin(new Insets(0, 0, 0, 0));
 		tglbtnAutoResolution.setBounds(759, 43, 25, 22);
@@ -472,6 +487,7 @@ public class Main implements TSDRLibrary.FrameReadyCallback, TSDRLibrary.ValueCh
 		frmTempestSdr.getContentPane().add(tglbtnAutoResolution);
 		
 		tglbtnAutoPosition = new ParametersToggleButton(PARAM.AUTOSHIFT, "Auto", prefs, true);
+		tglbtnAutoPosition.setToolTipText("Automatically try to center on the image");
 		tglbtnAutoPosition.setParaChangeCallback(this);
 		tglbtnAutoPosition.setMargin(new Insets(0, 0, 0, 0));
 		tglbtnAutoPosition.setBounds(645, 271, 70, 26);
@@ -484,6 +500,7 @@ public class Main implements TSDRLibrary.FrameReadyCallback, TSDRLibrary.ValueCh
 		frmTempestSdr.getContentPane().add(tglbtnAutoPosition);
 		
 		tglbtnPllFramerate = new ParametersToggleButton(PARAM.PLLFRAMERATE, "A", prefs, true);
+		tglbtnPllFramerate.setToolTipText("Automatically adjust the FPS to keep the video stable");
 		tglbtnPllFramerate.setParaChangeCallback(this);
 		tglbtnPllFramerate.setMargin(new Insets(0, 0, 0, 0));
 		tglbtnPllFramerate.setBounds(759, 124, 25, 22);
@@ -494,6 +511,19 @@ public class Main implements TSDRLibrary.FrameReadyCallback, TSDRLibrary.ValueCh
 			}
 		});
 		frmTempestSdr.getContentPane().add(tglbtnPllFramerate);
+		
+		tglbtnLockHeightAndFramerate = new JToggleButton("L");
+		tglbtnLockHeightAndFramerate.setToolTipText("Link the framerate with the height");
+		tglbtnLockHeightAndFramerate.setSelected(heightlock_enabled);
+		tglbtnLockHeightAndFramerate.setMargin(new Insets(0, 0, 0, 0));
+		tglbtnLockHeightAndFramerate.setBounds(759, 96, 25, 22);
+		tglbtnLockHeightAndFramerate.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent arg0) {
+				prefs.putBoolean(PREF_HEIGHT_LOCK, tglbtnLockHeightAndFramerate.isSelected());
+			}
+		});
+		frmTempestSdr.getContentPane().add(tglbtnLockHeightAndFramerate);
 
 		
 		int containery = 0;
@@ -602,16 +632,16 @@ public class Main implements TSDRLibrary.FrameReadyCallback, TSDRLibrary.ValueCh
 	private void onResolutionChange(int width, int height, double framerate, int closest_videomode_id) {
 		this.framerate = framerate;
 		final String frameratetext = String.format(FRAMERATE_FORMAT, framerate);
+		txtFramerate.setText(frameratetext);
 		
 		try {
 			mSdrlib.setResolution(width, height, framerate);
+			prefs.putDouble(PREF_FRAMERATE, framerate);
 			prefs.putInt(PREF_WIDTH, width);
 			spWidth.setValue(width);
 			prefs.putInt(PREF_HEIGHT, height);
 			spHeight.setValue(height);
-			prefs.putDouble(PREF_FRAMERATE, framerate);
-			txtFramerate.setText(frameratetext);
-
+			
 			video_mode_change_manually_triggered = true;
 			if (closest_videomode_id >= 0 && closest_videomode_id < videomodes.length) {
 				cbVideoModes.setSelectedIndex(closest_videomode_id);
