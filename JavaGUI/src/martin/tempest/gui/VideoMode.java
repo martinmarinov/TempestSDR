@@ -173,6 +173,19 @@ public class VideoMode {
 				}
 			}
 		}
+		
+		if (mode == -1) {
+			int idiff = 5000;
+			for (int i = 0; i < modes.length; i++) {
+				final VideoMode m = modes[i];
+				final int delta = Math.abs(m.height-height);
+				if (delta < idiff) {
+					idiff = delta;
+					mode = i;
+				}
+			}
+		}
+		
 		return mode;
 	}
 }

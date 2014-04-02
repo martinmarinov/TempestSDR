@@ -923,6 +923,8 @@ public class Main implements TSDRLibrary.FrameReadyCallback, TSDRLibrary.ValueCh
 			if (modeid >= 0 && modeid < videomodes.length) {
 				onResolutionChange(modeid, arg0);
 				visualizer.setOSD("Detected "+videomodes[modeid], OSD_TIME_LONG);
+			} else {
+				setFrameRate(arg0);
 			}
 
 		} break;

@@ -13,6 +13,9 @@ package martin.tempest.sources;
 import java.awt.Container;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.io.DataInputStream;
+import java.io.BufferedInputStream;
+import java.io.FileInputStream;
 import java.util.ArrayList;
 
 import javax.swing.DefaultComboBoxModel;
@@ -36,6 +39,50 @@ public class TSDRFileSource extends TSDRSource {
 	public TSDRFileSource() {
 		super("From file", "TSDRPlugin_RawFile", false);
 	}
+	
+	private static ParsedTSDRFileSource getWavFile(String file) {
+		DataInputStream in = null;
+		try {
+			
+			in = new DataInputStream(new BufferedInputStream(new FileInputStream(file)));
+			
+			if (in.readInt() != 0x52494646) return null;
+			
+			in.skipBytes(4);
+			
+			if (in.readInt() != 0x57415645) return null;
+			if (in.readInt() != 0x666d7420) return null;
+			
+			in.skipBytes(8);
+			
+			final int samplerate = in.readByte() | (in.readByte() << 8) | (in.readByte() << 16) | (in.readByte() << 24);
+			
+			in.skipBytes(6);
+			
+			final int bitspersample = in.readByte() | (in.readByte() << 8);
+			
+			
+			if (bitspersample == 8 || bitspersample == 16) {
+				final String type = (bitspersample == 8) ? "int8" : "int16";
+				
+				int type_id = -1;
+				for (int i = 0; i < filetype.length; i++) if (type.equals(filetype[i])) {type_id = i; break;};
+				if (type_id == -1) return null;
+				
+				return new ParsedTSDRFileSource(file, type_id, samplerate);
+
+			} else
+				return null;
+			
+		} catch (Throwable t) {
+			return null;
+		} finally {
+			if (in != null)
+				try {
+					in.close();
+				} catch (Throwable t) {}
+		}
+	}
 
 	@SuppressWarnings({ "rawtypes", "unchecked" })
 	@Override
@@ -53,17 +100,6 @@ public class TSDRFileSource extends TSDRSource {
 	    cont.add(filename);
 	    filename.setBounds(12, 12+32, 150, 24);
 		
-		final JButton browse = new JButton("Browse");
-		cont.add(browse);
-		browse.setBounds(150+12, 12+32, 100, 24);
-		browse.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(ActionEvent arg0) {
-				if (fc.showOpenDialog(cont) == JFileChooser.APPROVE_OPTION)
-					filename.setText(fc.getSelectedFile().getAbsolutePath());
-			}	
-		});
-		
 		final JTextField samplerate = new JTextField(String.valueOf(parsed.samplerate));
 	    cont.add(samplerate);
 	    samplerate.setBounds(12*2+150+100, 12+32, 150, 24);
@@ -73,6 +109,26 @@ public class TSDRFileSource extends TSDRSource {
 		type.setSelectedIndex(parsed.type_id);
 		type.setBounds(12*3+150+150+100, 12+32, 100, 24);
 		cont.add(type);
+	    
+		final JButton browse = new JButton("Browse");
+		cont.add(browse);
+		browse.setBounds(150+12, 12+32, 100, 24);
+		browse.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent arg0) {
+				if (fc.showOpenDialog(cont) == JFileChooser.APPROVE_OPTION) {
+					final String absoluteName = fc.getSelectedFile().getAbsolutePath();
+					final ParsedTSDRFileSource wavData = getWavFile(absoluteName);
+					
+					filename.setText(absoluteName);
+					
+					if (wavData != null) {
+						type.setSelectedIndex(wavData.type_id);
+						samplerate.setText(String.valueOf(wavData.samplerate));
+					}
+				}
+			}	
+		});
 	    
 		final JButton open = new JButton("Open");
 		cont.add(open);
@@ -116,6 +172,12 @@ public class TSDRFileSource extends TSDRSource {
 			if (builder.length() != 0) answer.add(builder.toString());
 			
 			return answer;
+		}
+		
+		public ParsedTSDRFileSource(String filename, int type_id, long samplerate) {
+			this.filename = filename;
+			this.type_id = type_id;
+			this.samplerate = samplerate;
 		}
 		
 		public ParsedTSDRFileSource(final String command) {
