@@ -124,7 +124,7 @@ public class Main implements TSDRLibrary.FrameReadyCallback, TSDRLibrary.ValueCh
 	private HoldButton btnLowerFramerate, btnHigherFramerate, btnUp, btnDown, btnLeft, btnRight;
 	private String current_plugin_name = "";
 	private JPanel pnInputDeviceSettings;
-	private ParametersToggleButton tglbtnAutoResolution, tglbtnAutoPosition;
+	private ParametersToggleButton tglbtnAutoResolution, tglbtnAutoPosition, tglbtnPllFramerate;
 	
 	private final TSDRSource[] souces = TSDRSource.getAvailableSources();
 	private final VideoMode[] videomodes = VideoMode.getVideoModes();
@@ -380,7 +380,7 @@ public class Main implements TSDRLibrary.FrameReadyCallback, TSDRLibrary.ValueCh
 		frmTempestSdr.getContentPane().add(btnDown);
 		
 		txtFramerate = new JTextField();
-		txtFramerate.setBounds(645, 124, 139, 22);
+		txtFramerate.setBounds(645, 124, 102, 22);
 		txtFramerate.setText(String.format(FRAMERATE_FORMAT, framerate_initial));
 		framerate = framerate_initial;
 		txtFramerate.addFocusListener(new FocusAdapter() {
@@ -411,7 +411,7 @@ public class Main implements TSDRLibrary.FrameReadyCallback, TSDRLibrary.ValueCh
 		
 		btnHigherFramerate = new HoldButton(">");
 		btnHigherFramerate.setMargin(new Insets(0, 0, 0, 0));
-		btnHigherFramerate.setBounds(743, 146, 41, 25);
+		btnHigherFramerate.setBounds(706, 147, 41, 25);
 		btnHigherFramerate.addHoldListener(new HoldListener() {
 			public void onHold(final int clickssofar) {
 				onFrameRateChanged(false, clickssofar);
@@ -459,7 +459,7 @@ public class Main implements TSDRLibrary.FrameReadyCallback, TSDRLibrary.ValueCh
 		scrAdvancedTweaks.setViewportView(pnAdvancedTweaksContainer);
 		pnAdvancedTweaksContainer.setLayout(null);
 		
-		tglbtnAutoResolution = new ParametersToggleButton(PARAM.AUTORESOLUTION, "A", prefs, false);
+		tglbtnAutoResolution = new ParametersToggleButton(PARAM.AUTORESOLUTION, "A", prefs, true);
 		tglbtnAutoResolution.setParaChangeCallback(this);
 		tglbtnAutoResolution.setMargin(new Insets(0, 0, 0, 0));
 		tglbtnAutoResolution.setBounds(759, 43, 25, 22);
@@ -471,7 +471,7 @@ public class Main implements TSDRLibrary.FrameReadyCallback, TSDRLibrary.ValueCh
 		});
 		frmTempestSdr.getContentPane().add(tglbtnAutoResolution);
 		
-		tglbtnAutoPosition = new ParametersToggleButton(PARAM.AUTOSHIFT, "Auto", prefs, false);
+		tglbtnAutoPosition = new ParametersToggleButton(PARAM.AUTOSHIFT, "Auto", prefs, true);
 		tglbtnAutoPosition.setParaChangeCallback(this);
 		tglbtnAutoPosition.setMargin(new Insets(0, 0, 0, 0));
 		tglbtnAutoPosition.setBounds(645, 271, 70, 26);
@@ -482,6 +482,18 @@ public class Main implements TSDRLibrary.FrameReadyCallback, TSDRLibrary.ValueCh
 			}
 		});
 		frmTempestSdr.getContentPane().add(tglbtnAutoPosition);
+		
+		tglbtnPllFramerate = new ParametersToggleButton(PARAM.PLLFRAMERATE, "A", prefs, true);
+		tglbtnPllFramerate.setParaChangeCallback(this);
+		tglbtnPllFramerate.setMargin(new Insets(0, 0, 0, 0));
+		tglbtnPllFramerate.setBounds(759, 124, 25, 22);
+		tglbtnPllFramerate.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent arg0) {
+				onPllFramerateChanged();
+			}
+		});
+		frmTempestSdr.getContentPane().add(tglbtnPllFramerate);
 
 		
 		int containery = 0;
@@ -656,6 +668,13 @@ public class Main implements TSDRLibrary.FrameReadyCallback, TSDRLibrary.ValueCh
 		setFrameRate(framerate);
 	}
 	
+	private void setFramerateValButDoNotSyncWithLibrary(final double val) {
+		framerate = val;
+		final String frameratetext = String.format(FRAMERATE_FORMAT, framerate);
+		txtFramerate.setText(frameratetext);
+		prefs.putDouble(PREF_FRAMERATE, framerate);
+	}
+	
 	private void setFrameRate(final double val) {
 
 			final int width = (Integer) spWidth.getValue();
@@ -664,7 +683,6 @@ public class Main implements TSDRLibrary.FrameReadyCallback, TSDRLibrary.ValueCh
 			
 			final String frameratetext = String.format(FRAMERATE_FORMAT, framerate);
 			visualizer.setOSD("Framerate: "+frameratetext+" fps", OSD_TIME);
-			
 	}
 	
 	private void onKeyboardKeyPressed(final KeyEvent e) {
@@ -762,12 +780,20 @@ public class Main implements TSDRLibrary.FrameReadyCallback, TSDRLibrary.ValueCh
 			spHeight.setEnabled(false);
 		} else {
 			txtFramerate.setText(String.format(FRAMERATE_FORMAT, framerate));
-			txtFramerate.setEnabled(true);
+			if (!tglbtnPllFramerate.isSelected()) txtFramerate.setEnabled(true);
 			btnLowerFramerate.setEnabled(true);
 			btnHigherFramerate.setEnabled(true);
 			cbVideoModes.setEnabled(true);
 			spWidth.setEnabled(true);
 			spHeight.setEnabled(true);
+		}
+	}
+	
+	private void onPllFramerateChanged() {
+		if (tglbtnPllFramerate.isSelected()) {
+			txtFramerate.setEnabled(false);
+		} else {
+			if (!tglbtnAutoResolution.isSelected()) txtFramerate.setEnabled(true);
 		}
 	}
 	
@@ -919,6 +945,9 @@ public class Main implements TSDRLibrary.FrameReadyCallback, TSDRLibrary.ValueCh
 		switch (id) {
 		case AUTO_RESOLUTION_RESULT: {
 			
+			tglbtnAutoResolution.setSelected(false);
+			onAutoResolutionChanged();
+			
 			final int modeid = VideoMode.findClosestVideoModeId(arg0, arg1, videomodes);
 			if (modeid >= 0 && modeid < videomodes.length) {
 				onResolutionChange(modeid, arg0);
@@ -928,6 +957,9 @@ public class Main implements TSDRLibrary.FrameReadyCallback, TSDRLibrary.ValueCh
 			}
 
 		} break;
+		case PLL_FRAMERATE:
+			setFramerateValButDoNotSyncWithLibrary(arg0);
+			break;
 		default:
 			System.out.println("Java Main received notification that value "+id+" has changed to arg0="+arg0+" and arg1="+arg1);
 			break;

@@ -35,11 +35,13 @@
 
 	#define PARAM_INT_AUTORESOLUTION (0)
 	#define PARAM_INT_AUTOSHIFT (1)
-	#define COUNT_PARAM_INT (2)
+	#define PARAM_INT_FRAMERATE_PLL (2)
+	#define COUNT_PARAM_INT (3)
 
 	#define COUNT_PARAM_DOUBLE (2)
 
 	#define VALUE_ID_AUTO_RESOLUTION (0)
+	#define VALUE_ID_PLL_FRAMERATE (1)
 
 	typedef struct tsdr_lib tsdr_lib_t;
 

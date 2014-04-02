@@ -11,6 +11,8 @@
 #include "syncdetector.h"
 #include <math.h>
 
+#define FRAMERATE_PLL_SPEED (0.000001)
+#define FRAMERATE_MAX_PLL_SPEED (0.001)
 #define GAUSSIAN_ALPHA (1.0f)
 
 // N is the number of points, i is between -(N-1)/2 and (N-1)/2 inclusive
@@ -172,6 +174,32 @@ void horizontalline(int y, float * data, int width, int height, float val) {
 		data[i+width*y] = val;
 }
 
+void setframerate(tsdr_lib_t * tsdr, double refreshrate) {
+	tsdr->pixelrate = tsdr->width * tsdr->height * refreshrate;
+	tsdr->pixeltime = 1.0/tsdr->pixelrate;
+	tsdr->refreshrate = refreshrate;
+	if (tsdr->sampletime != 0)
+		tsdr->pixeltimeoversampletime = tsdr->pixeltime /  tsdr->sampletime;
+	announce_callback_changed(tsdr, VALUE_ID_PLL_FRAMERATE, refreshrate, 0);
+}
+
+void frameratepll(tsdr_lib_t * tsdr, int dx) {
+	static int lastx = 0;
+	const int rawvx = dx - lastx;
+	const int h2 = tsdr->height / 2;
+	const int vx = (rawvx > h2) ? (rawvx - h2) : ((rawvx < -h2) ? (rawvx + h2) : (rawvx));
+	const int absvx = (vx < 0) ? (-vx) : vx;
+	lastx = dx;
+
+	if (!tsdr->params_int[PARAM_INT_AUTORESOLUTION] && tsdr->params_int[PARAM_INT_FRAMERATE_PLL] && vx != 0 && absvx < tsdr->height / 5) {
+		double frameratediff = FRAMERATE_PLL_SPEED*vx*absvx;
+		if (frameratediff > FRAMERATE_MAX_PLL_SPEED) frameratediff = FRAMERATE_MAX_PLL_SPEED;
+		else if (frameratediff < -FRAMERATE_MAX_PLL_SPEED) frameratediff = -FRAMERATE_MAX_PLL_SPEED;
+
+		setframerate(tsdr, tsdr->refreshrate-frameratediff);
+	}
+}
+
 float * syncdetector_run(tsdr_lib_t * tsdr, float * data, float * outputdata, int width, int height, float * widthbuffer, float * heightbuffer) {
 
 	static sweetspot_data_t db_x = SWEETSPOT_INIT, db_y = SWEETSPOT_INIT;
@@ -180,6 +208,10 @@ float * syncdetector_run(tsdr_lib_t * tsdr, float * data, float * outputdata, in
 	const int dy = findthesweetspot(&db_y, heightbuffer, height, height * 0.01f );
 
 	const int size = width * height;
+
+
+	// do the framerate pll
+	frameratepll(tsdr, dx);
 
 	// do the shift itself
 	if (tsdr->params_int[PARAM_INT_AUTOSHIFT]) {

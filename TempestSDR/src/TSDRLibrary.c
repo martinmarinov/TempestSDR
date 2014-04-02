@@ -582,6 +582,7 @@ end:
 	tsdr->width = width;
 	tsdr->height = height;
 	tsdr->pixelrate = width * height * refreshrate;
+	tsdr->refreshrate = refreshrate;
 	tsdr->pixeltime = 1.0/tsdr->pixelrate;
 	if (tsdr->sampletime != 0)
 		tsdr->pixeltimeoversampletime = tsdr->pixeltime /  tsdr->sampletime;

@@ -46,7 +46,7 @@ public class TSDRLibrary {
 	/** The desired direction of manual synchronisation */
 	public enum SYNC_DIRECTION {ANY, UP, DOWN, LEFT, RIGHT};
 	
-	public enum PARAM {AUTORESOLUTION, AUTOSHIFT};
+	public enum PARAM {AUTORESOLUTION, AUTOSHIFT, PLLFRAMERATE};
 	public enum PARAM_DOUBLE {};
 	
 	/** Whether native is running or not */
@@ -417,7 +417,7 @@ public class TSDRLibrary {
 	}
 	
 	public interface ValueChangedCallback {
-		public static enum VALUE_ID {AUTO_RESOLUTION_RESULT};
+		public static enum VALUE_ID {AUTO_RESOLUTION_RESULT, PLL_FRAMERATE};
 		public void onValueChanged(final VALUE_ID id, double arg0, int arg1);
 	}
 	

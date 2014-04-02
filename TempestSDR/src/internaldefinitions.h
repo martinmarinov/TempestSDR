@@ -17,6 +17,7 @@
 		int width;
 		int height;
 		double pixelrate;
+		double refreshrate;
 		double pixeltime;
 		double pixeltimeoversampletime;
 		volatile int running;
