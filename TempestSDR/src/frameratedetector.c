@@ -14,15 +14,15 @@
 #include <stdio.h>
 #include <assert.h>
 
-#define MIN_FRAMERATE (40)
-#define MIN_HEIGHT (440)
-#define MAX_FRAMERATE (90)
-#define MAX_HEIGHT (2500)
+#define MIN_FRAMERATE (55)
+#define MIN_HEIGHT (590)
+#define MAX_FRAMERATE (87)
+#define MAX_HEIGHT (1500)
 
 #define FRAMERATE_RUNS (50)
 
 // higher is better
-#define FRAMERATEDETECTOR_ACCURACY (2000)
+#define FRAMERATEDETECTOR_ACCURACY (1000)
 
 // a state machine conserves energy
 #define FRAMERATEDETECTOR_STATE_UNKNOWN (0)
@@ -35,21 +35,21 @@
 
 #define FRAMERATEDETECTOR_RUN_EVERY_N_SECONDS (5)
 
-inline static double frameratedetector_fitvalue(float * data, int offset, int length) {
+inline static double frameratedetector_fitvalue(float * data, int offset, int length, int accuracy) {
 	double sum = 0.0;
 
 	float * first = data;
 	float * second = data + offset;
 	float * firstend = data + length;
 
-	const int accuracy = length / FRAMERATEDETECTOR_ACCURACY;
+	const int toskip = (accuracy == 0) ? (0) : (length / accuracy);
 	int counted = 0;
 
 	while (first < firstend) {
 		const float d1 = *(first++) - *(second++);
 
-		first+=accuracy;
-		second+=accuracy;
+		first+=toskip;
+		second+=toskip;
 
 		sum += d1 * d1;
 		counted++;
@@ -89,7 +89,7 @@ inline static double frameratedetector_fitvalue_subpixel(float * data, int offse
 // for distances from startlength to endlength in samples
 
 #define ENABLE_DUMP_FRAMEDATA_TO_FILE (0)
-inline static int frameratedetector_estimatedirectlength(float * data, int size, int length, int endlength, int startlength, float * bestfitvalue) {
+inline static int frameratedetector_estimatedirectlength(float * data, int size, int length, int endlength, int startlength, float * bestfitvalue, int accuracy) {
 	assert(endlength + length <= size);
 
 #if ENABLE_DUMP_FRAMEDATA_TO_FILE
@@ -100,13 +100,13 @@ inline static int frameratedetector_estimatedirectlength(float * data, int size,
 
 	int bestlength = startlength;
 	int l = startlength;
-	*bestfitvalue = frameratedetector_fitvalue(data, l, length);
+	*bestfitvalue = frameratedetector_fitvalue(data, l, length, accuracy);
 #if ENABLE_DUMP_FRAMEDATA_TO_FILE
 	if (first) fprintf(f, "%f, ", *bestfitvalue);
 #endif
 	l++;
 	while (l < endlength) {
-		const float fitvalue = frameratedetector_fitvalue(data, l, length);
+		const float fitvalue = frameratedetector_fitvalue(data, l, length, accuracy);
 #if ENABLE_DUMP_FRAMEDATA_TO_FILE
 	if (first) fprintf(f, "%f, ", fitvalue);
 #endif
@@ -162,7 +162,7 @@ int framedetector_estimatelinelength(float * data, int size, uint32_t samplerate
 
 	int offset;
 	for (offset = 0; offset < offset_maxsize; offset += offset_step) {
-		const int temp_result = frameratedetector_estimatedirectlength(&data[offset], size-offset, minlength, maxlength, minlength, &best)-minlength;
+		const int temp_result = frameratedetector_estimatedirectlength(&data[offset], size-offset, minlength, maxlength, minlength, &best, 0)-minlength;
 		assert(temp_result >= 0 && temp_result < maxrange);
 		occurances[temp_result]++;
 
@@ -202,7 +202,7 @@ void frameratedetector_runontodata(frameratedetector_t * frameratedetector) {
 
 		// estimate the length of a horizontal line in samples
 		float bestfit;
-		int crudelength = frameratedetector_estimatedirectlength(frameratedetector->data, frameratedetector->desireddatalength, minlength, maxlength, minlength, &bestfit);
+		int crudelength = frameratedetector_estimatedirectlength(frameratedetector->data, frameratedetector->desireddatalength, minlength, maxlength, minlength, &bestfit, FRAMERATEDETECTOR_ACCURACY);
 		const int estheight = crudelength / linelength;
 
 		//const double maxerror = frameratedetector->samplerate / (double) (crudelength * (crudelength-1));
