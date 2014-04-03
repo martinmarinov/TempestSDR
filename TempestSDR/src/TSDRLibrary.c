@@ -322,6 +322,39 @@ void process(float *buf, uint32_t items_count, void *ctx, int samples_dropped) {
 }
 
 
+static inline void am_demod(float * buffer, int size) {
+	int id;
+	float * bref = buffer;
+	float * brefout = buffer;
+	for (id = 0; id < size; id++) {
+		const float I = *(bref++);
+		const float Q = *(bref++);
+
+		*(brefout++) = sqrtf(I*I+Q*Q);
+	}
+}
+
+//static inline void fm_demod(float * buffer, int size) {
+//	static float prevI = 0;
+//	static float prevQ = 0;
+//
+//	int id;
+//	float * bref = buffer;
+//	float * brefout = buffer;
+//	for (id = 0; id < size; id++) {
+//		const float I = *(bref++);
+//		const float Q = *(bref++);
+//
+//		const float f_r = I*prevI+Q*prevQ;
+//		const float f_i = -I*prevQ+Q*prevI;
+//
+//		prevI = I;
+//		prevQ = Q;
+//
+//		*(brefout++) = (atan2f(f_i, f_r) / PI + PI) / 2.0f;
+//	}
+//}
+
 void decimatingthread(void * ctx) {
 	tsdr_context_t * context = (tsdr_context_t *) ctx;
 	semaphore_enter(&context->this->threadsync);
@@ -363,20 +396,14 @@ void decimatingthread(void * ctx) {
 			int pid = 0;
 			int id;
 
-			float * bref = buffer;
-			float * brefout = buffer;
-			for (id = 0; id < size; id++) {
-				const float I = *(bref++);
-				const float Q = *(bref++);
-
-				*(brefout++) = sqrtf(I*I+Q*Q);
-			}
+			//fm_demod(buffer, size);
+			am_demod(buffer, size);
 
 			// we have the AM demodulated signal in buff
 			//setframerate(context->this, frameratedetector_run(&context->this->frameratedetect, context->this, buffer, size, context->this->samplerate / context->this->pixeltimeoversampletime));
 			frameratedetector_run(&context->this->frameratedetect, buffer, size, context->this->samplerate, context->device_items_dropped != 0);
 
-			bref = buffer;
+			float * bref = buffer;
 			for (id = 0; id < size; id++) {
 
 				const float val = *(bref++);
