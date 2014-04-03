@@ -16,20 +16,22 @@
 #include "threading.h"
 #include "stack.h"
 
+#include <stddef.h>
+
 typedef struct frameratedetector {
 
 	float * data;
-	int data_size;
+	size_t data_size;
 
 	tsdr_lib_t * tsdr;
 	uint32_t samplerate;
 
-	int size;
+	size_t size;
 
 	volatile int processing;
 	volatile int alive;
 	mutex_t processing_mutex;
-	int desireddatalength;
+	size_t desireddatalength;
 
 	int count_numer;
 

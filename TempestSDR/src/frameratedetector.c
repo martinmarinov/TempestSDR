@@ -13,13 +13,14 @@
 #include "internaldefinitions.h"
 #include <stdio.h>
 #include <assert.h>
+#include <math.h>
 
 #define MIN_FRAMERATE (55)
 #define MIN_HEIGHT (590)
 #define MAX_FRAMERATE (87)
 #define MAX_HEIGHT (1500)
 
-#define FRAMERATE_RUNS (50)
+#define FRAMERATE_RUNS (200)
 
 // higher is better
 #define FRAMERATEDETECTOR_ACCURACY (1000)
@@ -143,7 +144,7 @@ inline static double frameratedetector_estimatedirectlength_subpixel(float * dat
 	return roughlength + bestlength;
 }
 
-int framedetector_estimatelinelength(float * data, int size, uint32_t samplerate) {
+double framedetector_estimatelinelength(float * data, int size, uint32_t samplerate) {
 	const int maxlength = samplerate / (double) (MIN_FRAMERATE * MIN_HEIGHT);
 	const int minlength = samplerate / (double) (MAX_FRAMERATE * MAX_HEIGHT);
 
@@ -157,7 +158,6 @@ int framedetector_estimatelinelength(float * data, int size, uint32_t samplerate
 	assert (offset_step != 0);
 
 	float best;
-	int result = 1;
 	int max_occurances = 0;
 
 	int offset;
@@ -166,13 +166,21 @@ int framedetector_estimatelinelength(float * data, int size, uint32_t samplerate
 		assert(temp_result >= 0 && temp_result < maxrange);
 		occurances[temp_result]++;
 
-		if (occurances[temp_result] > max_occurances) {
-			result = temp_result+minlength;
+		if (occurances[temp_result] > max_occurances)
 			max_occurances = occurances[temp_result];
-		}
 	}
 
-	return result;
+	int i;
+	double result = 0;
+	int results = 0;
+	for (i = 0; i < maxrange; i++)
+		if (occurances[i] == max_occurances) {
+			results++;
+			result+=i+minlength;
+		}
+
+
+	return result / (double) results;
 
 //	// we would expect the next image to be 2*bestintestimates away
 //	const double doublebest = frameratedetector_estimatedirectlength(data, bestintestimate, 2*bestintestimate + 2, 2*bestintestimate - 2, &best2) / 2.0;
@@ -195,15 +203,19 @@ void frameratedetector_runontodata(frameratedetector_t * frameratedetector) {
 		// State 1 of the state machine
 		// Obtain rough estimation, CPU intensive
 
-		const int linelength = framedetector_estimatelinelength(frameratedetector->data, frameratedetector->desireddatalength, frameratedetector->samplerate);
+		const double linelength = framedetector_estimatelinelength(frameratedetector->data, frameratedetector->desireddatalength, frameratedetector->samplerate);
 
 		const int maxlength = frameratedetector->samplerate / (double) (MIN_FRAMERATE);
 		const int minlength = frameratedetector->samplerate / (double) (MAX_FRAMERATE);
 
 		// estimate the length of a horizontal line in samples
 		float bestfit;
-		int crudelength = frameratedetector_estimatedirectlength(frameratedetector->data, frameratedetector->desireddatalength, minlength, maxlength, minlength, &bestfit, FRAMERATEDETECTOR_ACCURACY);
-		const int estheight = crudelength / linelength;
+		const int crudelength = frameratedetector_estimatedirectlength(frameratedetector->data, frameratedetector->desireddatalength, minlength, maxlength, minlength, &bestfit, FRAMERATEDETECTOR_ACCURACY);
+		assert(crudelength >= minlength && crudelength <= maxlength);
+
+		const int estheight = round(crudelength / linelength);
+
+		if (estheight < MIN_HEIGHT || estheight > MAX_HEIGHT) return;
 
 		//const double maxerror = frameratedetector->samplerate / (double) (crudelength * (crudelength-1));
 

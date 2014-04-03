@@ -27,12 +27,12 @@ typedef struct CircBuff CircBuff_t;
 struct CircBuff
 {
     volatile float * buffer; // the circular buffer itself
-	volatile int buffer_size; // the size of the circular buffer
-	volatile int desired_buf_size; // the size of the buffer that we want it to become
+	volatile size_t buffer_size; // the size of the circular buffer
+	volatile size_t desired_buf_size; // the size of the buffer that we want it to become
 
-    volatile int remaining_capacity; // the available capacity. I.e. how many free elements are there in the buffer
-    int pos; // the position where the next element will be inserted
-    volatile int rempos; // the position where the next element will be taken from
+    volatile size_t remaining_capacity; // the available capacity. I.e. how many free elements are there in the buffer
+    size_t pos; // the position where the next element will be inserted
+    volatile size_t rempos; // the position where the next element will be taken from
 
     volatile int is_waiting;
     int buffering;
@@ -42,8 +42,8 @@ struct CircBuff
 };
 
 void cb_init(CircBuff_t * cb);
-int cb_add(CircBuff_t * cb, float * buff, const int size);
-int cb_rem_blocking(CircBuff_t * cb, float * in, const int len);
+int cb_add(CircBuff_t * cb, float * buff, const size_t size);
+int cb_rem_blocking(CircBuff_t * cb, float * in, const size_t len);
 void cb_free(CircBuff_t * cb);
 
 #endif

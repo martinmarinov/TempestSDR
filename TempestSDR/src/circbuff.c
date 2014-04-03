@@ -30,7 +30,7 @@ void cb_init(CircBuff_t * cb) {
     mutex_init(&cb->locker);
 }
 
-int cb_add(CircBuff_t * cb, float * in, const int len) {
+int cb_add(CircBuff_t * cb, float * in, const size_t len) {
 
     if (len <= 0) return CB_OK; // handle edge case
 
@@ -60,13 +60,13 @@ int cb_add(CircBuff_t * cb, float * in, const int len) {
         return CB_FULL; // if there is not enough space to put buffer, return error
     }
 
-    const int oldpos = cb->pos;
+    const size_t oldpos = cb->pos;
     cb->pos = (oldpos + len) % cb->buffer_size; // calculate new position
     cb->remaining_capacity -= len; // the remaining capacity is reduced
 
     if (cb->pos <= oldpos) {
         // the add will wrap around
-        const int remaining = cb->buffer_size - oldpos;
+        const size_t remaining = cb->buffer_size - oldpos;
         memcpy((void *) &cb->buffer[oldpos], in, remaining * sizeof(float));
         memcpy((void *) cb->buffer, &in[remaining], cb->pos * sizeof(float));
     } else {
@@ -81,15 +81,15 @@ int cb_add(CircBuff_t * cb, float * in, const int len) {
     return CB_OK;
 }
 
-int cb_rem_blocking(CircBuff_t * cb, float * in, const int len) {
+int cb_rem_blocking(CircBuff_t * cb, float * in, const size_t len) {
 	if (len <= 0) return CB_OK;
 
-    int items_inside = cb->buffer_size - cb->remaining_capacity;
+	size_t items_inside = cb->buffer_size - cb->remaining_capacity;
     while (items_inside < len) {
             // if the size of the buffer is not large enough, request a resize during the next add
             if (len*SIZE_COEFF > cb->buffer_size) cb->desired_buf_size = len*SIZE_COEFF;
 
-            const int before_items_inside = items_inside;
+            const size_t before_items_inside = items_inside;
             cb->is_waiting = 1;
             if (mutex_wait(&cb->locker) == THREAD_TIMEOUT) {
             	cb->is_waiting = 0;
@@ -108,12 +108,12 @@ int cb_rem_blocking(CircBuff_t * cb, float * in, const int len) {
         return CB_EMPTY;
     }
 
-    const int oldrempos = cb->rempos;
+    const size_t oldrempos = cb->rempos;
     cb->rempos = (oldrempos + len) % cb->buffer_size; // calculate new position
 
     if (cb->rempos <= oldrempos) {
         // we have to wrap around
-        const int remaining = cb->buffer_size - oldrempos;
+        const size_t remaining = cb->buffer_size - oldrempos;
         memcpy(in, (void *) &cb->buffer[oldrempos], remaining*sizeof(float));
         memcpy(&in[remaining], (void *) cb->buffer, cb->rempos*sizeof(float));
     } else {

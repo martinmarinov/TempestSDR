@@ -35,7 +35,7 @@
 
 #include "errors.hpp"
 
-#define HOW_OFTEN_TO_CALL_CALLBACK_SEC (0.05)
+#define HOW_OFTEN_TO_CALL_CALLBACK_SEC (0.01)
 #define FRACT_DROPPED_TO_TOLERATE (0)
 
 uhd::usrp::multi_usrp::sptr usrp;
@@ -249,7 +249,7 @@ EXTERNC TSDRPLUGIN_API int __stdcall tsdrplugin_readasync(tsdrplugin_readasync_f
 		const size_t items_per_api_read = samples_per_api_read*2;
 
 		// initialize counters
-		int items_in_buffer = 0;
+		size_t items_in_buffer = 0;
 
 		const uint64_t samp_rate_uint = req_rate;
 		const double samp_rate_fract = req_rate - (double) samp_rate_uint;

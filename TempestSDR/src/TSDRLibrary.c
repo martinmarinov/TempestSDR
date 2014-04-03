@@ -43,10 +43,10 @@ struct tsdr_context {
 		void *ctx;
 		CircBuff_t circbuf_decimation_to_video;
 		CircBuff_t circbuf_device_to_decimation;
-		int decimator_items_to_poll;
+		size_t decimator_items_to_poll;
 
-		int device_items_dropped;
-		int device_items_to_drop;
+		size_t device_items_dropped;
+		size_t device_items_to_drop;
 
 	} typedef tsdr_context_t;
 

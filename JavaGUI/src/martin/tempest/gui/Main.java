@@ -133,6 +133,7 @@ public class Main implements TSDRLibrary.FrameReadyCallback, TSDRLibrary.ValueCh
 	private final VideoMode[] videomodes = VideoMode.getVideoModes();
 	
 	private volatile boolean snapshot = false;
+	private volatile boolean height_change_from_auto = false;
 	
 	private boolean video_mode_change_manually_triggered = false;
 	
@@ -297,7 +298,7 @@ public class Main implements TSDRLibrary.FrameReadyCallback, TSDRLibrary.ValueCh
 				final Integer width = (Integer) spWidth.getValue();
 				final Integer newheight = (Integer) spHeight.getValue();
 				
-				if (oldheight != null && tglbtnLockHeightAndFramerate.isSelected())
+				if (oldheight != null && tglbtnLockHeightAndFramerate.isSelected() && !height_change_from_auto)
 					onResolutionChange(width, newheight, framerate * oldheight / (double) newheight);
 				else
 					onResolutionChange(width, newheight, framerate);
@@ -611,11 +612,11 @@ public class Main implements TSDRLibrary.FrameReadyCallback, TSDRLibrary.ValueCh
 		mSdrlib.sync(repeatssofar, dir);
 	}
 	
-	private void onResolutionChange(int id, double refreshrate) {
+	private void onResolutionChange(int id, double refreshrate, int height) {
 		if (id < 0 || id >= videomodes.length) return;
 		
 		final VideoMode mode = videomodes[id];
-		onResolutionChange(mode.width, mode.height, refreshrate, id);
+		onResolutionChange(mode.width, height, refreshrate, id);
 	}
 	
 	private void onResolutionChange(int id) {
@@ -978,13 +979,15 @@ public class Main implements TSDRLibrary.FrameReadyCallback, TSDRLibrary.ValueCh
 			tglbtnAutoResolution.setSelected(false);
 			onAutoResolutionChanged();
 			
+			height_change_from_auto = true;
 			final int modeid = VideoMode.findClosestVideoModeId(arg0, arg1, videomodes);
 			if (modeid >= 0 && modeid < videomodes.length) {
-				onResolutionChange(modeid, arg0);
+				onResolutionChange(modeid, arg0, arg1);
 				visualizer.setOSD("Detected "+videomodes[modeid], OSD_TIME_LONG);
 			} else {
 				setFrameRate(arg0);
 			}
+			height_change_from_auto = false;
 
 		} break;
 		case PLL_FRAMERATE:
