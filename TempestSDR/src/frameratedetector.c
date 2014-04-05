@@ -25,14 +25,9 @@
 // higher is better
 #define FRAMERATEDETECTOR_ACCURACY (1000)
 
-// a state machine conserves energy
+// a state machine
 #define FRAMERATEDETECTOR_STATE_UNKNOWN (0)
-#define FRAMERATEDETECTOR_STATE_SAMPLE_ACCURACY (1)
-#define FRAMERATEDETECTOR_STATE_OFF (3)
-
-#define FRAMERATEDETECTOR_OCCURANCES_COUNT (2)
-
-#define FRAMERATEDETECTOR_DESIRED_FRAMERATE_ACCURACY (0.00001)
+#define FRAMERATEDETECTOR_STATE_OFF (1)
 
 #define FRAMERATEDETECTOR_RUN_EVERY_N_SECONDS (5)
 
@@ -56,34 +51,6 @@ inline static double frameratedetector_fitvalue(float * data, int offset, int le
 		counted++;
 	}
 	return sum / (double) counted;
-}
-
-inline static double frameratedetector_fitvalue_subpixel(float * data, int offset, int length, float subpixel) {
-	double sum = 0.0;
-	int i;
-
-	if (subpixel >= 0) {
-		const float subpixelcomplement = 1.0f - subpixel;
-		for (i = 0; i < length; i++) {
-			const float val1 = data[i];
-
-			const int ioffset = i + offset;
-			const float val2 = data[ioffset] * subpixelcomplement + data[ioffset+1] * subpixel;
-			const double difff = val1 - val2;
-			sum += difff * difff;
-		}
-	} else {
-		subpixel = - subpixel;
-		const float subpixelcomplement = 1.0f - subpixel;
-		for (i = 0; i < length; i++) {
-			const float val1 = data[i] * subpixelcomplement + data[i+1] * subpixel;
-
-			const float val2 = data[i+offset];
-			const double difff = val1 - val2;
-			sum += difff * difff;
-		}
-	}
-	return sum / (double) length;
 }
 
 // estimate the next repetition of a size of datah length starting from data
@@ -127,23 +94,6 @@ inline static int frameratedetector_estimatedirectlength(float * data, int size,
 	return bestlength;
 }
 
-inline static double frameratedetector_estimatedirectlength_subpixel(float * data, int length, int roughlength, float * bestfitvalue, int iterations) {
-	float bestlength = 0.0f;
-
-	*bestfitvalue = frameratedetector_fitvalue_subpixel(data, roughlength, length, 0.0f);
-	float subpixel;
-	const float step = 2.0f / (float) iterations;
-	for (subpixel = -1.0f; subpixel <= 1.0f; subpixel += step) {
-		const float fitvalue = frameratedetector_fitvalue_subpixel(data, roughlength, length, subpixel);
-		if (fitvalue < *bestfitvalue) {
-			*bestfitvalue = fitvalue;
-			bestlength = subpixel;
-		}
-	}
-
-	return roughlength + bestlength;
-}
-
 int framedetector_estimatelinelength(float * data, int size, uint32_t samplerate, double framerate) {
 	const int maxlength = samplerate / (double) (MIN_HEIGHT * framerate);
 	const int minlength = samplerate / (double) (MAX_HEIGHT * framerate);
@@ -174,10 +124,6 @@ int framedetector_estimatelinelength(float * data, int size, uint32_t samplerate
 	}
 
 	return result;
-
-//	// we would expect the next image to be 2*bestintestimates away
-//	const double doublebest = frameratedetector_estimatedirectlength(data, bestintestimate, 2*bestintestimate + 2, 2*bestintestimate - 2, &best2) / 2.0;
-//	const double triplebest = frameratedetector_estimatedirectlength(data, doublebest, 3*doublebest + 2, 3*doublebest - 2, &best3) / 3.0;
 }
 
 /**
@@ -208,51 +154,25 @@ void frameratedetector_runontodata(frameratedetector_t * frameratedetector) {
 		const int linelength = framedetector_estimatelinelength(frameratedetector->data, frameratedetector->desireddatalength, frameratedetector->samplerate, frameratedetector->samplerate / (double) crudelength);
 
 		const int estheight = round(crudelength / (double) linelength);
-		printf("crudelength %d; framerate %.4f, height %d!\n", crudelength, frameratedetector->samplerate / (float) crudelength, estheight);fflush(stdout);
+		//printf("crudelength %d; framerate %.4f, height %d!\n", crudelength, frameratedetector->samplerate / (float) crudelength, estheight);fflush(stdout);
 
 		if (estheight < MIN_HEIGHT || estheight > MAX_HEIGHT) return;
 
-		frameratedetector->minlength = minlength;
 		if (stack_contains(&frameratedetector->stack, crudelength, estheight)) {
 				// if we see the same length being calculated twice, switch state
-				frameratedetector->roughsize = crudelength;
-				frameratedetector->height = estheight;
-				frameratedetector->state = FRAMERATEDETECTOR_STATE_SAMPLE_ACCURACY;
 				stack_purge(&frameratedetector->stack);
+
+				const double fps = frameratedetector->samplerate / (double) crudelength;
+
+				if (frameratedetector->tsdr->params_int[PARAM_INT_AUTORESOLUTION] && (fps >= MIN_FRAMERATE) && (fps <= MAX_FRAMERATE))
+						announce_callback_changed(frameratedetector->tsdr, VALUE_ID_AUTO_RESOLUTION, fps, estheight);
+
+				frameratedetector->state = FRAMERATEDETECTOR_STATE_OFF;
+				frameratedetector->size = 0;
+				frameratedetector->samp_counter = 0;
 				//printf("Change of state!\n");fflush(stdout);
 		} else
 			stack_push(&frameratedetector->stack, crudelength, estheight);
-	}
-
-	if (frameratedetector->state == FRAMERATEDETECTOR_STATE_SAMPLE_ACCURACY) {
-		// State 2 of the state machine, refine
-		float bestsubfit;
-			double length = frameratedetector_estimatedirectlength_subpixel(frameratedetector->data, frameratedetector->minlength, frameratedetector->roughsize, &bestsubfit, 100);
-
-			const double fps = frameratedetector->samplerate / length;
-
-			if (frameratedetector->fps == 0)
-				frameratedetector->fps = fps;
-			else {
-				const double newfps  = 0.01*fps + 0.99*frameratedetector->fps;
-				const double diff = frameratedetector->fps - newfps;
-				const double absdiff = (diff < 0) ? (-diff) : (diff);
-				if (absdiff < FRAMERATEDETECTOR_DESIRED_FRAMERATE_ACCURACY) {
-					if (frameratedetector->count_numer++ > FRAMERATEDETECTOR_OCCURANCES_COUNT) {
-
-						if (frameratedetector->tsdr->params_int[PARAM_INT_AUTORESOLUTION] && (frameratedetector->fps >= MIN_FRAMERATE) && (frameratedetector->fps <= MAX_FRAMERATE))
-							announce_callback_changed(frameratedetector->tsdr, VALUE_ID_AUTO_RESOLUTION, frameratedetector->fps, frameratedetector->height);
-
-						frameratedetector->state = FRAMERATEDETECTOR_STATE_OFF;
-						frameratedetector->size = 0;
-						frameratedetector->samp_counter = 0;
-						//printf("Switching off!\n");
-					}
-				} else
-					frameratedetector->count_numer = 0;
-			}
-
-			//printf("%f bestfit %f crudelength %d length %f\n", fps, bestsubfit, frameratedetector->roughsize, length); fflush(stdout);
 	}
 
 }
@@ -260,18 +180,11 @@ void frameratedetector_runontodata(frameratedetector_t * frameratedetector) {
 void frameratedetector_thread(void * ctx) {
 	frameratedetector_t * frameratedetector = (frameratedetector_t *) ctx;
 
-	int first = 1;
-	while (1) {
-		int waitres = THREAD_OK;
+	while (frameratedetector->alive) {
 
-		if (first) {
-			mutex_waitforever(&frameratedetector->processing_mutex);
-			first = 0;
-		} else
-			waitres = mutex_wait(&frameratedetector->processing_mutex);
+		mutex_waitforever(&frameratedetector->processing_mutex);
 
 		if (!frameratedetector->alive) break;
-		if (waitres == THREAD_TIMEOUT) continue;
 
 		if (frameratedetector->data == NULL)
 			break;
@@ -307,8 +220,6 @@ void frameratedetector_init(frameratedetector_t * frameratedetector, tsdr_lib_t 
 void frameratedetector_flushcachedestimation(frameratedetector_t * frameratedetector) {
 	stack_purge(&frameratedetector->stack);
 	frameratedetector->state = FRAMERATEDETECTOR_STATE_UNKNOWN;
-	frameratedetector->fps = 0;
-	frameratedetector->count_numer = 0;
 }
 
 void frameratedetector_startthread(frameratedetector_t * frameratedetector) {

@@ -33,16 +33,10 @@ typedef struct frameratedetector {
 	mutex_t processing_mutex;
 	size_t desireddatalength;
 
-	int count_numer;
-
 	uint64_t samp_counter;
 
 	stack_t stack;
-	int roughsize;
 	int state;
-	int minlength;
-	double fps;
-	int height;
 
 	semaphore_t freesemaphore;
 

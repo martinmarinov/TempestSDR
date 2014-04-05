@@ -12,6 +12,7 @@
 #include <math.h>
 
 #define FRAMERATE_PLL_SPEED (0.000001)
+#define FRAMERATE_MAX_PLL_SPEED (0.0001)
 #define GAUSSIAN_ALPHA (1.0f)
 
 // N is the number of points, i is between -(N-1)/2 and (N-1)/2 inclusive
@@ -188,11 +189,13 @@ void frameratepll(tsdr_lib_t * tsdr, int dx) {
 	const int h2 = tsdr->height / 2;
 	const int vx = (rawvx > h2) ? (rawvx - h2) : ((rawvx < -h2) ? (rawvx + h2) : (rawvx));
 	const int absvx = (vx < 0) ? (-vx) : vx;
-	const int vxsign = (vx < 0) ? (-1) : (1);
+	//const int vxsign = (vx < 0) ? (-1) : (1);
 	lastx = dx;
 
 	if (!tsdr->params_int[PARAM_INT_AUTORESOLUTION] && tsdr->params_int[PARAM_INT_FRAMERATE_PLL] && vx != 0 && absvx < tsdr->height / 5) {
-		double frameratediff = (absvx < 2) ? (FRAMERATE_PLL_SPEED*vxsign) : (2*FRAMERATE_PLL_SPEED*vxsign);
+		double frameratediff = FRAMERATE_PLL_SPEED*vx;
+		if (frameratediff > FRAMERATE_MAX_PLL_SPEED) frameratediff = FRAMERATE_MAX_PLL_SPEED;
+		else if (frameratediff < -FRAMERATE_MAX_PLL_SPEED) frameratediff = - FRAMERATE_MAX_PLL_SPEED;
 
 		setframerate(tsdr, tsdr->refreshrate-frameratediff);
 	}
