@@ -144,9 +144,9 @@ inline static double frameratedetector_estimatedirectlength_subpixel(float * dat
 	return roughlength + bestlength;
 }
 
-int framedetector_estimatelinelength(float * data, int size, uint32_t samplerate) {
-	const int maxlength = samplerate / (double) (MIN_FRAMERATE * MIN_HEIGHT);
-	const int minlength = samplerate / (double) (MAX_FRAMERATE * MAX_HEIGHT);
+int framedetector_estimatelinelength(float * data, int size, uint32_t samplerate, double framerate) {
+	const int maxlength = samplerate / (double) (MIN_HEIGHT * framerate);
+	const int minlength = samplerate / (double) (MAX_HEIGHT * framerate);
 
 	const int maxrange = maxlength - minlength + 1;
 	int occurances[maxrange];
@@ -196,8 +196,6 @@ void frameratedetector_runontodata(frameratedetector_t * frameratedetector) {
 		// State 1 of the state machine
 		// Obtain rough estimation, CPU intensive
 
-		const int linelength = framedetector_estimatelinelength(frameratedetector->data, frameratedetector->desireddatalength, frameratedetector->samplerate);
-
 		const int maxlength = frameratedetector->samplerate / (double) (MIN_FRAMERATE);
 		const int minlength = frameratedetector->samplerate / (double) (MAX_FRAMERATE);
 
@@ -206,24 +204,24 @@ void frameratedetector_runontodata(frameratedetector_t * frameratedetector) {
 		const int crudelength = frameratedetector_estimatedirectlength(frameratedetector->data, frameratedetector->desireddatalength, minlength, maxlength, minlength, &bestfit, FRAMERATEDETECTOR_ACCURACY);
 		assert(crudelength >= minlength && crudelength <= maxlength);
 
+		//const double maxerror = frameratedetector->samplerate / (double) (crudelength * (crudelength-1));
+		const int linelength = framedetector_estimatelinelength(frameratedetector->data, frameratedetector->desireddatalength, frameratedetector->samplerate, frameratedetector->samplerate / (double) crudelength);
+
 		const int estheight = round(crudelength / (double) linelength);
+		printf("crudelength %d; framerate %.4f, height %d!\n", crudelength, frameratedetector->samplerate / (float) crudelength, estheight);fflush(stdout);
 
 		if (estheight < MIN_HEIGHT || estheight > MAX_HEIGHT) return;
 
-		//const double maxerror = frameratedetector->samplerate / (double) (crudelength * (crudelength-1));
-
 		frameratedetector->minlength = minlength;
-		//printf("crudelength %d; framerate %.4f, height %d!\n", crudelength, frameratedetector->samplerate / (float) crudelength, estheight);fflush(stdout);
 		if (stack_contains(&frameratedetector->stack, crudelength, estheight)) {
-			// if we see the same length being calculated twice, switch state
-			frameratedetector->roughsize = crudelength;
-			frameratedetector->height = estheight;
-			frameratedetector->state = FRAMERATEDETECTOR_STATE_SAMPLE_ACCURACY;
-			stack_purge(&frameratedetector->stack);
-			//printf("Change of state!\n");fflush(stdout);
-		}
-
-		stack_push(&frameratedetector->stack, crudelength, estheight);
+				// if we see the same length being calculated twice, switch state
+				frameratedetector->roughsize = crudelength;
+				frameratedetector->height = estheight;
+				frameratedetector->state = FRAMERATEDETECTOR_STATE_SAMPLE_ACCURACY;
+				stack_purge(&frameratedetector->stack);
+				//printf("Change of state!\n");fflush(stdout);
+		} else
+			stack_push(&frameratedetector->stack, crudelength, estheight);
 	}
 
 	if (frameratedetector->state == FRAMERATEDETECTOR_STATE_SAMPLE_ACCURACY) {
