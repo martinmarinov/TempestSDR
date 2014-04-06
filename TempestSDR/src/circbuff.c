@@ -14,7 +14,7 @@
 #include <errno.h>
 
 #define CB_SIZE_COEFF_DEFAULT (5)
-#define CB_SIZE_MAX_COEFF (30)
+#define CB_SIZE_MAX_COEFF (10)
 
 void cb_purge(CircBuff_t * cb) {
 	if (cb->invalid) return;

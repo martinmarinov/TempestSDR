@@ -203,7 +203,7 @@ void frameratedetector_init(frameratedetector_t * frameratedetector, tsdr_lib_t 
 	frameratedetector->samplerate = 0;
 	frameratedetector->alive = 0;
 
-	cb_init(&frameratedetector->circbuff, CB_SIZE_COEFF_LOW_LATENCY);
+	cb_init(&frameratedetector->circbuff);
 
 	stack_init(&frameratedetector->stack);
 }

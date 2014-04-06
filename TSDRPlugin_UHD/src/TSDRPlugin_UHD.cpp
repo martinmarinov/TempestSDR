@@ -33,11 +33,10 @@
 #include <stdint.h>
 #include <boost/algorithm/string.hpp>
 
-#include <assert.h>
-
 #include "errors.hpp"
 
 #define HOW_OFTEN_TO_CALL_CALLBACK_SEC (0.01)
+#define FRACT_DROPPED_TO_TOLERATE (0)
 
 uhd::usrp::multi_usrp::sptr usrp;
 namespace po = boost::program_options;
@@ -218,7 +217,7 @@ EXTERNC TSDRPLUGIN_API int __stdcall tsdrplugin_setgain(float gain) {
 }
 
 EXTERNC TSDRPLUGIN_API int __stdcall tsdrplugin_readasync(tsdrplugin_readasync_function cb, void *ctx) {
-	//uhd::set_thread_priority_safe();
+	uhd::set_thread_priority_safe();
 
 	is_running = 1;
 
@@ -283,14 +282,12 @@ EXTERNC TSDRPLUGIN_API int __stdcall tsdrplugin_readasync(tsdrplugin_readasync_f
 					last_firstsample = first_sample_id;
 				}
 
-				if (is_running) {
-					assert(buff_size >= items_in_buffer);
-
-					if (dropped_samples <= 0)
-						cb(buff, items_in_buffer, ctx, 0); // nothing was dropped, nice
-					else
-						cb(buff, 0, ctx, dropped_samples + samples_in_buffer); // too much dropped, abort
-				}
+				if (dropped_samples <= 0)
+					cb(buff, items_in_buffer, ctx, 0); // nothing was dropped, nice
+				else if ((dropped_samples / ((float) samples_in_buffer)) < FRACT_DROPPED_TO_TOLERATE)
+					cb(buff, items_in_buffer, ctx, dropped_samples); // some part of the data was dropped, but that's fine
+				else
+					cb(buff, 0, ctx, dropped_samples + samples_in_buffer); // too much dropped, abort
 
 				// reset counters, the native buffer is empty
 				items_in_buffer = 0;

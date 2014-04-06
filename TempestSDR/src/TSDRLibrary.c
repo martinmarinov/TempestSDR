@@ -311,8 +311,6 @@ void process(float *buf, uint32_t items_count, void *ctx, int samples_dropped) {
 
 	context->decimator_items_to_poll = items_count;
 
-
-
 	if (samples_dropped > 0)
 		context->device_items_dropped += (samples_dropped << 1);
 
@@ -324,10 +322,10 @@ void process(float *buf, uint32_t items_count, void *ctx, int samples_dropped) {
 		context->device_items_dropped = 0;
 	}
 
-	const size_t device_items_dropped = context->device_items_dropped;
-	if (device_items_dropped >= items_count)
+	const size_t device_items_to_drop = context->device_items_to_drop;
+	if (device_items_to_drop >= items_count)
 		context->device_items_to_drop -= items_count;
-	else if (cb_add(&context->circbuf_device_to_decimation, &buf[device_items_dropped], items_count-device_items_dropped) == CB_OK) // TODO! HERE
+	else if (cb_add(&context->circbuf_device_to_decimation, &buf[device_items_to_drop], items_count-device_items_to_drop) == CB_OK) // TODO! HERE
 		context->device_items_to_drop = 0;
 	else// we lost samples due to buffer overflow
 		context->device_items_dropped += items_count;
@@ -586,8 +584,8 @@ int tsdr_loadplugin(tsdr_lib_t * tsdr, const char * pluginfilepath, const char *
 	context->decimator_items_to_poll = DEFAULT_DECIMATOR_TO_POLL;
 	context->device_items_dropped = 0;
 	context->device_items_to_drop = 0;
-	cb_init(&context->circbuf_decimation_to_video, CB_SIZE_COEFF_LOW_LATENCY);
-	cb_init(&context->circbuf_device_to_decimation, CB_SIZE_COEFF_MEDIUM_LATENCY);
+	cb_init(&context->circbuf_decimation_to_video);
+	cb_init(&context->circbuf_device_to_decimation);
 
 	frameratedetector_startthread(&tsdr->frameratedetect);
 	thread_start(decimatingthread, (void *) context);
