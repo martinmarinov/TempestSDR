@@ -19,6 +19,7 @@
 #include <stdint.h>
 #include <string.h>
 #include <stdlib.h>
+#include <assert.h>
 
 tsdr_lib_t * tsdr_instance = NULL;
 
@@ -41,8 +42,8 @@ struct java_context {
 		int pixelsize;
 	} typedef java_context_t;
 
-static JavaVM *jvm;
-static int javaversion;
+JavaVM *jvm;
+int javaversion;
 int inverted = 0;
 
 void error_translate (int exception_code, char * exceptionclass) {
@@ -114,14 +115,22 @@ void on_value_changed(int value_id, double arg0, int arg1, void * ctx) {
 
 	JNIEnv *env;
 
-	if ((*jvm)->GetEnv(jvm, (void **)&env, javaversion) == JNI_EDETACHED)
-		(*jvm)->AttachCurrentThread(jvm, (void **) &env, 0);
+	jint getenv_res = (*jvm)->GetEnv(jvm, (void **)&env, javaversion);
+	if (getenv_res == JNI_EDETACHED)
+		assert((*jvm)->AttachCurrentThread(jvm, (void **) &env, 0) == JNI_OK);
+	else if (getenv_res != JNI_OK) {
+		fprintf(stderr, "GetEnv returned error %d\n", getenv_res); fflush(stderr);
+	}
+	assert(env != NULL);
+	assert(getenv_res == JNI_OK || getenv_res == JNI_EDETACHED);
 
 
 	jclass cls = (*env)->GetObjectClass(env, context->obj);
 	jmethodID msghandler = (*env)->GetMethodID(env, cls, "onValueChanged", "(IDI)V");
 
 	(*env)->CallVoidMethod(env, context->obj, msghandler, value_id, arg0, arg1);
+
+	(*jvm)->DetachCurrentThread(jvm);
 }
 
 JNIEXPORT void JNICALL Java_martin_tempest_core_TSDRLibrary_init (JNIEnv * env, jobject obj) {
@@ -144,18 +153,29 @@ void read_async(float *buf, int width, int height, void *ctx) {
 	java_context_t * context = (java_context_t *) ctx;
 	JNIEnv *env;
 
-	if ((*jvm)->GetEnv(jvm, (void **)&env, javaversion) == JNI_EDETACHED)
-		(*jvm)->AttachCurrentThread(jvm, (void **) &env, 0);
+	jint getenv_res = (*jvm)->GetEnv(jvm, (void **)&env, javaversion);
+	if (getenv_res == JNI_EDETACHED)
+		assert((*jvm)->AttachCurrentThread(jvm, (void **) &env, 0) == JNI_OK);
+	else if (getenv_res != JNI_OK) {
+		fprintf(stderr, "GetEnv returned error %d\n", getenv_res); fflush(stderr);
+	}
+	assert(env != NULL);
+	assert(getenv_res == JNI_OK || getenv_res == JNI_EDETACHED);
 
 	if (context->pic_width != width || context->pic_height != height) {
 
-		if (context->obj_pixels != NULL) (*env)->DeleteLocalRef(env, context->obj_pixels);
+		if (context->obj_pixels != NULL) (*env)->DeleteGlobalRef(env, context->obj_pixels);
 
 		(*env)->CallVoidMethod(env, context->obj, context->fixSize, width, height);
-		context->obj_pixels = (*env)->GetObjectField(env, context->obj, context->fid_pixels);
 
-		context->pixelsize = width * height;
-		context->pixels = (jint *) realloc((void *) context->pixels, sizeof(jint) * context->pixelsize);
+		context->obj_pixels = (*env)->NewGlobalRef(env, (*env)->GetObjectField(env, context->obj, context->fid_pixels));
+
+		const int newpixelsize = width * height;
+		if (newpixelsize != context->pixelsize) context->pixels = (jint *) realloc((void *) context->pixels, sizeof(jint) * newpixelsize);
+
+		assert(context->pixels != NULL);
+
+		context->pixelsize = newpixelsize;
 		context->pic_width = width;
 		context->pic_height = height;
 	}
@@ -184,11 +204,18 @@ void read_async(float *buf, int width, int height, void *ctx) {
 
 	}
 
-	// release elements
+
+	const jsize javaarraylength = (*env)->GetArrayLength(env, context->obj_pixels);
+	printf("Resized %d %d\n", javaarraylength, context->pixelsize);fflush(stdout);
+	assert(javaarraylength >= context->pixelsize);
+
+	// release elements#
 	(*env)->SetIntArrayRegion(env, context->obj_pixels, 0, context->pixelsize, context->pixels);
 
 	// notifyCallbacks();
 	(*env)->CallVoidMethod(env, context->obj, context->notifyCallbacks);
+
+	(*jvm)->DetachCurrentThread(jvm);
 }
 
 JNIEXPORT void JNICALL Java_martin_tempest_core_TSDRLibrary_loadPlugin (JNIEnv * env, jobject obj, jstring path, jstring params) {
@@ -198,9 +225,6 @@ JNIEXPORT void JNICALL Java_martin_tempest_core_TSDRLibrary_loadPlugin (JNIEnv *
 	const char *nparams = (*env)->GetStringUTFChars(env, params, 0);
 
 	int status = tsdr_loadplugin(tsdr_instance, npath, nparams);
-
-	if ((*jvm)->GetEnv(jvm, (void **)&env, javaversion) == JNI_EDETACHED)
-		(*jvm)->AttachCurrentThread(jvm, (void **) &env, 0);
 
 	THROW(status);
 
@@ -228,15 +252,15 @@ JNIEXPORT void JNICALL Java_martin_tempest_core_TSDRLibrary_nativeStart (JNIEnv 
 
 	int status = tsdr_readasync(tsdr_instance, read_async, (void *) context);
 
-	if ((*jvm)->GetEnv(jvm, (void **)&env, javaversion) == JNI_EDETACHED)
-		(*jvm)->AttachCurrentThread(jvm, (void **) &env, 0);
-
 	THROW(status);
+
+	if (context->obj_pixels != NULL) {
+		if ((*env)->GetObjectRefType(env, context->obj_pixels) == JNIGlobalRefType)
+			(*env)->DeleteGlobalRef(env, context->obj_pixels);
+	}
 
 	if ((*env)->GetObjectRefType(env, context->obj) == JNIGlobalRefType)
 		(*env)->DeleteGlobalRef(env, context->obj);
-	if ((*env)->GetObjectRefType(env, context->obj) == JNIGlobalRefType)
-		(*env)->DeleteGlobalRef(env, context->cls);
 
 	free(context);
 	free(context->pixels);

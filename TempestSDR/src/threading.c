@@ -198,7 +198,15 @@
 			locked = 0;
 		critical_leave(&semaphore->locker);
 		if (!locked) return;
-		mutex_waitforever(&semaphore->signaller);
+
+		while (mutex_wait(&semaphore->signaller) != THREAD_OK) {
+			int locked = 1;
+			critical_enter(&semaphore->locker);
+			if (semaphore -> count == 0)
+				locked = 0;
+			critical_leave(&semaphore->locker);
+			if (!locked) return;
+		}
 	}
 
 	void semaphore_free(semaphore_t * semaphore) {

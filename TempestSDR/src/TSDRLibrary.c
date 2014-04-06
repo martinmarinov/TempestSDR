@@ -15,6 +15,7 @@
 #include "include/TSDRCodes.h"
 #include <stdio.h>
 #include <stdlib.h>
+#include <assert.h>
 #include "TSDRPluginLoader.h"
 #include "osdetect.h"
 #include "threading.h"
@@ -214,22 +215,29 @@ void videodecodingthread(void * ctx) {
 		const double antilowpassvalue = 1.0 - lowpassvalue;
 
 		if (context->this->height != height || context->this->width != width) {
+			const int oldheight = context->this->height;
+			const int oldwidth = context->this->width;
+
 			height = context->this->height;
 			width = context->this->width;
 			sizetopoll = height * width;
+			assert(sizetopoll > 0);
 
 			if (sizetopoll > bufsize) {
 				bufsize = sizetopoll;
 				buffer = (float *) realloc(buffer, sizeof(float) * bufsize);
+				assert(buffer != NULL);
 				screenbuffer = (float *) realloc(screenbuffer, sizeof(float) * bufsize);
 				sendbuffer = (float *) realloc(sendbuffer, sizeof(float) * bufsize);
 				corrected_sendbuffer = (float *) realloc(corrected_sendbuffer, sizeof(float) * bufsize);
 
-				widthcollapsebuffer =  (float *) realloc(widthcollapsebuffer, sizeof(float) * width);
-				heightcollapsebuffer =  (float *) realloc(heightcollapsebuffer, sizeof(float) * height);
+				if (width != oldwidth) widthcollapsebuffer = (float *) realloc(widthcollapsebuffer, sizeof(float) * width);
+				if (height != oldheight) heightcollapsebuffer = (float *) realloc(heightcollapsebuffer, sizeof(float) * height);
 
 				for (i = 0; i < bufsize; i++) screenbuffer[i] = 0.0f;
 			}
+
+
 		}
 
 		if (cb_rem_blocking(&context->circbuf_decimation_to_video, buffer, sizetopoll) == CB_OK) {
@@ -259,6 +267,7 @@ void videodecodingthread(void * ctx) {
 
 			float * buf_to_send = syncdetector_run(context->this, sendbuffer, corrected_sendbuffer, width, height, widthcollapsebuffer, heightcollapsebuffer);
 
+			assert(bufsize >= width * height);
 			context->cb(buf_to_send, width, height, context->ctx);
 		}
 	}
@@ -490,7 +499,8 @@ void decimatingthread(void * ctx) {
 		}
 	}
 
-	free(buffer);
+	if (buffer != NULL) free(buffer); //TODO! HERE!
+	buffer = NULL;
 	free(outbuf);
 
 	semaphore_leave(&context->this->threadsync);
