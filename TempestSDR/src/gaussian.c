@@ -9,6 +9,8 @@
  *     Martin Marinov - initial API and implementation
  ******************************************************************************/
 
+#include <math.h>
+
 #define GAUSSIAN_ALPHA (1.0f)
 
 // N is the number of points, i is between -(N-1)/2 and (N-1)/2 inclusive

@@ -15,6 +15,19 @@
 
 #define SIZE_COEFF (5)
 
+void cb_purge(CircBuff_t * cb) {
+	if (cb->invalid) return;
+	critical_enter(&cb->mutex);
+
+    cb->remaining_capacity = cb->buffer_size; // how many elements could be loaded
+    cb->pos = 0; // where the next element will be added
+    cb->rempos = 0; // where the next element will be taken from
+
+	if (cb->is_waiting) mutex_signal(&cb->locker);
+
+	critical_leave(&cb->mutex);
+}
+
 void cb_init(CircBuff_t * cb) {
     cb->desired_buf_size = SIZE_COEFF; // initial size of buffer
     cb->buffer_size = cb->desired_buf_size;
@@ -22,6 +35,7 @@ void cb_init(CircBuff_t * cb) {
     cb->remaining_capacity = cb->buffer_size; // how many elements could be loaded
     cb->pos = 0; // where the next element will be added
     cb->rempos = 0; // where the next element will be taken from
+    cb->invalid = 0;
 
     cb->is_waiting = 0;
     cb->buffering = 0;
@@ -31,7 +45,7 @@ void cb_init(CircBuff_t * cb) {
 }
 
 int cb_add(CircBuff_t * cb, float * in, const size_t len) {
-
+	if (cb->invalid) return CB_ERR;
     if (len <= 0) return CB_OK; // handle edge case
 
     critical_enter(&cb->mutex);
@@ -82,6 +96,7 @@ int cb_add(CircBuff_t * cb, float * in, const size_t len) {
 }
 
 int cb_rem_blocking(CircBuff_t * cb, float * in, const size_t len) {
+	if (cb->invalid) return CB_ERR;
 	if (len <= 0) return CB_OK;
 
 	size_t items_inside = cb->buffer_size - cb->remaining_capacity;
@@ -129,8 +144,15 @@ int cb_rem_blocking(CircBuff_t * cb, float * in, const size_t len) {
 }
 
 void cb_free(CircBuff_t * cb) {
+	if (cb->invalid) return;
+
+	critical_enter(&cb->mutex);
+	free((void *) cb->buffer);
+	cb->invalid = 1;
+	critical_leave(&cb->mutex);
+
     mutex_free(&cb->locker);
     mutex_free(&cb->mutex);
-    free((void *) cb->buffer);
+
 }
 

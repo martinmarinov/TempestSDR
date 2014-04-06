@@ -13,31 +13,21 @@
 #define FRAMERATEDETECTOR_H_
 
 #include "include/TSDRLibrary.h"
-#include "threading.h"
 #include "stack.h"
+#include "circbuff.h"
 
 #include <stddef.h>
 
 typedef struct frameratedetector {
 
-	float * data;
-	size_t data_size;
-
 	tsdr_lib_t * tsdr;
 	uint32_t samplerate;
 
-	size_t size;
-
 	volatile int alive;
-	mutex_t processing_mutex;
-	size_t desireddatalength;
-
-	uint64_t samp_counter;
 
 	stack_t stack;
-	int state;
 
-	semaphore_t freesemaphore;
+	CircBuff_t circbuff;
 
 } frameratedetector_t;
 

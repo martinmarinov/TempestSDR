@@ -23,6 +23,7 @@ typedef struct CircBuff CircBuff_t;
 #define CB_OK (1)
 #define CB_FULL (0)
 #define CB_EMPTY (0)
+#define CB_ERR (0)
 
 struct CircBuff
 {
@@ -36,6 +37,7 @@ struct CircBuff
 
     volatile int is_waiting;
     int buffering;
+    volatile int invalid;
 
     mutex_t mutex; // for thread safety
     mutex_t locker; // for waiting
@@ -45,5 +47,6 @@ void cb_init(CircBuff_t * cb);
 int cb_add(CircBuff_t * cb, float * buff, const size_t size);
 int cb_rem_blocking(CircBuff_t * cb, float * in, const size_t len);
 void cb_free(CircBuff_t * cb);
+void cb_purge(CircBuff_t * cb);
 
 #endif
