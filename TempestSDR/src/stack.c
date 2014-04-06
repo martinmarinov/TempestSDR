@@ -67,10 +67,11 @@ void stack_purge(stack_t * stack) {
 int stack_contains(stack_t * stack, int val0, int val1) {
 	if (*stack == NULL) return 0;
 	struct stack * ptr = (*stack)->prev;
+	int count = 0;
 	while (ptr != NULL) {
 		if (ptr->data0 == val0 && ptr->data1 == val1)
-			return 1;
+			count++;
 		ptr = ptr->prev;
 	}
-	return 0;
+	return count;
 }

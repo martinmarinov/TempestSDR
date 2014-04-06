@@ -28,7 +28,6 @@ typedef struct frameratedetector {
 
 	size_t size;
 
-	volatile int processing;
 	volatile int alive;
 	mutex_t processing_mutex;
 	size_t desireddatalength;

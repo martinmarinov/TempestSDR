@@ -139,43 +139,10 @@ JNIEXPORT void JNICALL Java_martin_tempest_core_TSDRLibrary_free
 }
 #endif
 #endif
-/* Header for class martin_tempest_core_TSDRLibrary_ValueChangedCallback */
-
-#ifndef _Included_martin_tempest_core_TSDRLibrary_ValueChangedCallback
-#define _Included_martin_tempest_core_TSDRLibrary_ValueChangedCallback
-#ifdef __cplusplus
-extern "C" {
-#endif
-#ifdef __cplusplus
-}
-#endif
-#endif
-/* Header for class martin_tempest_core_TSDRLibrary_ValueChangedCallback_VALUE_ID */
-
-#ifndef _Included_martin_tempest_core_TSDRLibrary_ValueChangedCallback_VALUE_ID
-#define _Included_martin_tempest_core_TSDRLibrary_ValueChangedCallback_VALUE_ID
-#ifdef __cplusplus
-extern "C" {
-#endif
-#ifdef __cplusplus
-}
-#endif
-#endif
 /* Header for class martin_tempest_core_TSDRLibrary_FrameReadyCallback */
 
 #ifndef _Included_martin_tempest_core_TSDRLibrary_FrameReadyCallback
 #define _Included_martin_tempest_core_TSDRLibrary_FrameReadyCallback
-#ifdef __cplusplus
-extern "C" {
-#endif
-#ifdef __cplusplus
-}
-#endif
-#endif
-/* Header for class martin_tempest_core_TSDRLibrary_PARAM_DOUBLE */
-
-#ifndef _Included_martin_tempest_core_TSDRLibrary_PARAM_DOUBLE
-#define _Included_martin_tempest_core_TSDRLibrary_PARAM_DOUBLE
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -194,10 +161,43 @@ extern "C" {
 }
 #endif
 #endif
+/* Header for class martin_tempest_core_TSDRLibrary_PARAM_DOUBLE */
+
+#ifndef _Included_martin_tempest_core_TSDRLibrary_PARAM_DOUBLE
+#define _Included_martin_tempest_core_TSDRLibrary_PARAM_DOUBLE
+#ifdef __cplusplus
+extern "C" {
+#endif
+#ifdef __cplusplus
+}
+#endif
+#endif
 /* Header for class martin_tempest_core_TSDRLibrary_SYNC_DIRECTION */
 
 #ifndef _Included_martin_tempest_core_TSDRLibrary_SYNC_DIRECTION
 #define _Included_martin_tempest_core_TSDRLibrary_SYNC_DIRECTION
+#ifdef __cplusplus
+extern "C" {
+#endif
+#ifdef __cplusplus
+}
+#endif
+#endif
+/* Header for class martin_tempest_core_TSDRLibrary_ValueChangedCallback */
+
+#ifndef _Included_martin_tempest_core_TSDRLibrary_ValueChangedCallback
+#define _Included_martin_tempest_core_TSDRLibrary_ValueChangedCallback
+#ifdef __cplusplus
+extern "C" {
+#endif
+#ifdef __cplusplus
+}
+#endif
+#endif
+/* Header for class martin_tempest_core_TSDRLibrary_ValueChangedCallback_VALUE_ID */
+
+#ifndef _Included_martin_tempest_core_TSDRLibrary_ValueChangedCallback_VALUE_ID
+#define _Included_martin_tempest_core_TSDRLibrary_ValueChangedCallback_VALUE_ID
 #ifdef __cplusplus
 extern "C" {
 #endif
