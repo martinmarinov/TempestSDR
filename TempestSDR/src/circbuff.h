@@ -41,6 +41,8 @@ struct CircBuff
     mutex_t mutex; // for thread safety
     mutex_t locker; // for waiting
 
+    int buffering;
+
     int size_coeff;
 };
 

@@ -40,6 +40,7 @@ void cb_init(CircBuff_t * cb) {
     cb->invalid = 0;
 
     cb->is_waiting = 0;
+    cb->buffering = 0;
 
     mutex_init(&cb->mutex);
     mutex_init(&cb->locker);
@@ -65,7 +66,12 @@ int cb_add(CircBuff_t * cb, float * in, const size_t len) {
 
     }
 
-    if (cb->remaining_capacity < len) {
+    if (cb->buffering && cb->remaining_capacity < 2*len) {
+    	cb->buffering = 0;
+    	critical_leave(&cb->mutex);
+    	return CB_FULL; // if there is not enough space to put buffer, return error
+    } else if (cb->remaining_capacity < len) {
+    	cb->buffering = 1;
     	if (cb->size_coeff < CB_SIZE_MAX_COEFF) cb->size_coeff++;
         critical_leave(&cb->mutex);
         return CB_FULL; // if there is not enough space to put buffer, return error
