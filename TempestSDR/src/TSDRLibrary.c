@@ -215,8 +215,8 @@ void videodecodingthread(void * ctx) {
 		const double antilowpassvalue = 1.0 - lowpassvalue;
 
 		if (context->this->height != height || context->this->width != width) {
-			const int oldheight = context->this->height;
-			const int oldwidth = context->this->width;
+			const int oldheight = height;
+			const int oldwidth = width;
 
 			height = context->this->height;
 			width = context->this->width;
@@ -226,17 +226,14 @@ void videodecodingthread(void * ctx) {
 			if (sizetopoll > bufsize) {
 				bufsize = sizetopoll;
 				buffer = (float *) realloc(buffer, sizeof(float) * bufsize);
-				assert(buffer != NULL);
 				screenbuffer = (float *) realloc(screenbuffer, sizeof(float) * bufsize);
 				sendbuffer = (float *) realloc(sendbuffer, sizeof(float) * bufsize);
 				corrected_sendbuffer = (float *) realloc(corrected_sendbuffer, sizeof(float) * bufsize);
-
-				if (width != oldwidth) widthcollapsebuffer = (float *) realloc(widthcollapsebuffer, sizeof(float) * width);
-				if (height != oldheight) heightcollapsebuffer = (float *) realloc(heightcollapsebuffer, sizeof(float) * height);
-
 				for (i = 0; i < bufsize; i++) screenbuffer[i] = 0.0f;
 			}
 
+			if (width != oldwidth) widthcollapsebuffer = (float *) realloc(widthcollapsebuffer, sizeof(float) * width);
+			if (height != oldheight) heightcollapsebuffer = (float *) realloc(heightcollapsebuffer, sizeof(float) * height);
 
 		}
 
@@ -275,6 +272,9 @@ void videodecodingthread(void * ctx) {
 	free (buffer);
 	free (sendbuffer);
 	free (screenbuffer);
+	free (corrected_sendbuffer);
+	free (widthcollapsebuffer);
+	free (heightcollapsebuffer);
 
 	semaphore_leave(&context->this->threadsync);
 }
@@ -396,7 +396,7 @@ void decimatingthread(void * ctx) {
 
 			// resize buffer so it fits
 			if (pids > outbufsize) {
-				outbufsize = pids+len;
+				outbufsize = pids;
 				outbuf = (float *) realloc(outbuf, sizeof(float) * outbufsize);
 			}
 
@@ -468,7 +468,7 @@ void decimatingthread(void * ctx) {
 
 			offset = t-size;
 
-			//	if (pid != pids || context->offset > 0 || context->offset < -post)
+			assert (pid == pids);
 			//		printf("Pid %d; pids %d; t %.4f, size %d, offset %.4f\n", pid, pids, t, size, context->offset);
 
 			// section for syncing lost samples

@@ -426,13 +426,14 @@ public class TSDRLibrary {
 	 * @param x the width of the frame
 	 * @param y the height of the frame
 	 */
-	private void fixSize(final int x, final int y) {
+	final private void fixSize(final int x, final int y) {
 		if (bimage == null || bimage.getWidth() != x || bimage.getHeight() != y) {
 			try {
 				bimage = new BufferedImage(x, y, BufferedImage.TYPE_INT_RGB);
 				pixels = ((DataBufferInt) bimage.getRaster().getDataBuffer()).getData();
 			} catch (Throwable t) {
 				t.printStackTrace();
+				System.err.flush(); System.out.flush();
 			}
 		}
 	}
@@ -441,8 +442,13 @@ public class TSDRLibrary {
 	 * The native code should invoke this method when it has written data to the buffer variable.
 	 * This method writes the result into the bitmap
 	 */
-	private void notifyCallbacks() {
-		for (final FrameReadyCallback callback : callbacks) callback.onFrameReady(this, bimage);
+	final private void notifyCallbacks() {
+		try {
+			for (final FrameReadyCallback callback : callbacks) callback.onFrameReady(this, bimage);
+		} catch (Throwable t) {
+			t.printStackTrace();
+			System.err.flush(); System.out.flush();
+		}
 	}
 	
 	private void onValueChanged(final int value_id, final double arg0, final int arg1) {

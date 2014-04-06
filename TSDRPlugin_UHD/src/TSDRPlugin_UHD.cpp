@@ -37,7 +37,7 @@
 
 #include "errors.hpp"
 
-#define HOW_OFTEN_TO_CALL_CALLBACK_SEC (0.001)
+#define HOW_OFTEN_TO_CALL_CALLBACK_SEC (0.01)
 
 uhd::usrp::multi_usrp::sptr usrp;
 namespace po = boost::program_options;

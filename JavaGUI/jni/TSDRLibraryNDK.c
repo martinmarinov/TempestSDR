@@ -32,8 +32,6 @@ struct java_obj_context {
 struct java_context {
 		jobject obj;
 		jobject obj_pixels;
-		jclass cls;
-		jfieldID fid_pixels;
 		int pic_width;
 		int pic_height;
 		jmethodID fixSize;
@@ -168,16 +166,23 @@ void read_async(float *buf, int width, int height, void *ctx) {
 
 		(*env)->CallVoidMethod(env, context->obj, context->fixSize, width, height);
 
-		context->obj_pixels = (*env)->NewGlobalRef(env, (*env)->GetObjectField(env, context->obj, context->fid_pixels));
+		context->obj_pixels = (*env)->NewGlobalRef(env, (*env)->GetObjectField(env, context->obj, (*env)->GetFieldID(env, (*env)->GetObjectClass(env, context->obj), "pixels", "[I")));
 
 		const int newpixelsize = width * height;
-		if (newpixelsize != context->pixelsize) context->pixels = (jint *) realloc((void *) context->pixels, sizeof(jint) * newpixelsize);
+		if (newpixelsize != context->pixelsize) {
+			if (context->pixels == NULL)
+				context->pixels = (jint *) malloc(sizeof(jint) * newpixelsize);
+			else
+				context->pixels = (jint *) realloc((void *) context->pixels, sizeof(jint) * newpixelsize);
+		}
 
 		assert(context->pixels != NULL);
 
 		context->pixelsize = newpixelsize;
 		context->pic_width = width;
 		context->pic_height = height;
+
+		assert((*env)->GetArrayLength(env, context->obj_pixels) >= context->pixelsize);
 	}
 
 	jint * data = context->pixels;
@@ -204,16 +209,17 @@ void read_async(float *buf, int width, int height, void *ctx) {
 
 	}
 
+	assert(data == context->pixels + context->pixelsize);
 
-	const jsize javaarraylength = (*env)->GetArrayLength(env, context->obj_pixels);
-	printf("Resized %d %d\n", javaarraylength, context->pixelsize);fflush(stdout);
-	assert(javaarraylength >= context->pixelsize);
+	//assert((*env)->GetArrayLength(env, context->obj_pixels) >= context->pixelsize);
 
 	// release elements#
 	(*env)->SetIntArrayRegion(env, context->obj_pixels, 0, context->pixelsize, context->pixels);
 
 	// notifyCallbacks();
 	(*env)->CallVoidMethod(env, context->obj, context->notifyCallbacks);
+
+	//assert (!(*env)->ExceptionCheck(env));
 
 	(*jvm)->DetachCurrentThread(jvm);
 }
@@ -239,16 +245,14 @@ JNIEXPORT void JNICALL Java_martin_tempest_core_TSDRLibrary_nativeStart (JNIEnv 
 
 	context->obj = (*env)->NewGlobalRef(env, obj);
 	(*env)->DeleteLocalRef(env, obj);
-	context->cls = (jclass) (*env)->NewGlobalRef(env, (*env)->GetObjectClass(env, context->obj));
-	context->fid_pixels = (*env)->GetFieldID(env, context->cls, "pixels", "[I");
-	context->fixSize = (*env)->GetMethodID(env, context->cls, "fixSize", "(II)V");
-	context->notifyCallbacks = (*env)->GetMethodID(env, context->cls, "notifyCallbacks", "()V");
+	context->fixSize = (*env)->GetMethodID(env, (*env)->GetObjectClass(env, context->obj), "fixSize", "(II)V");
+	context->notifyCallbacks = (*env)->GetMethodID(env, (*env)->GetObjectClass(env, context->obj), "notifyCallbacks", "()V");
 	context->obj_pixels = NULL;
 
 	context->pic_width = 0;
 	context->pic_height = 0;
-	context->pixelsize = 1;
-	context->pixels = (jint *) malloc(sizeof(jint) * context->pixelsize);
+	context->pixelsize = 0;
+	context->pixels = NULL;
 
 	int status = tsdr_readasync(tsdr_instance, read_async, (void *) context);
 
@@ -263,7 +267,7 @@ JNIEXPORT void JNICALL Java_martin_tempest_core_TSDRLibrary_nativeStart (JNIEnv 
 		(*env)->DeleteGlobalRef(env, context->obj);
 
 	free(context);
-	free(context->pixels);
+	if (context->pixels != NULL) free(context->pixels);
 }
 
 JNIEXPORT void JNICALL Java_martin_tempest_core_TSDRLibrary_stop (JNIEnv * env, jobject obj) {
