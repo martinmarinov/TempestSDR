@@ -12,9 +12,9 @@
 */
 #include "circbuff.h"
 #include <errno.h>
+#include <assert.h>
 
-#define CB_SIZE_COEFF_DEFAULT (5)
-#define CB_SIZE_MAX_COEFF (10)
+#define CB_SIZE_COEFF_DEFAULT (2)
 
 void cb_purge(CircBuff_t * cb) {
 	if (cb->invalid) return;
@@ -29,7 +29,10 @@ void cb_purge(CircBuff_t * cb) {
 	critical_leave(&cb->mutex);
 }
 
-void cb_init(CircBuff_t * cb) {
+void cb_init(CircBuff_t * cb, int max_size_coeff) {
+	assert(max_size_coeff >= CB_SIZE_COEFF_DEFAULT);
+
+	cb->max_size_coeff = max_size_coeff;
 	cb->size_coeff = CB_SIZE_COEFF_DEFAULT;
     cb->desired_buf_size = cb->size_coeff; // initial size of buffer
     cb->buffer_size = cb->desired_buf_size;
@@ -72,7 +75,7 @@ int cb_add(CircBuff_t * cb, float * in, const size_t len) {
     	return CB_FULL; // if there is not enough space to put buffer, return error
     } else if (cb->remaining_capacity < len) {
     	cb->buffering = 1;
-    	if (cb->size_coeff < CB_SIZE_MAX_COEFF) cb->size_coeff++;
+    	if (cb->size_coeff < cb->max_size_coeff) cb->size_coeff++;
         critical_leave(&cb->mutex);
         return CB_FULL; // if there is not enough space to put buffer, return error
     }

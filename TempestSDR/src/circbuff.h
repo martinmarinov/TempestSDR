@@ -25,6 +25,10 @@ typedef struct CircBuff CircBuff_t;
 #define CB_EMPTY (0)
 #define CB_ERR (0)
 
+#define CB_SIZE_MAX_COEFF_LOW_LATENCY (5)
+#define CB_SIZE_MAX_COEFF_MED_LATENCY (10)
+#define CB_SIZE_MAX_COEFF_HIGH_LATENCY (20)
+
 struct CircBuff
 {
     volatile float * buffer; // the circular buffer itself
@@ -44,9 +48,10 @@ struct CircBuff
     int buffering;
 
     int size_coeff;
+    int max_size_coeff;
 };
 
-void cb_init(CircBuff_t * cb);
+void cb_init(CircBuff_t * cb, int max_size_coeff);
 int cb_add(CircBuff_t * cb, float * buff, const size_t size);
 int cb_rem_blocking(CircBuff_t * cb, float * in, const size_t len);
 void cb_free(CircBuff_t * cb);

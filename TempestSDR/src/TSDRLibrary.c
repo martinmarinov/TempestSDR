@@ -584,8 +584,8 @@ int tsdr_loadplugin(tsdr_lib_t * tsdr, const char * pluginfilepath, const char *
 	context->decimator_items_to_poll = DEFAULT_DECIMATOR_TO_POLL;
 	context->device_items_dropped = 0;
 	context->device_items_to_drop = 0;
-	cb_init(&context->circbuf_decimation_to_video);
-	cb_init(&context->circbuf_device_to_decimation);
+	cb_init(&context->circbuf_decimation_to_video, CB_SIZE_MAX_COEFF_LOW_LATENCY);
+	cb_init(&context->circbuf_device_to_decimation, CB_SIZE_MAX_COEFF_LOW_LATENCY);
 
 	frameratedetector_startthread(&tsdr->frameratedetect);
 	thread_start(decimatingthread, (void *) context);

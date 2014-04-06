@@ -12,7 +12,8 @@
 #include <math.h>
 #include "gaussian.h"
 
-#define FRAMERATE_PLL_SPEED (0.000001)
+#define FRAMERATE_PLL_FINE_SPEED (0.0000003)
+#define FRAMERATE_PLL_SPEED (0.00001)
 #define FRAMERATE_MAX_PLL_SPEED (0.0001)
 
 
@@ -125,11 +126,11 @@ void frameratepll(tsdr_lib_t * tsdr, int dx, int width, int height) {
 	const int h2 = height / 2;
 	const int vx = (rawvx > h2) ? (rawvx - h2) : ((rawvx < -h2) ? (rawvx + h2) : (rawvx));
 	const int absvx = (vx < 0) ? (-vx) : vx;
-	//const int vxsign = (vx < 0) ? (-1) : (1);
+	const int vxsign = (vx < 0) ? (-1) : (1);
 	lastx = dx;
 
 	if (!tsdr->params_int[PARAM_INT_AUTORESOLUTION] && tsdr->params_int[PARAM_INT_FRAMERATE_PLL] && vx != 0 && absvx < height / 5) {
-		double frameratediff = FRAMERATE_PLL_SPEED*vx;
+		double frameratediff = (absvx > (height / 30)) ? (FRAMERATE_PLL_SPEED*vx) : (vxsign*FRAMERATE_PLL_FINE_SPEED);
 		if (frameratediff > FRAMERATE_MAX_PLL_SPEED) frameratediff = FRAMERATE_MAX_PLL_SPEED;
 		else if (frameratediff < -FRAMERATE_MAX_PLL_SPEED) frameratediff = - FRAMERATE_MAX_PLL_SPEED;
 

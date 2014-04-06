@@ -35,7 +35,7 @@
 
 #include "errors.hpp"
 
-#define HOW_OFTEN_TO_CALL_CALLBACK_SEC (0.01)
+#define HOW_OFTEN_TO_CALL_CALLBACK_SEC (0.005)
 #define FRACT_DROPPED_TO_TOLERATE (0)
 
 uhd::usrp::multi_usrp::sptr usrp;
@@ -45,7 +45,6 @@ uint32_t req_freq = 105e6;
 float req_gain = 1;
 double req_rate = 25e6;
 volatile int is_running = 0;
-size_t items_per_call = HOW_OFTEN_TO_CALL_CALLBACK_SEC * req_rate * 2;
 
 EXTERNC TSDRPLUGIN_API void __stdcall tsdrplugin_getName(char * name) {
 	strcpy(name, "TSDR UHD USRP Compatible Plugin");
@@ -113,7 +112,6 @@ EXTERNC TSDRPLUGIN_API int __stdcall tsdrplugin_init(const char * params) {
 
 		usrp->set_rx_rate(req_rate);
 		req_rate = usrp->get_rx_rate();
-		items_per_call = HOW_OFTEN_TO_CALL_CALLBACK_SEC * req_rate * 2;
 
 		//set the rx center frequency
 		usrp->set_rx_freq(req_freq);
@@ -170,7 +168,6 @@ EXTERNC TSDRPLUGIN_API uint32_t __stdcall tsdrplugin_setsamplerate(uint32_t rate
 	{
 	}
 
-	items_per_call = HOW_OFTEN_TO_CALL_CALLBACK_SEC * req_rate * 2;
 	return req_rate;
 }
 
@@ -183,7 +180,6 @@ EXTERNC TSDRPLUGIN_API uint32_t __stdcall tsdrplugin_getsamplerate() {
 	{
 	}
 
-	items_per_call = HOW_OFTEN_TO_CALL_CALLBACK_SEC * req_rate * 2;
 	return req_rate;
 }
 
@@ -242,7 +238,7 @@ EXTERNC TSDRPLUGIN_API int __stdcall tsdrplugin_readasync(tsdrplugin_readasync_f
 		uhd::rx_metadata_t md;
 		md.has_time_spec = false;
 
-		size_t buff_size = items_per_call;
+		size_t buff_size = HOW_OFTEN_TO_CALL_CALLBACK_SEC * req_rate * 2;
 		const size_t samples_per_api_read = rx_stream->get_max_num_samps();
 		if (buff_size < samples_per_api_read * 2) buff_size = samples_per_api_read * 2;
 		buff = (float *) malloc(sizeof(float) * buff_size);
