@@ -311,6 +311,8 @@ void process(float *buf, uint32_t items_count, void *ctx, int samples_dropped) {
 
 	context->decimator_items_to_poll = items_count;
 
+
+
 	if (samples_dropped > 0)
 		context->device_items_dropped += (samples_dropped << 1);
 
@@ -322,11 +324,12 @@ void process(float *buf, uint32_t items_count, void *ctx, int samples_dropped) {
 		context->device_items_dropped = 0;
 	}
 
-	if (context->device_items_to_drop >= items_count)
+	const size_t device_items_dropped = context->device_items_dropped;
+	if (device_items_dropped >= items_count)
 		context->device_items_to_drop -= items_count;
-	else if (cb_add(&context->circbuf_device_to_decimation, &buf[context->device_items_to_drop], items_count-context->device_items_to_drop) == CB_OK)
+	else if (cb_add(&context->circbuf_device_to_decimation, &buf[device_items_dropped], items_count-device_items_dropped) == CB_OK) // TODO! HERE
 		context->device_items_to_drop = 0;
-	else // we lost samples due to buffer overflow
+	else// we lost samples due to buffer overflow
 		context->device_items_dropped += items_count;
 }
 
@@ -468,7 +471,7 @@ void decimatingthread(void * ctx) {
 
 			offset = t-size;
 
-			assert (pid == pids);
+			//assert (pid == pids);
 			//		printf("Pid %d; pids %d; t %.4f, size %d, offset %.4f\n", pid, pids, t, size, context->offset);
 
 			// section for syncing lost samples
@@ -499,7 +502,7 @@ void decimatingthread(void * ctx) {
 		}
 	}
 
-	if (buffer != NULL) free(buffer); //TODO! HERE!
+	if (buffer != NULL) free(buffer);
 	buffer = NULL;
 	free(outbuf);
 
@@ -583,8 +586,8 @@ int tsdr_loadplugin(tsdr_lib_t * tsdr, const char * pluginfilepath, const char *
 	context->decimator_items_to_poll = DEFAULT_DECIMATOR_TO_POLL;
 	context->device_items_dropped = 0;
 	context->device_items_to_drop = 0;
-	cb_init(&context->circbuf_decimation_to_video);
-	cb_init(&context->circbuf_device_to_decimation);
+	cb_init(&context->circbuf_decimation_to_video, CB_SIZE_COEFF_LOW_LATENCY);
+	cb_init(&context->circbuf_device_to_decimation, CB_SIZE_COEFF_MEDIUM_LATENCY);
 
 	frameratedetector_startthread(&tsdr->frameratedetect);
 	thread_start(decimatingthread, (void *) context);

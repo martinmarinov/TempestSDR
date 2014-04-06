@@ -13,7 +13,8 @@
 #include "circbuff.h"
 #include <errno.h>
 
-#define SIZE_COEFF (5)
+#define CB_SIZE_COEFF_DEFAULT (5)
+#define CB_SIZE_MAX_COEFF (30)
 
 void cb_purge(CircBuff_t * cb) {
 	if (cb->invalid) return;
@@ -29,7 +30,8 @@ void cb_purge(CircBuff_t * cb) {
 }
 
 void cb_init(CircBuff_t * cb) {
-    cb->desired_buf_size = SIZE_COEFF; // initial size of buffer
+	cb->size_coeff = CB_SIZE_COEFF_DEFAULT;
+    cb->desired_buf_size = cb->size_coeff; // initial size of buffer
     cb->buffer_size = cb->desired_buf_size;
     cb->buffer = (float *) malloc(sizeof(float) * cb->buffer_size); // allocate buffer
     cb->remaining_capacity = cb->buffer_size; // how many elements could be loaded
@@ -38,7 +40,6 @@ void cb_init(CircBuff_t * cb) {
     cb->invalid = 0;
 
     cb->is_waiting = 0;
-    cb->buffering = 0;
 
     mutex_init(&cb->mutex);
     mutex_init(&cb->locker);
@@ -51,7 +52,7 @@ int cb_add(CircBuff_t * cb, float * in, const size_t len) {
     critical_enter(&cb->mutex);
 
     // if the size of the buffer is not large enough, request the buffer to be resized
-    if (len*SIZE_COEFF > cb->buffer_size) cb->desired_buf_size = len*SIZE_COEFF;
+    if (len*cb->size_coeff > cb->buffer_size) cb->desired_buf_size = len*cb->size_coeff;
 
     if (cb->buffer_size < cb->desired_buf_size) {
         // if we need to resize the buffer, reset it
@@ -64,12 +65,8 @@ int cb_add(CircBuff_t * cb, float * in, const size_t len) {
 
     }
 
-    if (cb->buffering && cb->remaining_capacity < 2*len) {
-    	cb->buffering = 0;
-    	critical_leave(&cb->mutex);
-    	return CB_FULL; // if there is not enough space to put buffer, return error
-    } else if (cb->remaining_capacity < len) {
-    	cb->buffering = 1;
+    if (cb->remaining_capacity < len) {
+    	if (cb->size_coeff < CB_SIZE_MAX_COEFF) cb->size_coeff++;
         critical_leave(&cb->mutex);
         return CB_FULL; // if there is not enough space to put buffer, return error
     }
@@ -102,7 +99,7 @@ int cb_rem_blocking(CircBuff_t * cb, float * in, const size_t len) {
 	size_t items_inside = cb->buffer_size - cb->remaining_capacity;
     while (items_inside < len) {
             // if the size of the buffer is not large enough, request a resize during the next add
-            if (len*SIZE_COEFF > cb->buffer_size) cb->desired_buf_size = len*SIZE_COEFF;
+            if (len*cb->size_coeff > cb->buffer_size) cb->desired_buf_size = len*cb->size_coeff;
 
             const size_t before_items_inside = items_inside;
             cb->is_waiting = 1;

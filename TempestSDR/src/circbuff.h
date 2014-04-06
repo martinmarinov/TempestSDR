@@ -36,11 +36,12 @@ struct CircBuff
     volatile size_t rempos; // the position where the next element will be taken from
 
     volatile int is_waiting;
-    int buffering;
     volatile int invalid;
 
     mutex_t mutex; // for thread safety
     mutex_t locker; // for waiting
+
+    int size_coeff;
 };
 
 void cb_init(CircBuff_t * cb);

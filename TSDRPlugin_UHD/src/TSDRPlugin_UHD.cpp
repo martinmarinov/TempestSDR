@@ -218,7 +218,7 @@ EXTERNC TSDRPLUGIN_API int __stdcall tsdrplugin_setgain(float gain) {
 }
 
 EXTERNC TSDRPLUGIN_API int __stdcall tsdrplugin_readasync(tsdrplugin_readasync_function cb, void *ctx) {
-	uhd::set_thread_priority_safe();
+	//uhd::set_thread_priority_safe();
 
 	is_running = 1;
 
