@@ -116,8 +116,6 @@ int cb_rem_blocking(CircBuff_t * cb, float * in, const size_t len) {
             	cb->is_waiting = 0;
             	return CB_EMPTY;
             }
-            if (cb->invalid)
-            	return CB_ERROR;
 
             cb->is_waiting = 0;
             items_inside = cb->buffer_size - cb->remaining_capacity;
@@ -125,6 +123,7 @@ int cb_rem_blocking(CircBuff_t * cb, float * in, const size_t len) {
                 return CB_EMPTY; // if there are not enough items
     }
 
+    if (cb->invalid) return CB_ERROR;
     critical_enter(&cb->mutex);
 
     if (cb->buffer_size - cb->remaining_capacity < len) {
