@@ -116,6 +116,9 @@ int cb_rem_blocking(CircBuff_t * cb, float * in, const size_t len) {
             	cb->is_waiting = 0;
             	return CB_EMPTY;
             }
+            if (cb->invalid)
+            	return CB_ERROR;
+
             cb->is_waiting = 0;
             items_inside = cb->buffer_size - cb->remaining_capacity;
             if (before_items_inside == items_inside)
@@ -155,6 +158,9 @@ void cb_free(CircBuff_t * cb) {
 	critical_enter(&cb->mutex);
 	free((void *) cb->buffer);
 	cb->invalid = 1;
+
+	if (cb->is_waiting) mutex_signal(&cb->locker);
+
 	critical_leave(&cb->mutex);
 
     mutex_free(&cb->locker);
