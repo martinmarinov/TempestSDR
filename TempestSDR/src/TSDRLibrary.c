@@ -279,32 +279,17 @@ void videodecodingthread(void * ctx) {
 	semaphore_leave(&context->this->threadsync);
 }
 
+static inline void am_demod(float * buffer, int size) {
+	int id;
+	float * bref = buffer;
+	float * brefout = buffer;
+	for (id = 0; id < size; id++) {
+		const float I = *(bref++);
+		const float Q = *(bref++);
 
-static inline float definiteintegral(float x) {
-//if (x > 1 || x < 0) printf("Requested %.4f/n", x);
-#if INTEG_TYPE == 0
-	// box
-	return x;
-#elif INTEG_TYPE == 1
-	// triangle
-	if (x < 0.5f)
-		return 2*x*x;
-	else {
-		const int x1 = 1.0f-x;
-		return 1+2*x1*x1;
+		*(brefout++) = sqrtf(I*I+Q*Q);
 	}
-#elif INTEG_TYPE == 2
-	// sin from 0 to 1
-	return -cosf(x*PI);
-#elif INTEG_TYPE == 3
-	// normal distribution centred around 0.5
-	return -0.177245f * erff(2.5f-5.0f*x);
-#endif
 }
-
-// This is the pixel function. Start must be >=0 and end must be <=1
-// Return the area of the pixel signal spanned by this if the pixel was from 0 to 1
-#define integrate(start, end) (definiteintegral(end) - definiteintegral(start))
 
 void process(float *buf, uint32_t items_count, void *ctx, int samples_dropped) {
 	tsdr_context_t * context = (tsdr_context_t *) ctx;
@@ -325,45 +310,11 @@ void process(float *buf, uint32_t items_count, void *ctx, int samples_dropped) {
 	const size_t device_items_to_drop = context->device_items_to_drop;
 	if (device_items_to_drop >= items_count)
 		context->device_items_to_drop -= items_count;
-	else if (cb_add(&context->circbuf_device_to_decimation, &buf[device_items_to_drop], items_count-device_items_to_drop) == CB_OK) // TODO! HERE
+	else if (cb_add(&context->circbuf_device_to_decimation, &buf[device_items_to_drop], items_count-device_items_to_drop) == CB_OK)
 		context->device_items_to_drop = 0;
 	else// we lost samples due to buffer overflow
 		context->device_items_dropped += items_count;
 }
-
-
-static inline void am_demod(float * buffer, int size) {
-	int id;
-	float * bref = buffer;
-	float * brefout = buffer;
-	for (id = 0; id < size; id++) {
-		const float I = *(bref++);
-		const float Q = *(bref++);
-
-		*(brefout++) = sqrtf(I*I+Q*Q);
-	}
-}
-
-//static inline void fm_demod(float * buffer, int size) {
-//	static float prevI = 0;
-//	static float prevQ = 0;
-//
-//	int id;
-//	float * bref = buffer;
-//	float * brefout = buffer;
-//	for (id = 0; id < size; id++) {
-//		const float I = *(bref++);
-//		const float Q = *(bref++);
-//
-//		const float f_r = I*prevI+Q*prevQ;
-//		const float f_i = -I*prevQ+Q*prevI;
-//
-//		prevI = I;
-//		prevQ = Q;
-//
-//		*(brefout++) = (atan2f(f_i, f_r) / PI + PI) / 2.0f;
-//	}
-//}
 
 void decimatingthread(void * ctx) {
 	tsdr_context_t * context = (tsdr_context_t *) ctx;
@@ -393,7 +344,6 @@ void decimatingthread(void * ctx) {
 
 			const double post = context->this->pixeltimeoversampletime;
 			const int pids = (int) ((size - offset) / post);
-			const float normalize = integrate(0, 1);
 
 			// resize buffer so it fits
 			if (pids > outbufsize) {
@@ -430,7 +380,7 @@ void decimatingthread(void * ctx) {
 #if INTEG_TYPE == -1
 					outbuf[pid++] = val;
 #else
-					const float contrfract = integrate(start, 1)/normalize;
+					const float contrfract = 1.0 - start;
 					outbuf[pid++] = contrib + val*contrfract;
 #endif
 					contrib = 0;
@@ -458,11 +408,11 @@ void decimatingthread(void * ctx) {
 				//    id     id+1    id+2
 
 				if (t < (id + 1) && t > id) {
-					const float contrfract = integrate(0,(id+1-t)/post)/normalize;
+					const float contrfract = (id+1-t)/post;
 					contrib += contrfract * val;
 				} else {
 					const float idt = id - t;
-					const float contrfract = integrate(idt/post,(idt+1)/post)/normalize;
+					const float contrfract = (idt+1-idt)/post;
 					contrib += contrfract * val;
 				}
 			}
