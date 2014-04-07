@@ -225,16 +225,11 @@ void frameratedetector_stopthread(frameratedetector_t * frameratedetector) {
 	frameratedetector->alive = 0;
 }
 
-void frameratedetector_run(frameratedetector_t * frameratedetector, float * data, int size, uint32_t samplerate, int reset) {
+void frameratedetector_run(frameratedetector_t * frameratedetector, float * data, int size, uint32_t samplerate) {
 
 	// if we don't want to call this at all
 	if (!frameratedetector->tsdr->params_int[PARAM_INT_AUTORESOLUTION])
 		return;
-
-	if (reset) {
-		cb_purge(&frameratedetector->circbuff);
-		return;
-	}
 
 	frameratedetector->samplerate = samplerate;
 	if (cb_add(&frameratedetector->circbuff, data, size) != CB_OK) {

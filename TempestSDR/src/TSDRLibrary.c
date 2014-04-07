@@ -411,7 +411,7 @@ void decimatingthread(void * ctx) {
 
 			// we have the AM demodulated signal in buff
 			//setframerate(context->this, frameratedetector_run(&context->this->frameratedetect, context->this, buffer, size, context->this->samplerate / context->this->pixeltimeoversampletime));
-			frameratedetector_run(&context->this->frameratedetect, buffer, size, context->this->samplerate, context->device_items_dropped != 0);
+			frameratedetector_run(&context->this->frameratedetect, buffer, size, context->this->samplerate);
 
 			float * bref = buffer;
 			for (id = 0; id < size; id++) {

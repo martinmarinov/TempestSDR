@@ -35,7 +35,7 @@
 
 #include "errors.hpp"
 
-#define HOW_OFTEN_TO_CALL_CALLBACK_SEC (0.005)
+#define HOW_OFTEN_TO_CALL_CALLBACK_SEC (0.01)
 #define FRACT_DROPPED_TO_TOLERATE (0)
 
 uhd::usrp::multi_usrp::sptr usrp;
