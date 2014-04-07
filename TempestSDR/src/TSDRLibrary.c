@@ -292,9 +292,12 @@ static inline void am_demod(float * buffer, int size) {
 }
 
 void process(float *buf, uint32_t items_count, void *ctx, int samples_dropped) {
+	assert((items_count & 1) == 0);
+
 	tsdr_context_t * context = (tsdr_context_t *) ctx;
 
-	context->decimator_items_to_poll = items_count;
+	const int size2 = items_count >> 1;
+	context->decimator_items_to_poll = size2;
 
 	if (samples_dropped > 0)
 		context->device_items_dropped += (samples_dropped << 1);
@@ -310,10 +313,18 @@ void process(float *buf, uint32_t items_count, void *ctx, int samples_dropped) {
 	const size_t device_items_to_drop = context->device_items_to_drop;
 	if (device_items_to_drop >= items_count)
 		context->device_items_to_drop -= items_count;
-	else if (cb_add(&context->circbuf_device_to_decimation, &buf[device_items_to_drop], items_count-device_items_to_drop) == CB_OK)
-		context->device_items_to_drop = 0;
-	else// we lost samples due to buffer overflow
-		context->device_items_dropped += items_count;
+	else {
+
+		am_demod(buf, size2);
+
+		frameratedetector_run(&context->this->frameratedetect, buf, size2, context->this->samplerate, device_items_to_drop != 0);
+
+		if (cb_add(&context->circbuf_device_to_decimation, &buf[device_items_to_drop >> 1], (items_count-device_items_to_drop) >> 1) == CB_OK)
+			context->device_items_to_drop = 0;
+		else// we lost samples due to buffer overflow
+			context->device_items_dropped += items_count;
+	}
+
 }
 
 void decimatingthread(void * ctx) {
@@ -333,14 +344,12 @@ void decimatingthread(void * ctx) {
 
 	while (context->this->running) {
 
-		const int len = context->decimator_items_to_poll;
-		if (len > bufsize) {
-			bufsize = len;
+		const int size = context->decimator_items_to_poll;
+		if (size > bufsize) {
+			bufsize = size;
 			buffer = (float *) realloc((void*) buffer, sizeof(float) * bufsize);
 		}
-		if (cb_rem_blocking(&context->circbuf_device_to_decimation, buffer, len) == CB_OK) {
-
-			const int size = len/2;
+		if (cb_rem_blocking(&context->circbuf_device_to_decimation, buffer, size) == CB_OK) {
 
 			const double post = context->this->pixeltimeoversampletime;
 			const int pids = (int) ((size - offset) / post);
@@ -355,13 +364,6 @@ void decimatingthread(void * ctx) {
 
 			int pid = 0;
 			int id;
-
-			//fm_demod(buffer, size);
-			am_demod(buffer, size);
-
-			// we have the AM demodulated signal in buff
-			//setframerate(context->this, frameratedetector_run(&context->this->frameratedetect, context->this, buffer, size, context->this->samplerate / context->this->pixeltimeoversampletime));
-			frameratedetector_run(&context->this->frameratedetect, buffer, size, context->this->samplerate);
 
 			float * bref = buffer;
 			for (id = 0; id < size; id++) {

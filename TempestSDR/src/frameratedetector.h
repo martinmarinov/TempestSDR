@@ -37,6 +37,6 @@ void frameratedetector_flushcachedestimation(frameratedetector_t * frameratedete
 
 void frameratedetector_init(frameratedetector_t * frameratedetector, tsdr_lib_t * tsdr);
 void frameratedetector_free(frameratedetector_t * frameratedetector);
-void frameratedetector_run(frameratedetector_t * frameratedetector, float * data, int size, uint32_t samplerate);
+void frameratedetector_run(frameratedetector_t * frameratedetector, float * data, int size, uint32_t samplerate, int drop);
 
 #endif
