@@ -117,7 +117,7 @@ void on_value_changed(int value_id, double arg0, int arg1, void * ctx) {
 	if (getenv_res == JNI_EDETACHED)
 		assert((*jvm)->AttachCurrentThread(jvm, (void **) &env, 0) == JNI_OK);
 	else if (getenv_res != JNI_OK) {
-		fprintf(stderr, "GetEnv returned error %d\n", getenv_res); fflush(stderr);
+		fprintf(stderr, "GetEnv returned error %d\n", (int) getenv_res); fflush(stderr);
 	}
 	assert(env != NULL);
 	assert(getenv_res == JNI_OK || getenv_res == JNI_EDETACHED);
@@ -155,7 +155,7 @@ void read_async(float *buf, int width, int height, void *ctx) {
 	if (getenv_res == JNI_EDETACHED)
 		assert((*jvm)->AttachCurrentThread(jvm, (void **) &env, 0) == JNI_OK);
 	else if (getenv_res != JNI_OK) {
-		fprintf(stderr, "GetEnv returned error %d\n", getenv_res); fflush(stderr);
+		fprintf(stderr, "GetEnv returned error %d\n", (int) getenv_res); fflush(stderr);
 	}
 	assert(env != NULL);
 	assert(getenv_res == JNI_OK || getenv_res == JNI_EDETACHED);

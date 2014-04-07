@@ -23,7 +23,7 @@ typedef struct CircBuff CircBuff_t;
 #define CB_OK (1)
 #define CB_FULL (0)
 #define CB_EMPTY (0)
-#define CB_ERR (0)
+#define CB_ERROR (0)
 
 #define CB_SIZE_MAX_COEFF_LOW_LATENCY (5)
 #define CB_SIZE_MAX_COEFF_MED_LATENCY (10)

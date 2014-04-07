@@ -50,7 +50,7 @@ void cb_init(CircBuff_t * cb, int max_size_coeff) {
 }
 
 int cb_add(CircBuff_t * cb, float * in, const size_t len) {
-	if (cb->invalid) return CB_ERR;
+	if (cb->invalid) return CB_ERROR;
     if (len <= 0) return CB_OK; // handle edge case
 
     critical_enter(&cb->mutex);
@@ -102,7 +102,7 @@ int cb_add(CircBuff_t * cb, float * in, const size_t len) {
 }
 
 int cb_rem_blocking(CircBuff_t * cb, float * in, const size_t len) {
-	if (cb->invalid) return CB_ERR;
+	if (cb->invalid) return CB_ERROR;
 	if (len <= 0) return CB_OK;
 
 	size_t items_inside = cb->buffer_size - cb->remaining_capacity;
