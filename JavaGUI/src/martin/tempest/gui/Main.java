@@ -69,9 +69,6 @@ import javax.swing.JToggleButton;
 
 public class Main implements TSDRLibrary.FrameReadyCallback, TSDRLibrary.ValueChangedCallback, TSDRSourceParamChangedListener, OnTSDRParamChangedCallback {
 	
-	private final static int FFT_SIZE = 10; // power of two; FFT_SIZE == 10 means fft_buff.length == 1024
-	private final static int FFT_FREQ = 10; // every FFT_FREQ frames, a FFT will be calculated
-	
 	private final static String SNAPSHOT_FORMAT = "png";
 	private final static int OSD_TIME = 2000;
 	private final static int OSD_TIME_LONG = 5000;
@@ -93,9 +90,6 @@ public class Main implements TSDRLibrary.FrameReadyCallback, TSDRLibrary.ValueCh
 	private final static String PREF_MOTIONBLUR = "motionblur";
 	private final static String PREF_SOURCE_ID = "source_id";
 	private final static String PREF_HEIGHT_LOCK = "height_lock";
-	
-	private final float[] fft_buff = new float[1 << FFT_SIZE];
-	private long frameid = 0;
 
 	private final JComponent additionalTweaks[] = new JComponent[] {
 			// new ParametersCheckbox(PARAM.AUTOSHIFT, "Auto shift", this, prefs, false),
@@ -883,16 +877,7 @@ public class Main implements TSDRLibrary.FrameReadyCallback, TSDRLibrary.ValueCh
 			
 		}
 		visualizer.drawImage(frame);
-		
-		// fft
-		frameid++;
-		if (frameid < 0) frameid = 0;
-		if (frameid % FFT_FREQ == 0) {
-			try {
-				final long samplerate = mSdrlib.getFFT(fft_buff);
-				fft_visualizer.drawFFT(fft_buff, samplerate);
-			} catch (TSDRException e) {}
-		}
+	
 	}
 
 	@Override

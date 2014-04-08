@@ -25,14 +25,6 @@ JNIEXPORT void JNICALL Java_martin_tempest_core_TSDRLibrary_setBaseFreq
 
 /*
  * Class:     martin_tempest_core_TSDRLibrary
- * Method:    getFFT
- * Signature: ([F)J
- */
-JNIEXPORT jlong JNICALL Java_martin_tempest_core_TSDRLibrary_getFFT
-  (JNIEnv *, jobject, jfloatArray);
-
-/*
- * Class:     martin_tempest_core_TSDRLibrary
  * Method:    loadPlugin
  * Signature: (Ljava/lang/String;Ljava/lang/String;)V
  */

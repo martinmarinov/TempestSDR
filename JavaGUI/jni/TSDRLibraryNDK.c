@@ -361,20 +361,3 @@ JNIEXPORT void JNICALL Java_martin_tempest_core_TSDRLibrary_setParamDouble  (JNI
 
 	THROW(tsdr_setparameter_double(tsdr_instance, id, value));
 }
-
-JNIEXPORT jlong JNICALL Java_martin_tempest_core_TSDRLibrary_getFFT (JNIEnv * env, jobject obj, jfloatArray input) {
-	const int arr_size = (*env)->GetArrayLength(env, input);
-	uint32_t samplerate = 0;
-
-	int fft_size =0;
-	int nc = arr_size;
-	while ((nc /= 2) != 0)
-		fft_size++;
-
-	float * data = (*env)->GetFloatArrayElements(env, input, 0);
-	int res = tsdr_getfft(tsdr_instance, data, fft_size, &samplerate);
-	(*env)->ReleaseFloatArrayElements(env, input, data, 0);
-	THROW(res);
-
-	return samplerate;
-}

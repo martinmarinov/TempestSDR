@@ -102,15 +102,18 @@ uint32_t TSDRPLUGIN_API __stdcall tsdrplugin_getsamplerate() {
 
 int TSDRPLUGIN_API __stdcall tsdrplugin_setbasefreq(uint32_t freq) {
 	RETURN_OK();
+	return 0; // to avoid getting warning from stupid Eclpse
 }
 
 int TSDRPLUGIN_API __stdcall tsdrplugin_stop(void) {
 	working = 0;
 	RETURN_OK();
+	return 0; // to avoid getting warning from stupid Eclpse
 }
 
 int TSDRPLUGIN_API __stdcall tsdrplugin_setgain(float gain) {
 	RETURN_OK();
+	return 0; // to avoid getting warning from stupid Eclpse
 }
 
 char * strtoken = NULL;
@@ -190,6 +193,7 @@ int TSDRPLUGIN_API __stdcall tsdrplugin_init(const char * params) {
 	samplerate = (uint32_t) samplerate_l;
 
 	RETURN_OK();
+	return 0; // to avoid getting warning from stupid Eclpse
 }
 
 int TSDRPLUGIN_API __stdcall tsdrplugin_readasync(tsdrplugin_readasync_function cb, void *ctx) {
@@ -271,6 +275,7 @@ int TSDRPLUGIN_API __stdcall tsdrplugin_readasync(tsdrplugin_readasync_function 
 	fclose(file);
 
 	RETURN_OK();
+	return 0; // to avoid getting warning from stupid Eclpse
 }
 
 void TSDRPLUGIN_API __stdcall tsdrplugin_cleanup(void) {

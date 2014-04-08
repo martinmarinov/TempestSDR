@@ -151,6 +151,8 @@ EXTERNC TSDRPLUGIN_API int __stdcall tsdrplugin_init(const char * params) {
 
 	free(argv);
 	RETURN_OK();
+
+	return 0; // to avoid getting warning from stupid Eclpse
 }
 
 EXTERNC TSDRPLUGIN_API uint32_t __stdcall tsdrplugin_setsamplerate(uint32_t rate) {
@@ -194,11 +196,15 @@ EXTERNC TSDRPLUGIN_API int __stdcall tsdrplugin_setbasefreq(uint32_t freq) {
 	}
 
 	RETURN_OK();
+
+	return 0; // to avoid getting warning from stupid Eclpse
 }
 
 EXTERNC TSDRPLUGIN_API int __stdcall tsdrplugin_stop(void) {
 	is_running = 0;
 	RETURN_OK();
+
+	return 0; // to avoid getting warning from stupid Eclpse
 }
 
 EXTERNC TSDRPLUGIN_API int __stdcall tsdrplugin_setgain(float gain) {
@@ -210,6 +216,8 @@ EXTERNC TSDRPLUGIN_API int __stdcall tsdrplugin_setgain(float gain) {
 	{
 	}
 	RETURN_OK();
+
+	return 0; // to avoid getting warning from stupid Eclpse
 }
 
 EXTERNC TSDRPLUGIN_API int __stdcall tsdrplugin_readasync(tsdrplugin_readasync_function cb, void *ctx) {
@@ -337,6 +345,8 @@ EXTERNC TSDRPLUGIN_API int __stdcall tsdrplugin_readasync(tsdrplugin_readasync_f
 	}
 	if (buff!=NULL) free(buff);
 	RETURN_OK();
+
+	return 0; // to avoid getting warning from stupid Eclpse
 }
 
 EXTERNC TSDRPLUGIN_API void __stdcall tsdrplugin_cleanup(void) {

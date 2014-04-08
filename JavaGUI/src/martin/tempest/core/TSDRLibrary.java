@@ -210,15 +210,6 @@ public class TSDRLibrary {
 	public native void setBaseFreq(long freq) throws TSDRException;
 	
 	/**
-	 * Grabs the most up-to-date FFT. This will block until the fft is return. The buffer needs to
-	 * have size of power of two, otherwise it will be trimmed to the smallest power of two
-	 * @param fft_buff fft buffer that will contain the fft. Needs to have size of power of two (i.e. 512, 1024, 2048, etc)
-	 * @return
-	 * @throws TSDRException
-	 */
-	public native long getFFT(float[] fft_buff) throws TSDRException;
-	
-	/**
 	 * Load a plugin so that it is ready to be started via {@link #nativeStart()}
 	 * @param pluginfilepath
 	 * @param params
