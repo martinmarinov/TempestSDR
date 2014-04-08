@@ -113,7 +113,7 @@ public class Main implements TSDRLibrary.FrameReadyCallback, TSDRLibrary.Incomin
 	private JButton btnStartStop;
 	private final TSDRLibrary mSdrlib;
 	private ImageVisualizer visualizer;
-	private FFTVisualizer fft_visualizer;
+	private PlotVisualizer line_plotter;
 	private Rectangle visualizer_bounds;
 	private double framerate = 25;
 	private JTextField txtFramerate;
@@ -220,9 +220,9 @@ public class Main implements TSDRLibrary.FrameReadyCallback, TSDRLibrary.Incomin
 		frmTempestSdr.getContentPane().setLayout(null);
 		frmTempestSdr.getContentPane().add(visualizer);
 		
-		fft_visualizer = new FFTVisualizer();
-		fft_visualizer.setBounds(12, 398, 551, 121);
-		frmTempestSdr.getContentPane().add(fft_visualizer);
+		line_plotter = new PlotVisualizer();
+		line_plotter.setBounds(12, 398, 551, 121);
+		frmTempestSdr.getContentPane().add(line_plotter);
 		
 		cbDevice = new JComboBox();
 		cbDevice.setBounds(12, 532, 218, 22);
@@ -986,8 +986,18 @@ public class Main implements TSDRLibrary.FrameReadyCallback, TSDRLibrary.Incomin
 	}
 
 	@Override
-	public void onIncommingPlot(PLOT_ID id, float[] data, int size,
-			long samplerate) {
-		System.out.println("onIncommingPlot "+id+" size "+size+" where data.length="+data.length); System.out.flush();
+	public void onIncommingPlot(PLOT_ID id, int offset, float[] data, int size, long samplerate) {
+		switch (id) {
+		case LINE:
+			line_plotter.plot(data, offset, size, samplerate);
+			break;
+		case FRAME:
+			
+			break;
+
+		default:
+			System.out.println("Java Main received unimplemented notification plot value "+id+" with size "+size);
+			break;
+		}
 	}
 }

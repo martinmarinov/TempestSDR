@@ -134,7 +134,7 @@ void on_plot_ready(int plot_id, int offset, float * values, int size, uint32_t s
 	(*env)->SetFloatArrayRegion(env, float_array, 0, size, values);
 
 	// notifyCallbacks();
-	(*env)->CallVoidMethod(env, context->obj, (*env)->GetMethodID(env, cls, "onIncomingArrayNotify", "(IIJ)V"), plot_id, size, samplerate);
+	(*env)->CallVoidMethod(env, context->obj, (*env)->GetMethodID(env, cls, "onIncomingArrayNotify", "(IIIJ)V"), plot_id, offset, size, samplerate);
 
 
 	(*jvm)->DetachCurrentThread(jvm);

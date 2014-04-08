@@ -416,7 +416,7 @@ public class TSDRLibrary {
 		public static enum PLOT_ID {FRAME, LINE};
 		
 		public void onValueChanged(final VALUE_ID id, double arg0, int arg1);
-		public void onIncommingPlot(final PLOT_ID id, float[] data, int size, long samplerate);
+		public void onIncommingPlot(final PLOT_ID id, int offset, float[] data, int size, long samplerate);
 	}
 
 	
@@ -450,7 +450,7 @@ public class TSDRLibrary {
 			float_array = new float[size];
 	}
 	
-	final private void onIncomingArrayNotify(final int plot_id, final int size, long samplerate) {
+	final private void onIncomingArrayNotify(final int plot_id, final int offset, final int size, long samplerate) {
 		final IncomingValueCallback.PLOT_ID[] values = IncomingValueCallback.PLOT_ID.values();
 		
 		if (plot_id < 0 || plot_id >= values.length) {
@@ -460,7 +460,7 @@ public class TSDRLibrary {
 		
 		final IncomingValueCallback.PLOT_ID val = values[plot_id];
 		
-		for (final IncomingValueCallback callback : value_callbacks) callback.onIncommingPlot(val, float_array, size, samplerate);
+		for (final IncomingValueCallback callback : value_callbacks) callback.onIncommingPlot(val, offset, float_array, size, samplerate);
 		
 		// unlock so somebody else could send a request
 		synchronized (float_array_locker) {
