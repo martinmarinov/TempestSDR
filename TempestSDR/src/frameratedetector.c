@@ -104,14 +104,14 @@ void framedetector_estimatelinelength(extbuffer_t * buff, float * data, int size
 	const int maxlength = samplerate / (double) (MIN_HEIGHT * MIN_FRAMERATE);
 	const int minlength = samplerate / (double) (MAX_HEIGHT * MAX_FRAMERATE);
 
-	const int offset_maxsize = size - maxlength - minlength;
+	const int offset_maxsize = size - 2*maxlength;
 	const int offset_step = offset_maxsize / FRAMERATE_RUNS;
 
 	assert (offset_step != 0);
 
 	int offset;
 	for (offset = 0; offset < offset_maxsize; offset += offset_step)
-		frameratedetector_estimatedirectlength(buff, &data[offset], size-offset, minlength, maxlength, minlength, 0);
+		frameratedetector_estimatedirectlength(buff, &data[offset], size-offset, maxlength, maxlength, minlength, 0);
 }
 
 float toheight(int linelength, void  * ctx) {
