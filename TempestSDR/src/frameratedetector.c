@@ -11,7 +11,6 @@
 
 #include "frameratedetector.h"
 #include "internaldefinitions.h"
-#include <stdio.h>
 #include <assert.h>
 #include "threading.h"
 #include <math.h>
@@ -21,9 +20,8 @@
 #define MAX_FRAMERATE (87)
 #define MAX_HEIGHT (1500)
 
-#define FRAMERATE_RUNS (200)
-
-#define NUMBER_OF_REPEATS_FOR_ACCURACY (1)
+#define FRAMERATE_RUNS (50)
+#define ITERATIONS_TO_CONSIDER_DONE (2)
 
 // higher is better
 #define FRAMERATEDETECTOR_ACCURACY (1000)
@@ -47,93 +45,91 @@ inline static double frameratedetector_fitvalue(float * data, int offset, int le
 		sum += d1 * d1;
 		counted++;
 	}
+
+	assert(counted != 0);
 	return sum / (double) counted;
 }
 
 // estimate the next repetition of a size of datah length starting from data
 // for distances from startlength to endlength in samples
 
-#define ENABLE_DUMP_FRAMEDATA_TO_FILE (0)
-inline static int frameratedetector_estimatedirectlength(float * data, int size, int length, int endlength, int startlength, int accuracy) {
+int getBestMinLengthFromExtBufferRange(extbuffer_t * buff, int start, int end) {
+	assert (end > start);
+
+	int corrected_start = start - buff->offset;
+	int corrected_end = end - buff->offset;
+	if (corrected_end > buff->size_valid_elements) corrected_end = buff->size_valid_elements;
+	if (corrected_start < 0) corrected_start = 0;
+
+	int max_id = buff->offset + corrected_start;
+
+	if (!buff->valid) return max_id;
+
+	float min = buff->buffer[corrected_start];
+
+	int i;
+	for (i =corrected_start+1; i < corrected_end; i++) {
+		const float val = buff->buffer[i];
+
+		if (val < min) {
+			min = val;
+			max_id = buff->offset + i;
+		}
+	}
+	return max_id;
+}
+
+int getBestMinLengthFromExtBuffer(extbuffer_t * buff) {
+	return getBestMinLengthFromExtBufferRange(buff, buff->offset, buff->offset+buff->size_valid_elements);
+}
+
+inline static void frameratedetector_estimatedirectlength(extbuffer_t * buff, float * data, int size, int length, int endlength, const int startlength, int accuracy) {
 	assert(endlength + length <= size);
 
-	double bestfitval;
+	const int buffsize = endlength - startlength;
+	extbuffer_preparetohandle(buff, buffsize);
+	buff->offset = startlength;
 
-#if ENABLE_DUMP_FRAMEDATA_TO_FILE
-	static int first = 1;
-	FILE *f = NULL;
-	if (first) f = fopen("framedetectdata.csv", "a");
-#endif
-
-	int bestlength = startlength;
 	int l = startlength;
-	bestfitval = frameratedetector_fitvalue(data, l, length, accuracy);
-#if ENABLE_DUMP_FRAMEDATA_TO_FILE
-	if (first) fprintf(f, "%f, ", *bestfitvalue);
-#endif
+	buff->buffer[0] += frameratedetector_fitvalue(data, l, length, accuracy);
 	l++;
 	while (l < endlength) {
 		const float fitvalue = frameratedetector_fitvalue(data, l, length, accuracy);
-#if ENABLE_DUMP_FRAMEDATA_TO_FILE
-	if (first) fprintf(f, "%f, ", fitvalue);
-#endif
-		if (fitvalue < bestfitval) {
-			bestfitval = fitvalue;
-			bestlength = l;
-		}
+		buff->buffer[l-startlength] += fitvalue;
 		l++;
 	}
-#if ENABLE_DUMP_FRAMEDATA_TO_FILE
-	if (first) {
-		fclose(f);
-		first = 0;
-	}
-#endif
-
-	return bestlength;
 }
 
-int framedetector_estimatelinelength(float * data, int size, uint32_t samplerate, double framerate) {
-	const int maxlength = samplerate / (double) (MIN_HEIGHT * framerate);
-	const int minlength = samplerate / (double) (MAX_HEIGHT * framerate);
-	const int meanlength = (maxlength + minlength) / 2;
+void framedetector_estimatelinelength(extbuffer_t * buff, float * data, int size, uint32_t samplerate) {
+	const int maxlength = samplerate / (double) (MIN_HEIGHT * MIN_FRAMERATE);
+	const int minlength = samplerate / (double) (MAX_HEIGHT * MAX_FRAMERATE);
 
-	const int maxrange = maxlength - minlength + 1;
-	int occurances[maxrange];
-	memset(occurances, 0, sizeof(int) * maxrange);
-
-	const int offset_maxsize = size - maxlength - meanlength;
+	const int offset_maxsize = size - maxlength - minlength;
 	const int offset_step = offset_maxsize / FRAMERATE_RUNS;
 
 	assert (offset_step != 0);
 
-	int max_occurances = 0;
-
 	int offset;
-	int result = minlength;
-	for (offset = 0; offset < offset_maxsize; offset += offset_step) {
-		const int temp_result = frameratedetector_estimatedirectlength(&data[offset], size-offset, meanlength, maxlength, minlength, 0)-minlength;
-		assert(temp_result >= 0 && temp_result < maxrange);
-		occurances[temp_result]++;
-
-		if (occurances[temp_result] > max_occurances) {
-			max_occurances = occurances[temp_result];
-			result=temp_result+minlength;
-		}
-	}
-
-	return result;
+	for (offset = 0; offset < offset_maxsize; offset += offset_step)
+		frameratedetector_estimatedirectlength(buff, &data[offset], size-offset, minlength, maxlength, minlength, 0);
 }
 
-/**
- * NOTE: For trying to estimate the size of the full frame, the error would be
- * err = 2 * samplerate / ((samplerate/framerate)^2 - 1)
- *  = 0.0009 for mirics/LCD at 60 fps
- *
- * For trying to estimate the size of a line
- * err = 2 * samplerate / (((samplerate/(framerate*tsdr->height))^2 - 1) * tsdr->height)
- *  = 0.8406 for mirics/LCD at 60 fps
- */
+float toheight(int linelength, void  * ctx) {
+	int crudelength = *((int *) ctx);
+	return round(crudelength / (double) linelength);
+}
+
+int calc_fps_and_height(frameratedetector_t * frameratedetector, float * fps, int * height) {
+
+	int length_of_frame_in_samples  = getBestMinLengthFromExtBuffer(&frameratedetector->extbuff);
+	*fps = frameratedetector->samplerate / (double) length_of_frame_in_samples;
+	const int linelength  = getBestMinLengthFromExtBufferRange(&frameratedetector->extbuff_small,
+			frameratedetector->samplerate / (double) (MAX_HEIGHT * (*fps)),
+			frameratedetector->samplerate / (double) (MIN_HEIGHT * (*fps)));
+	*height = round(length_of_frame_in_samples / (double) linelength);
+
+	return length_of_frame_in_samples;
+}
 
 void frameratedetector_runontodata(frameratedetector_t * frameratedetector, float * data, int size) {
 
@@ -144,31 +140,39 @@ void frameratedetector_runontodata(frameratedetector_t * frameratedetector, floa
 
 	const int maxlength = frameratedetector->samplerate / (double) (MIN_FRAMERATE);
 	const int minlength = frameratedetector->samplerate / (double) (MAX_FRAMERATE);
-	const int meanlength = (maxlength + minlength) / 2;
 
 	// estimate the length of a horizontal line in samples
-	const int crudelength = frameratedetector_estimatedirectlength(data, size, meanlength, maxlength, minlength, FRAMERATEDETECTOR_ACCURACY);
-	assert(crudelength >= minlength && crudelength <= maxlength);
+	frameratedetector_estimatedirectlength(&frameratedetector->extbuff, data, size, minlength, maxlength, minlength, FRAMERATEDETECTOR_ACCURACY);
+	framedetector_estimatelinelength(&frameratedetector->extbuff_small, data, size, frameratedetector->samplerate);
 
-	//const double maxerror = frameratedetector->samplerate / (double) (crudelength * (crudelength-1));
-	const int linelength = framedetector_estimatelinelength(data, size, frameratedetector->samplerate, frameratedetector->samplerate / (double) crudelength);
+	frameratedetector->frames++;
 
-	const int estheight = round(crudelength / (double) linelength);
-	printf("crudelength %d; framerate %.4f, height %d!\n", crudelength, frameratedetector->samplerate / (float) crudelength, estheight);fflush(stdout);
+	int height; float fps;
+	const int length_of_frame_in_samples = calc_fps_and_height(frameratedetector, &fps, &height);
 
-	if (estheight < MIN_HEIGHT || estheight > MAX_HEIGHT) return;
+	extbuffer_dumptofile(&frameratedetector->extbuff_small, "small_data.csv", "linesize", "bestvalue", toheight, (void *) &length_of_frame_in_samples);
+	extbuffer_cleartozero(&frameratedetector->extbuff);
+	extbuffer_cleartozero(&frameratedetector->extbuff_small);
 
-	if (stack_contains(&frameratedetector->stack, crudelength, estheight) == NUMBER_OF_REPEATS_FOR_ACCURACY) {
-		// if we see the same length being calculated twice, switch state
+	printf("length_of_frame_in_samples %d; framerate %.4f, height %d!\n", length_of_frame_in_samples, fps, height);fflush(stdout);
 
-		const double fps = frameratedetector->samplerate / (double) crudelength;
+	if (height < MIN_HEIGHT || height > MAX_HEIGHT || fps > MAX_FRAMERATE || fps < MIN_FRAMERATE) return;
 
-		stack_purge(&frameratedetector->stack);
-		announce_callback_changed(frameratedetector->tsdr, VALUE_ID_AUTO_RESOLUTION, fps, estheight);
-
-		//printf("Change of state!\n");fflush(stdout);
-	} else
-		stack_push(&frameratedetector->stack, crudelength, estheight);
+	if (height == frameratedetector->last_height && length_of_frame_in_samples == frameratedetector->last_framelength)
+	{
+		if ((frameratedetector->encounters_count++) >= ITERATIONS_TO_CONSIDER_DONE) {
+			announce_callback_changed(frameratedetector->tsdr, VALUE_ID_AUTO_RESOLUTION, fps, height);
+			frameratedetector->last_framelength = 0;
+			frameratedetector->last_height = 0;
+			frameratedetector->encounters_count = 0;
+			frameratedetector->frames = 0;
+		} else
+			frameratedetector->encounters_count ++;
+	} else {
+		frameratedetector->last_framelength = length_of_frame_in_samples;
+		frameratedetector->last_height = height;
+		frameratedetector->encounters_count = 0;
+	}
 
 }
 
@@ -202,14 +206,24 @@ void frameratedetector_init(frameratedetector_t * frameratedetector, tsdr_lib_t 
 	frameratedetector->tsdr = tsdr;
 	frameratedetector->samplerate = 0;
 	frameratedetector->alive = 0;
+	frameratedetector->frames = 0;
+
+	frameratedetector->last_framelength = 0;
+	frameratedetector->last_height = 0;
+	frameratedetector->encounters_count = 0;
 
 	cb_init(&frameratedetector->circbuff, CB_SIZE_MAX_COEFF_HIGH_LATENCY);
-
-	stack_init(&frameratedetector->stack);
+	extbuffer_init(&frameratedetector->extbuff);
+	extbuffer_init(&frameratedetector->extbuff_small);
 }
 
 void frameratedetector_flushcachedestimation(frameratedetector_t * frameratedetector) {
-	stack_purge(&frameratedetector->stack);
+	extbuffer_cleartozero(&frameratedetector->extbuff);
+	extbuffer_cleartozero(&frameratedetector->extbuff_small);
+	frameratedetector->frames = 0;
+	frameratedetector->last_framelength = 0;
+	frameratedetector->last_height = 0;
+	frameratedetector->encounters_count = 0;
 	cb_purge(&frameratedetector->circbuff);
 }
 
@@ -244,5 +258,6 @@ void frameratedetector_run(frameratedetector_t * frameratedetector, float * data
 
 void frameratedetector_free(frameratedetector_t * frameratedetector) {
 	cb_free(&frameratedetector->circbuff);
-	stack_free(&frameratedetector->stack);
+	extbuffer_free(&frameratedetector->extbuff);
+	extbuffer_free(&frameratedetector->extbuff_small);
 }

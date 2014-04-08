@@ -214,12 +214,15 @@ void videodecodingthread(void * ctx) {
 		const double lowpassvalue = context->this->motionblur;
 		const double antilowpassvalue = 1.0 - lowpassvalue;
 
-		if (context->this->height != height || context->this->width != width) {
+		const int nowheight = context->this->height;
+		const int nowwidth = context->this->width;
+
+		if (nowheight != height || nowwidth != width) {
 			const int oldheight = height;
 			const int oldwidth = width;
 
-			height = context->this->height;
-			width = context->this->width;
+			height = nowheight;
+			width = nowwidth;
 			sizetopoll = height * width;
 			assert(sizetopoll > 0);
 
@@ -245,7 +248,7 @@ void videodecodingthread(void * ctx) {
 			float max = buffer[0];
 			float min = max;
 			for (i = 0; i < sizetopoll; i++) {
-				const float val = screenbuffer[i] * lowpassvalue + buffer[i] * antilowpassvalue;
+				const float val = screenbuffer[i] * lowpassvalue + buffer[i] * antilowpassvalue; // TODO! SEGFAULT HERE
 				if (val > max) max = val; else if (val < min) min = val;
 				screenbuffer[i] = val;
 			}

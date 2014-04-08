@@ -13,10 +13,10 @@
 #define FRAMERATEDETECTOR_H_
 
 #include "include/TSDRLibrary.h"
-#include "stack.h"
 #include "circbuff.h"
 
 #include <stddef.h>
+#include "extbuffer.h"
 
 typedef struct frameratedetector {
 
@@ -25,10 +25,15 @@ typedef struct frameratedetector {
 
 	volatile int alive;
 
-	stack_t stack;
-
 	CircBuff_t circbuff;
+	extbuffer_t extbuff;
+	extbuffer_t extbuff_small;
 
+	int frames;
+
+	int last_framelength;
+	int last_height;
+	int encounters_count;
 } frameratedetector_t;
 
 void frameratedetector_startthread(frameratedetector_t * frameratedetector);
