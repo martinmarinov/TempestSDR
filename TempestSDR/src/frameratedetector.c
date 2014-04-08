@@ -24,7 +24,7 @@
 #define ITERATIONS_TO_CONSIDER_DONE (2)
 
 // higher is better
-#define FRAMERATEDETECTOR_ACCURACY (1000)
+#define FRAMERATEDETECTOR_ACCURACY (2000)
 
 inline static double frameratedetector_fitvalue(float * data, int offset, int length, int accuracy) {
 	double sum = 0.0;
@@ -116,7 +116,7 @@ void framedetector_estimatelinelength(extbuffer_t * buff, float * data, int size
 
 float toheight(int linelength, void  * ctx) {
 	int crudelength = *((int *) ctx);
-	return round(crudelength / (double) linelength);
+	return crudelength / (double) linelength;
 }
 
 int calc_fps_and_height(frameratedetector_t * frameratedetector, float * fps, int * height) {
@@ -126,7 +126,7 @@ int calc_fps_and_height(frameratedetector_t * frameratedetector, float * fps, in
 	const int linelength  = getBestMinLengthFromExtBufferRange(&frameratedetector->extbuff_small,
 			frameratedetector->samplerate / (double) (MAX_HEIGHT * (*fps)),
 			frameratedetector->samplerate / (double) (MIN_HEIGHT * (*fps)));
-	*height = round(length_of_frame_in_samples / (double) linelength);
+	*height = length_of_frame_in_samples / (double) linelength;
 
 	return length_of_frame_in_samples;
 }
@@ -150,10 +150,6 @@ void frameratedetector_runontodata(frameratedetector_t * frameratedetector, floa
 	int height; float fps;
 	const int length_of_frame_in_samples = calc_fps_and_height(frameratedetector, &fps, &height);
 
-	extbuffer_dumptofile(&frameratedetector->extbuff_small, "small_data.csv", "linesize", "bestvalue", toheight, (void *) &length_of_frame_in_samples);
-	extbuffer_cleartozero(&frameratedetector->extbuff);
-	extbuffer_cleartozero(&frameratedetector->extbuff_small);
-
 	printf("length_of_frame_in_samples %d; framerate %.4f, height %d!\n", length_of_frame_in_samples, fps, height);fflush(stdout);
 
 	if (height < MIN_HEIGHT || height > MAX_HEIGHT || fps > MAX_FRAMERATE || fps < MIN_FRAMERATE) return;
@@ -161,6 +157,9 @@ void frameratedetector_runontodata(frameratedetector_t * frameratedetector, floa
 	if (height == frameratedetector->last_height && length_of_frame_in_samples == frameratedetector->last_framelength)
 	{
 		if ((frameratedetector->encounters_count++) >= ITERATIONS_TO_CONSIDER_DONE) {
+			extbuffer_dumptofile(&frameratedetector->extbuff_small, "small_data.csv", "linesize", "bestvalue", toheight, (void *) &length_of_frame_in_samples);
+			extbuffer_cleartozero(&frameratedetector->extbuff);
+			extbuffer_cleartozero(&frameratedetector->extbuff_small);
 			announce_callback_changed(frameratedetector->tsdr, VALUE_ID_AUTO_RESOLUTION, fps, height);
 			frameratedetector->last_framelength = 0;
 			frameratedetector->last_height = 0;
@@ -251,9 +250,8 @@ void frameratedetector_run(frameratedetector_t * frameratedetector, float * data
 	}
 
 	frameratedetector->samplerate = samplerate;
-	if (cb_add(&frameratedetector->circbuff, data, size) != CB_OK) {
+	if (cb_add(&frameratedetector->circbuff, data, size) != CB_OK)
 		cb_purge(&frameratedetector->circbuff);
-	}
 }
 
 void frameratedetector_free(frameratedetector_t * frameratedetector) {
