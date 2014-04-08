@@ -52,11 +52,12 @@ void extbuffer_cleartozero(extbuffer_t * container) {
 }
 
 void extbuffer_free(extbuffer_t * container) {
+
 	container->valid = 0;
 	if (container->buffer != NULL) free(container->buffer);
 }
 
-void extbuffer_dumptofile(extbuffer_t * container, char * filename, char * xname, char * yname, extbuffer_converter function, void * ctx) {
+void extbuffer_dumptofile(extbuffer_t * container, char * filename, char * xname, char * yname) {
 	assert (container->valid);
 
 	FILE *f = NULL;
@@ -67,7 +68,7 @@ void extbuffer_dumptofile(extbuffer_t * container, char * filename, char * xname
 
 	int i;
 	for (i = 0; i < container->size_valid_elements; i++)
-		fprintf(f, "%f, %f\n", function(container->offset + i, ctx), container->buffer[i]);
+		fprintf(f, "%d, %f\n", container->offset + i, container->buffer[i]);
 
 	fclose(f);
 

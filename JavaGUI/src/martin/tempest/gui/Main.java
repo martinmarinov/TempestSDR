@@ -67,11 +67,11 @@ import javax.swing.UIManager;
 import javax.swing.JScrollPane;
 import javax.swing.JToggleButton;
 
-public class Main implements TSDRLibrary.FrameReadyCallback, TSDRLibrary.ValueChangedCallback, TSDRSourceParamChangedListener, OnTSDRParamChangedCallback {
+public class Main implements TSDRLibrary.FrameReadyCallback, TSDRLibrary.IncomingValueCallback, TSDRSourceParamChangedListener, OnTSDRParamChangedCallback {
 	
 	private final static String SNAPSHOT_FORMAT = "png";
 	private final static int OSD_TIME = 2000;
-	private final static int OSD_TIME_LONG = 5000;
+	//private final static int OSD_TIME_LONG = 5000;
 	
 	private final static int FRAMERATE_SIGNIFICANT_FIGURES = 6;
 	private final static long FREQUENCY_STEP = 5000000;
@@ -959,22 +959,22 @@ public class Main implements TSDRLibrary.FrameReadyCallback, TSDRLibrary.ValueCh
 	@Override
 	public void onValueChanged(VALUE_ID id, double arg0, int arg1) {
 		switch (id) {
-		case AUTO_RESOLUTION_RESULT: {
-			
-			tglbtnAutoResolution.setSelected(false);
-			onAutoResolutionChanged();
-			
-			height_change_from_auto = true;
-			final int modeid = VideoMode.findClosestVideoModeId(arg0, arg1, videomodes);
-			if (modeid >= 0 && modeid < videomodes.length) {
-				onResolutionChange(modeid, arg0, arg1);
-				visualizer.setOSD("Detected "+videomodes[modeid], OSD_TIME_LONG);
-			} else {
-				setFrameRate(arg0);
-			}
-			height_change_from_auto = false;
-
-		} break;
+//		case AUTO_RESOLUTION_RESULT: {
+//			
+//			tglbtnAutoResolution.setSelected(false);
+//			onAutoResolutionChanged();
+//			
+//			height_change_from_auto = true;
+//			final int modeid = VideoMode.findClosestVideoModeId(arg0, arg1, videomodes);
+//			if (modeid >= 0 && modeid < videomodes.length) {
+//				onResolutionChange(modeid, arg0, arg1);
+//				visualizer.setOSD("Detected "+videomodes[modeid], OSD_TIME_LONG);
+//			} else {
+//				setFrameRate(arg0);
+//			}
+//			height_change_from_auto = false;
+//
+//		} break;
 		case PLL_FRAMERATE:
 			setFramerateValButDoNotSyncWithLibrary(arg0);
 			break;
@@ -983,5 +983,11 @@ public class Main implements TSDRLibrary.FrameReadyCallback, TSDRLibrary.ValueCh
 			break;
 		}
 
+	}
+
+	@Override
+	public void onIncommingPlot(PLOT_ID id, float[] data, int size,
+			long samplerate) {
+		System.out.println("onIncommingPlot "+id+" size "+size+" where data.length="+data.length); System.out.flush();
 	}
 }

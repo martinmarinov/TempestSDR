@@ -29,11 +29,6 @@ typedef struct frameratedetector {
 	extbuffer_t extbuff;
 	extbuffer_t extbuff_small;
 
-	int frames;
-
-	int last_framelength;
-	int last_height;
-	int encounters_count;
 } frameratedetector_t;
 
 void frameratedetector_startthread(frameratedetector_t * frameratedetector);

@@ -16,6 +16,8 @@
 #include "TSDRPluginLoader.h"
 #include "frameratedetector.h"
 
+#include "extbuffer.h"
+
 #include "include/TSDRLibrary.h"
 
 	struct tsdr_lib {
@@ -46,9 +48,11 @@
 		frameratedetector_t frameratedetect;
 
 		tsdr_value_changed_callback callback;
+		tsdr_on_plot_ready_callback plotready_callback;
 		void * callbackctx;
 	};
 
 	void announce_callback_changed(tsdr_lib_t * tsdr, int value_id, double arg0, int arg1);
+	void announce_plotready(tsdr_lib_t * tsdr, int plot_id, extbuffer_t * buffer, uint32_t samplerate);
 
 #endif

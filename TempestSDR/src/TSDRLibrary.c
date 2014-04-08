@@ -85,11 +85,18 @@ static inline void announceexception(tsdr_lib_t * tsdr, const char * message, in
 		 tsdr->callback(value_id, arg0, arg1, tsdr->callbackctx);
  }
 
+ void announce_plotready(tsdr_lib_t * tsdr, int plot_id, extbuffer_t * buffer, uint32_t samplerate) {
+		assert (buffer->valid);
+
+		if (tsdr->plotready_callback != NULL)
+			tsdr->plotready_callback(plot_id, buffer->offset, buffer->buffer, buffer->size_valid_elements, samplerate, tsdr->callbackctx);
+}
+
  void * tsdr_getctx(tsdr_lib_t * tsdr) {
 	 return tsdr->callbackctx;
  }
 
- void tsdr_init(tsdr_lib_t ** tsdr, tsdr_value_changed_callback callback, void * ctx) {
+ void tsdr_init(tsdr_lib_t ** tsdr, tsdr_value_changed_callback callback, tsdr_on_plot_ready_callback plotready_callback, void * ctx) {
 	 int i;
 
 	*tsdr = (tsdr_lib_t *) malloc(sizeof(tsdr_lib_t));
@@ -103,6 +110,7 @@ static inline void announceexception(tsdr_lib_t * tsdr, const char * message, in
 	(*tsdr)->errormsg_size = 0;
 	(*tsdr)->errormsg_code = TSDR_OK;
 	(*tsdr)->callback = callback;
+	(*tsdr)->plotready_callback = plotready_callback;
 	(*tsdr)->callbackctx = ctx;
 
 	for (i = 0; i < COUNT_PARAM_INT; i++)

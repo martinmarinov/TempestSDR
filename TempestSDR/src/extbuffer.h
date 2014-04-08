@@ -14,8 +14,6 @@
 #ifndef EXTBUFFER_H_
 #define EXTBUFFER_H_
 
-typedef float(*extbuffer_converter)(int val, void * ctx);
-
 typedef struct extbuffer {
 
 	float * buffer;
@@ -32,7 +30,7 @@ typedef struct extbuffer {
 void extbuffer_init(extbuffer_t * container);
 void extbuffer_preparetohandle(extbuffer_t * container, int size);
 void extbuffer_cleartozero(extbuffer_t * container);
-void extbuffer_dumptofile(extbuffer_t * container, char * filename, char * xname, char * yname, extbuffer_converter f, void * ctx);
+void extbuffer_dumptofile(extbuffer_t * container, char * filename, char * xname, char * yname);
 void extbuffer_free(extbuffer_t * container);
 
 

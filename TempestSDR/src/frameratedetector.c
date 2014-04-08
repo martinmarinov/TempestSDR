@@ -21,7 +21,6 @@
 #define MAX_HEIGHT (1500)
 
 #define FRAMERATE_RUNS (50)
-#define ITERATIONS_TO_CONSIDER_DONE (2)
 
 // higher is better
 #define FRAMERATEDETECTOR_ACCURACY (2000)
@@ -48,39 +47,6 @@ inline static double frameratedetector_fitvalue(float * data, int offset, int le
 
 	assert(counted != 0);
 	return sum / (double) counted;
-}
-
-// estimate the next repetition of a size of datah length starting from data
-// for distances from startlength to endlength in samples
-
-int getBestMinLengthFromExtBufferRange(extbuffer_t * buff, int start, int end) {
-	assert (end > start);
-
-	int corrected_start = start - buff->offset;
-	int corrected_end = end - buff->offset;
-	if (corrected_end > buff->size_valid_elements) corrected_end = buff->size_valid_elements;
-	if (corrected_start < 0) corrected_start = 0;
-
-	int max_id = buff->offset + corrected_start;
-
-	if (!buff->valid) return max_id;
-
-	float min = buff->buffer[corrected_start];
-
-	int i;
-	for (i =corrected_start+1; i < corrected_end; i++) {
-		const float val = buff->buffer[i];
-
-		if (val < min) {
-			min = val;
-			max_id = buff->offset + i;
-		}
-	}
-	return max_id;
-}
-
-int getBestMinLengthFromExtBuffer(extbuffer_t * buff) {
-	return getBestMinLengthFromExtBufferRange(buff, buff->offset, buff->offset+buff->size_valid_elements);
 }
 
 inline static void frameratedetector_estimatedirectlength(extbuffer_t * buff, float * data, int size, int length, int endlength, const int startlength, int accuracy) {
@@ -119,24 +85,9 @@ float toheight(int linelength, void  * ctx) {
 	return crudelength / (double) linelength;
 }
 
-int calc_fps_and_height(frameratedetector_t * frameratedetector, float * fps, int * height) {
-
-	int length_of_frame_in_samples  = getBestMinLengthFromExtBuffer(&frameratedetector->extbuff);
-	*fps = frameratedetector->samplerate / (double) length_of_frame_in_samples;
-	const int linelength  = getBestMinLengthFromExtBufferRange(&frameratedetector->extbuff_small,
-			frameratedetector->samplerate / (double) (MAX_HEIGHT * (*fps)),
-			frameratedetector->samplerate / (double) (MIN_HEIGHT * (*fps)));
-	*height = length_of_frame_in_samples / (double) linelength;
-
-	return length_of_frame_in_samples;
-}
-
 void frameratedetector_runontodata(frameratedetector_t * frameratedetector, float * data, int size) {
 
 	if (!frameratedetector->tsdr->params_int[PARAM_INT_AUTORESOLUTION]) return;
-
-	// State 1 of the state machine
-	// Obtain rough estimation, CPU intensive
 
 	const int maxlength = frameratedetector->samplerate / (double) (MIN_FRAMERATE);
 	const int minlength = frameratedetector->samplerate / (double) (MAX_FRAMERATE);
@@ -145,33 +96,8 @@ void frameratedetector_runontodata(frameratedetector_t * frameratedetector, floa
 	frameratedetector_estimatedirectlength(&frameratedetector->extbuff, data, size, minlength, maxlength, minlength, FRAMERATEDETECTOR_ACCURACY);
 	framedetector_estimatelinelength(&frameratedetector->extbuff_small, data, size, frameratedetector->samplerate);
 
-	frameratedetector->frames++;
-
-	int height; float fps;
-	const int length_of_frame_in_samples = calc_fps_and_height(frameratedetector, &fps, &height);
-
-	printf("length_of_frame_in_samples %d; framerate %.4f, height %d!\n", length_of_frame_in_samples, fps, height);fflush(stdout);
-
-	if (height < MIN_HEIGHT || height > MAX_HEIGHT || fps > MAX_FRAMERATE || fps < MIN_FRAMERATE) return;
-
-	if (height == frameratedetector->last_height && length_of_frame_in_samples == frameratedetector->last_framelength)
-	{
-		if ((frameratedetector->encounters_count++) >= ITERATIONS_TO_CONSIDER_DONE) {
-			extbuffer_dumptofile(&frameratedetector->extbuff_small, "small_data.csv", "linesize", "bestvalue", toheight, (void *) &length_of_frame_in_samples);
-			extbuffer_cleartozero(&frameratedetector->extbuff);
-			extbuffer_cleartozero(&frameratedetector->extbuff_small);
-			announce_callback_changed(frameratedetector->tsdr, VALUE_ID_AUTO_RESOLUTION, fps, height);
-			frameratedetector->last_framelength = 0;
-			frameratedetector->last_height = 0;
-			frameratedetector->encounters_count = 0;
-			frameratedetector->frames = 0;
-		} else
-			frameratedetector->encounters_count ++;
-	} else {
-		frameratedetector->last_framelength = length_of_frame_in_samples;
-		frameratedetector->last_height = height;
-		frameratedetector->encounters_count = 0;
-	}
+	announce_plotready(frameratedetector->tsdr, PLOT_ID_FRAME, &frameratedetector->extbuff, frameratedetector->samplerate);
+	announce_plotready(frameratedetector->tsdr, PLOT_ID_LINE, &frameratedetector->extbuff_small, frameratedetector->samplerate);
 
 }
 
@@ -205,11 +131,6 @@ void frameratedetector_init(frameratedetector_t * frameratedetector, tsdr_lib_t 
 	frameratedetector->tsdr = tsdr;
 	frameratedetector->samplerate = 0;
 	frameratedetector->alive = 0;
-	frameratedetector->frames = 0;
-
-	frameratedetector->last_framelength = 0;
-	frameratedetector->last_height = 0;
-	frameratedetector->encounters_count = 0;
 
 	cb_init(&frameratedetector->circbuff, CB_SIZE_MAX_COEFF_HIGH_LATENCY);
 	extbuffer_init(&frameratedetector->extbuff);
@@ -219,10 +140,6 @@ void frameratedetector_init(frameratedetector_t * frameratedetector, tsdr_lib_t 
 void frameratedetector_flushcachedestimation(frameratedetector_t * frameratedetector) {
 	extbuffer_cleartozero(&frameratedetector->extbuff);
 	extbuffer_cleartozero(&frameratedetector->extbuff_small);
-	frameratedetector->frames = 0;
-	frameratedetector->last_framelength = 0;
-	frameratedetector->last_height = 0;
-	frameratedetector->encounters_count = 0;
 	cb_purge(&frameratedetector->circbuff);
 }
 

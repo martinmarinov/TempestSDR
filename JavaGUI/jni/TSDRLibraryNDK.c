@@ -106,6 +106,40 @@ void announce_jni_error(JNIEnv * env, int exception_code)
     (*env)->DeleteLocalRef(env, cls);
 }
 
+void on_plot_ready(int plot_id, int offset, float * values, int size, uint32_t samplerate, void * ctx) {
+	if (tsdr_instance == NULL) return;
+
+	java_obj_context_t * context = (java_obj_context_t *) ctx;
+
+	JNIEnv *env;
+
+	jint getenv_res = (*jvm)->GetEnv(jvm, (void **)&env, javaversion);
+	if (getenv_res == JNI_EDETACHED)
+		assert((*jvm)->AttachCurrentThread(jvm, (void **) &env, 0) == JNI_OK);
+	else if (getenv_res != JNI_OK) {
+		fprintf(stderr, "GetEnv returned error %d\n", (int) getenv_res); fflush(stderr);
+	}
+	assert(env != NULL);
+	assert(getenv_res == JNI_OK || getenv_res == JNI_EDETACHED);
+
+	jclass cls = (*env)->GetObjectClass(env, context->obj);
+
+	(*env)->CallVoidMethod(env, context->obj, (*env)->GetMethodID(env, cls, "onIncomingArray", "(I)V"), size);
+
+	jobject float_array = (*env)->GetObjectField(env, context->obj, (*env)->GetFieldID(env, (*env)->GetObjectClass(env, context->obj), "float_array", "[F"));
+
+	assert((*env)->GetArrayLength(env, float_array) >= size);
+
+	// set elements
+	(*env)->SetFloatArrayRegion(env, float_array, 0, size, values);
+
+	// notifyCallbacks();
+	(*env)->CallVoidMethod(env, context->obj, (*env)->GetMethodID(env, cls, "onIncomingArrayNotify", "(IIJ)V"), plot_id, size, samplerate);
+
+
+	(*jvm)->DetachCurrentThread(jvm);
+}
+
 void on_value_changed(int value_id, double arg0, int arg1, void * ctx) {
 	if (tsdr_instance == NULL) return;
 
@@ -139,7 +173,7 @@ JNIEXPORT void JNICALL Java_martin_tempest_core_TSDRLibrary_init (JNIEnv * env, 
 
 	ctx->obj = (*env)->NewGlobalRef(env, obj);
 
-	tsdr_init(&tsdr_instance, on_value_changed, ctx);
+	tsdr_init(&tsdr_instance, on_value_changed, on_plot_ready, ctx);
 }
 
 JNIEXPORT void JNICALL Java_martin_tempest_core_TSDRLibrary_setBaseFreq (JNIEnv * env, jobject obj, jlong freq) {

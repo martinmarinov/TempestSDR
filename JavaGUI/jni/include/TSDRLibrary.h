@@ -35,15 +35,18 @@
 
 	#define COUNT_PARAM_DOUBLE (2)
 
-	#define VALUE_ID_AUTO_RESOLUTION (0)
-	#define VALUE_ID_PLL_FRAMERATE (1)
+	#define VALUE_ID_PLL_FRAMERATE (0)
+
+	#define PLOT_ID_FRAME (0)
+	#define PLOT_ID_LINE (1)
 
 	typedef struct tsdr_lib tsdr_lib_t;
 
 	typedef void(*tsdr_readasync_function)(float *buf, int width, int height, void *ctx);
 	typedef void(*tsdr_value_changed_callback)(int value_id, double arg0, int arg1, void * ctx);
+	typedef void(*tsdr_on_plot_ready_callback)(int plot_id, int offset, float * values, int size, uint32_t samplerate, void * ctx);
 
-	void tsdr_init(tsdr_lib_t ** tsdr, tsdr_value_changed_callback callback, void * ctx);
+	void tsdr_init(tsdr_lib_t ** tsdr, tsdr_value_changed_callback callback, tsdr_on_plot_ready_callback plotready_callback, void * ctx);
 	void * tsdr_getctx(tsdr_lib_t * tsdr);
 	int tsdr_setbasefreq(tsdr_lib_t * tsdr, uint32_t freq);
 	int tsdr_stop(tsdr_lib_t * tsdr);

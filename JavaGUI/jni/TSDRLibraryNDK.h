@@ -142,6 +142,39 @@ extern "C" {
 }
 #endif
 #endif
+/* Header for class martin_tempest_core_TSDRLibrary_IncomingValueCallback */
+
+#ifndef _Included_martin_tempest_core_TSDRLibrary_IncomingValueCallback
+#define _Included_martin_tempest_core_TSDRLibrary_IncomingValueCallback
+#ifdef __cplusplus
+extern "C" {
+#endif
+#ifdef __cplusplus
+}
+#endif
+#endif
+/* Header for class martin_tempest_core_TSDRLibrary_IncomingValueCallback_PLOT_ID */
+
+#ifndef _Included_martin_tempest_core_TSDRLibrary_IncomingValueCallback_PLOT_ID
+#define _Included_martin_tempest_core_TSDRLibrary_IncomingValueCallback_PLOT_ID
+#ifdef __cplusplus
+extern "C" {
+#endif
+#ifdef __cplusplus
+}
+#endif
+#endif
+/* Header for class martin_tempest_core_TSDRLibrary_IncomingValueCallback_VALUE_ID */
+
+#ifndef _Included_martin_tempest_core_TSDRLibrary_IncomingValueCallback_VALUE_ID
+#define _Included_martin_tempest_core_TSDRLibrary_IncomingValueCallback_VALUE_ID
+#ifdef __cplusplus
+extern "C" {
+#endif
+#ifdef __cplusplus
+}
+#endif
+#endif
 /* Header for class martin_tempest_core_TSDRLibrary_PARAM */
 
 #ifndef _Included_martin_tempest_core_TSDRLibrary_PARAM
@@ -168,28 +201,6 @@ extern "C" {
 
 #ifndef _Included_martin_tempest_core_TSDRLibrary_SYNC_DIRECTION
 #define _Included_martin_tempest_core_TSDRLibrary_SYNC_DIRECTION
-#ifdef __cplusplus
-extern "C" {
-#endif
-#ifdef __cplusplus
-}
-#endif
-#endif
-/* Header for class martin_tempest_core_TSDRLibrary_ValueChangedCallback */
-
-#ifndef _Included_martin_tempest_core_TSDRLibrary_ValueChangedCallback
-#define _Included_martin_tempest_core_TSDRLibrary_ValueChangedCallback
-#ifdef __cplusplus
-extern "C" {
-#endif
-#ifdef __cplusplus
-}
-#endif
-#endif
-/* Header for class martin_tempest_core_TSDRLibrary_ValueChangedCallback_VALUE_ID */
-
-#ifndef _Included_martin_tempest_core_TSDRLibrary_ValueChangedCallback_VALUE_ID
-#define _Included_martin_tempest_core_TSDRLibrary_ValueChangedCallback_VALUE_ID
 #ifdef __cplusplus
 extern "C" {
 #endif

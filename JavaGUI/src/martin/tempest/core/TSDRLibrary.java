@@ -52,13 +52,17 @@ public class TSDRLibrary {
 	/** Whether native is running or not */
 	volatile private boolean nativerunning = false;
 	
+	private final Object float_array_locker = new Object();
+	private int float_array_locker_count = 0;
+	private float[] float_array;
+	
 	/** If the binaries weren't loaded, this will go off */
 	private static TSDRLibraryNotCompatible m_e = null;
 	
 	/** A list of all of the callbacks that will receive a frame when it is ready */
 	private final List<FrameReadyCallback> callbacks = new ArrayList<FrameReadyCallback>();
 	
-	private final List<ValueChangedCallback> value_callbacks = new ArrayList<ValueChangedCallback>();
+	private final List<IncomingValueCallback> value_callbacks = new ArrayList<IncomingValueCallback>();
 	
 	/**
 	 * Returns a OS specific library filename. If you supply "abc" on Windows, this function
@@ -363,14 +367,14 @@ public class TSDRLibrary {
 		return callbacks.remove(callback);
 	}
 	
-	public boolean registerValueChangedCallback(final ValueChangedCallback callback) {
+	public boolean registerValueChangedCallback(final IncomingValueCallback callback) {
 		if (value_callbacks.contains(callback))
 			return false;
 		else
 			return value_callbacks.add(callback);
 	}
 	
-	public boolean unregisterValueChangedCallback(final ValueChangedCallback callback) {
+	public boolean unregisterValueChangedCallback(final IncomingValueCallback callback) {
 		return callbacks.remove(callback);
 	}
 	
@@ -407,10 +411,14 @@ public class TSDRLibrary {
 		void onStopped(final TSDRLibrary lib);
 	}
 	
-	public interface ValueChangedCallback {
-		public static enum VALUE_ID {AUTO_RESOLUTION_RESULT, PLL_FRAMERATE};
+	public interface IncomingValueCallback {
+		public static enum VALUE_ID {PLL_FRAMERATE};
+		public static enum PLOT_ID {FRAME, LINE};
+		
 		public void onValueChanged(final VALUE_ID id, double arg0, int arg1);
+		public void onIncommingPlot(final PLOT_ID id, float[] data, int size, long samplerate);
 	}
+
 	
 	/**
 	 * The native code should call this method to initialize or resize the buffer array before accessing it
@@ -429,6 +437,38 @@ public class TSDRLibrary {
 		}
 	}
 	
+	final private void onIncomingArray(final int size) {
+		synchronized (float_array_locker) {
+			if (float_array_locker_count > 0)
+				try {
+					float_array_locker.wait();
+				} catch (InterruptedException e) {}
+			float_array_locker_count++;
+		}
+		
+		if (float_array == null || float_array.length < size)
+			float_array = new float[size];
+	}
+	
+	final private void onIncomingArrayNotify(final int plot_id, final int size, long samplerate) {
+		final IncomingValueCallback.PLOT_ID[] values = IncomingValueCallback.PLOT_ID.values();
+		
+		if (plot_id < 0 || plot_id >= values.length) {
+			System.err.println("Warning: Received unrecognized callback plot id "+plot_id+" from JNI!");
+			return;
+		}
+		
+		final IncomingValueCallback.PLOT_ID val = values[plot_id];
+		
+		for (final IncomingValueCallback callback : value_callbacks) callback.onIncommingPlot(val, float_array, size, samplerate);
+		
+		// unlock so somebody else could send a request
+		synchronized (float_array_locker) {
+			float_array_locker_count--;
+			float_array_locker.notify();
+		}
+	}
+	
 	/**
 	 * The native code should invoke this method when it has written data to the buffer variable.
 	 * This method writes the result into the bitmap
@@ -443,16 +483,16 @@ public class TSDRLibrary {
 	}
 	
 	private void onValueChanged(final int value_id, final double arg0, final int arg1) {
-		final ValueChangedCallback.VALUE_ID[] values = ValueChangedCallback.VALUE_ID.values();
+		final IncomingValueCallback.VALUE_ID[] values = IncomingValueCallback.VALUE_ID.values();
 		
 		if (value_id < 0 || value_id >= values.length) {
-			System.err.println("Warning: Received unrecognized callback id "+value_id+" with arg0="+arg0+" and arg1="+arg1+" from JNI!");
+			System.err.println("Warning: Received unrecognized callback value id "+value_id+" with arg0="+arg0+" and arg1="+arg1+" from JNI!");
 			return;
 		}
 		
-		final ValueChangedCallback.VALUE_ID val = values[value_id];
+		final IncomingValueCallback.VALUE_ID val = values[value_id];
 		
-		for (final ValueChangedCallback callback : value_callbacks) callback.onValueChanged(val, arg0, arg1);
+		for (final IncomingValueCallback callback : value_callbacks) callback.onValueChanged(val, arg0, arg1);
 	}
 	
 }
