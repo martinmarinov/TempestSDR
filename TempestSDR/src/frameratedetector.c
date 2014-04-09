@@ -87,17 +87,27 @@ float toheight(int linelength, void  * ctx) {
 
 void frameratedetector_runontodata(frameratedetector_t * frameratedetector, float * data, int size) {
 
-	if (!frameratedetector->tsdr->params_int[PARAM_INT_AUTORESOLUTION]) return;
+	if (frameratedetector->tsdr->params_int[PARAM_AUTOCORR_PLOTS_OFF]) return;
 
 	const int maxlength = frameratedetector->samplerate / (double) (MIN_FRAMERATE);
 	const int minlength = frameratedetector->samplerate / (double) (MAX_FRAMERATE);
+
+	if (frameratedetector->tsdr->params_int[PARAM_AUTOCORR_PLOTS_RESET]) {
+		frameratedetector->tsdr->params_int[PARAM_AUTOCORR_PLOTS_RESET] = 0;
+		extbuffer_cleartozero(&frameratedetector->extbuff);
+		extbuffer_cleartozero(&frameratedetector->extbuff_small);
+		announce_callback_changed(frameratedetector->tsdr, VALUE_ID_AUTOCORRECT_RESET, 0, 0);
+	}
 
 	// estimate the length of a horizontal line in samples
 	frameratedetector_estimatedirectlength(&frameratedetector->extbuff, data, size, minlength, maxlength, minlength, FRAMERATEDETECTOR_ACCURACY);
 	framedetector_estimatelinelength(&frameratedetector->extbuff_small, data, size, frameratedetector->samplerate);
 
+	if (frameratedetector->tsdr->params_int[PARAM_AUTOCORR_PLOTS_OFF]) return;
+
 	announce_plotready(frameratedetector->tsdr, PLOT_ID_FRAME, &frameratedetector->extbuff, frameratedetector->samplerate);
 	announce_plotready(frameratedetector->tsdr, PLOT_ID_LINE, &frameratedetector->extbuff_small, frameratedetector->samplerate);
+	announce_callback_changed(frameratedetector->tsdr, VALUE_ID_AUTOCORRECT_FRAMES_COUNT, 0, frameratedetector->extbuff.calls);
 
 }
 
@@ -158,7 +168,7 @@ void frameratedetector_stopthread(frameratedetector_t * frameratedetector) {
 void frameratedetector_run(frameratedetector_t * frameratedetector, float * data, int size, uint32_t samplerate, int drop) {
 
 	// if we don't want to call this at all
-	if (!frameratedetector->tsdr->params_int[PARAM_INT_AUTORESOLUTION])
+	if (frameratedetector->tsdr->params_int[PARAM_AUTOCORR_PLOTS_OFF])
 		return;
 
 	if (drop) {

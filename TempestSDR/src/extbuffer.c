@@ -23,7 +23,8 @@ void extbuffer_init(extbuffer_t * container) {
 
 	container->offset = 0;
 	container->valid = 0;
-	container->cleartozero = 0;
+	container->cleartozero = 1;
+	container->calls = 0;
 }
 
 void extbuffer_preparetohandle(extbuffer_t * container, int size) {
@@ -44,7 +45,10 @@ void extbuffer_preparetohandle(extbuffer_t * container, int size) {
 		for (i = 0; i < container->size_valid_elements; i++)
 			container->buffer[i] = 0.0f;
 		container->cleartozero = 0;
+		container->calls = 0;
 	}
+
+	container->calls++;
 }
 
 void extbuffer_cleartozero(extbuffer_t * container) {

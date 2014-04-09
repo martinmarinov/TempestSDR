@@ -129,7 +129,7 @@ void frameratepll(tsdr_lib_t * tsdr, int dx, int width, int height) {
 	const int vxsign = (vx < 0) ? (-1) : (1);
 	lastx = dx;
 
-	if (!tsdr->params_int[PARAM_INT_AUTORESOLUTION] && tsdr->params_int[PARAM_INT_FRAMERATE_PLL] && vx != 0 && absvx < height / 5) {
+	if (tsdr->params_int[PARAM_INT_FRAMERATE_PLL] && vx != 0 && absvx < height / 5) {
 		double frameratediff = (absvx > (height / 30)) ? (FRAMERATE_PLL_SPEED*vx) : (vxsign*FRAMERATE_PLL_FINE_SPEED);
 		if (frameratediff > FRAMERATE_MAX_PLL_SPEED) frameratediff = FRAMERATE_MAX_PLL_SPEED;
 		else if (frameratediff < -FRAMERATE_MAX_PLL_SPEED) frameratediff = - FRAMERATE_MAX_PLL_SPEED;

@@ -25,6 +25,8 @@ typedef struct extbuffer {
 	volatile int valid;
 	volatile int cleartozero;
 
+	int calls;
+
 } extbuffer_t;
 
 void extbuffer_init(extbuffer_t * container);
