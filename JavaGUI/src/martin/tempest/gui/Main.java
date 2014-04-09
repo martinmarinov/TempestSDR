@@ -36,6 +36,7 @@ import martin.tempest.core.TSDRLibrary.SYNC_DIRECTION;
 import martin.tempest.core.exceptions.TSDRException;
 import martin.tempest.core.exceptions.TSDRLoadPluginException;
 import martin.tempest.gui.HoldButton.HoldListener;
+import martin.tempest.gui.PlotVisualizer.TransformerAndCallback;
 import martin.tempest.sources.TSDRSource;
 import martin.tempest.sources.TSDRSource.ActionListenerRegistrator;
 import martin.tempest.sources.TSDRSource.TSDRSourceParamChangedListener;
@@ -221,7 +222,7 @@ public class Main implements TSDRLibrary.FrameReadyCallback, TSDRLibrary.Incomin
 		frmTempestSdr.getContentPane().setLayout(null);
 		frmTempestSdr.getContentPane().add(visualizer);
 		
-		line_plotter = new PlotVisualizer();
+		line_plotter = new PlotVisualizer(height_transformer);
 		line_plotter.setBounds(10, 498, 719, 95);
 		frmTempestSdr.getContentPane().add(line_plotter);
 		
@@ -252,7 +253,7 @@ public class Main implements TSDRLibrary.FrameReadyCallback, TSDRLibrary.Incomin
 		frmTempestSdr.getContentPane().add(spFrequency);
 		framerate = framerate_initial;
 		
-		frame_plotter = new PlotVisualizer();
+		frame_plotter = new PlotVisualizer(fps_transofmer);
 		frame_plotter.setBounds(10, 391, 772, 95);
 		frmTempestSdr.getContentPane().add(frame_plotter);
 		
@@ -1096,4 +1097,47 @@ public class Main implements TSDRLibrary.FrameReadyCallback, TSDRLibrary.Incomin
 				l.actionPerformed(e);
 		}
 	}
+	
+	private final TransformerAndCallback fps_transofmer = new TransformerAndCallback() {
+		
+		@Override
+		public String getUnit() { return "fps";}
+		
+		@Override
+		public float fromIndex(int id, int offset, long samplerate) {
+			final float length = offset + id;
+			return samplerate / length;
+		}
+		
+		public void onMouseExited() {
+			height_transformer.setLength(null);
+			line_plotter.repaint();
+		};
+		
+		public void onMouseMoved(int m_id, int offset, long samplerate) {
+			height_transformer.setLength(offset + m_id);
+			line_plotter.repaint();
+		};
+	};
+	
+	private class TransformerAndCallbackHeight extends TransformerAndCallback {
+		private Integer length = null; 
+		
+		public void setLength(final Integer length) {
+			this.length = length;
+		}
+		
+		@Override
+		public String getUnit() { return "px";	}
+		
+		@Override
+		public float fromIndex(int id, int offset, long samplerate) {
+			final float linelength = offset + id;
+			final float length = (this.length == null) ? ((float) (samplerate / framerate)) : ((float) this.length);
+			
+			return length / linelength;
+		}
+	}
+	
+	private final TransformerAndCallbackHeight height_transformer = new TransformerAndCallbackHeight();
 }

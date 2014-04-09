@@ -14,11 +14,15 @@ import java.awt.Graphics;
 import java.awt.Graphics2D;
 import java.awt.Rectangle;
 import java.awt.RenderingHints;
+import java.awt.event.MouseEvent;
+import java.awt.event.MouseListener;
+import java.awt.event.MouseMotionListener;
 
 import javax.swing.JPanel;
 
 
 public class PlotVisualizer extends JPanel {
+	private final static String unt_format = "%.1f";
 	
 	private static final long serialVersionUID = -6754436015453195809L;
 	
@@ -29,9 +33,54 @@ public class PlotVisualizer extends JPanel {
 	private float min_val = 0;
 	private float range_val = 0;
 	private boolean enabled;
+	private int mouse_x = -1;
 
+	private long samplerate;
+	private int offset;
+	
+	private final TransformerAndCallback trans;
+	private final String text_format;
+	
 	private int nwidth = 1, nheight = 1;
 	
+	public PlotVisualizer(final TransformerAndCallback trans) {
+		this.trans = trans;
+		final String unit = trans.getUnit();
+		text_format = (unit == null) ? unt_format : unt_format+" "+unit;
+		
+		addMouseMotionListener(new MouseMotionListener() {
+			public void mouseDragged(MouseEvent arg0) {}
+			
+			public void mouseMoved(MouseEvent arg0) {
+				mouse_x = arg0.getX();
+				
+				final int m_id = size * mouse_x / nwidth;
+				if (m_id >= 0 && m_id < size)
+					trans.onMouseMoved(m_id, offset, samplerate);
+			
+				repaint();
+			}
+		});
+		
+		addMouseListener(new MouseListener() {
+			public void mouseReleased(MouseEvent arg0) {}
+			public void mousePressed(MouseEvent arg0) {}
+			public void mouseEntered(MouseEvent arg0) {}
+			public void mouseClicked(MouseEvent arg0) {}
+			
+			public void mouseExited(MouseEvent arg0) {
+				mouse_x = -1;
+				trans.onMouseExited();
+				repaint();
+			}
+		});
+	}
+	
+	private String getValueAt(int id) {
+		final float val = trans.fromIndex(id, offset, samplerate);
+		return String.format(text_format, val);
+	}
+
 	public void plot(float[] incoming_data, int offset, int size, long samplerate) {
 		if (size <= 0) return;
 		
@@ -40,6 +89,8 @@ public class PlotVisualizer extends JPanel {
 				data = new float[size];
 			System.arraycopy(incoming_data, 0, data, 0, size);
 			this.size = size;
+			this.offset = offset;
+			this.samplerate = samplerate;
 			
 			max_val = data[0];
 			min_val = data[0];
@@ -106,6 +157,8 @@ public class PlotVisualizer extends JPanel {
 			g.setColor(enabled ? Color.black : Color.DARK_GRAY);
 			g.fillRect(0, 0, nwidth, nheight);
 			g.setColor(Color.white);
+			g.drawString(getValueAt(0), 0+nheight / 10, nheight / 5);
+			
 			int ly = (int) (nheight * (data[0] - min_val) / range_val);
 			int lx = 0;
 
@@ -131,8 +184,32 @@ public class PlotVisualizer extends JPanel {
 				}
 
 			}
+			
+			if (mouse_x != -1) {
+				g.setColor(Color.green);
+				g.drawLine(mouse_x, 0, mouse_x, nheight);
+				
+				final int id = size * mouse_x / nwidth;
+				
+				if (id >= 0 && id < size) {
+					final int y = (int) (nheight * (data[id] - min_val) / range_val);
+					
+					
+					g.drawString(getValueAt(id), mouse_x+nheight / 10, nheight / 5);
+					
+					g.setColor(Color.yellow);
+					g.fillOval(nwidth * id / size-3, y-3, 6, 6);
+				}
+			}
+			
 		}
 	}
 	
-	
+	public static abstract class TransformerAndCallback {
+		public abstract float fromIndex(final int id, final int offset, final long samplerate);
+		public abstract String getUnit();
+		
+		public void onMouseMoved(final int m_id, final int offset, final long samplerate) {};
+		public void onMouseExited() {};
+	}
 }

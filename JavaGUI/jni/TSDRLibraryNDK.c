@@ -124,7 +124,7 @@ void on_plot_ready(int plot_id, int offset, float * values, int size, uint32_t s
 
 	jclass cls = (*env)->GetObjectClass(env, context->obj);
 
-	(*env)->CallVoidMethod(env, context->obj, (*env)->GetMethodID(env, cls, "onIncomingArray", "(I)V"), size);
+	(*env)->CallVoidMethod(env, context->obj, (*env)->GetMethodID(env, cls, "onIncomingArray", "(I)V"), (jint) size);
 
 	jobject float_array = (*env)->GetObjectField(env, context->obj, (*env)->GetFieldID(env, (*env)->GetObjectClass(env, context->obj), "float_array", "[F"));
 
@@ -134,7 +134,7 @@ void on_plot_ready(int plot_id, int offset, float * values, int size, uint32_t s
 	(*env)->SetFloatArrayRegion(env, float_array, 0, size, values);
 
 	// notifyCallbacks();
-	(*env)->CallVoidMethod(env, context->obj, (*env)->GetMethodID(env, cls, "onIncomingArrayNotify", "(IIIJ)V"), plot_id, offset, size, samplerate);
+	(*env)->CallVoidMethod(env, context->obj, (*env)->GetMethodID(env, cls, "onIncomingArrayNotify", "(IIIJ)V"), (jint) plot_id, (jint) offset, (jint) size, (jlong) samplerate);
 
 
 	(*jvm)->DetachCurrentThread(jvm);

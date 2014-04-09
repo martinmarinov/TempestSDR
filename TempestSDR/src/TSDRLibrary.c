@@ -583,8 +583,6 @@ end:
 	if (tsdr->sampletime != 0)
 		tsdr->pixeltimeoversampletime = tsdr->pixeltime /  tsdr->sampletime;
 
-	frameratedetector_flushcachedestimation(&tsdr->frameratedetect);
-
 	RETURN_OK(tsdr);
 
 	return 0; // to avoid getting warning from stupid Eclpse
