@@ -15,7 +15,6 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.io.File;
 
-import javax.swing.JButton;
 import javax.swing.JLabel;
 import javax.swing.JTextField;
 
@@ -158,7 +157,7 @@ public class TSDRSource {
 	 * @param cont the container that will receive the components
 	 * @param defaultprefs the suggested parameters for this plugin. The plugin will decide what the exact value would be.
 	 */
-	public void populateGUI(final Container cont, final String defaultprefs) {
+	public boolean populateGUI(final Container cont, final String defaultprefs, final ActionListenerRegistrator okbutton) {
 		if (cont == null) setParams(defaultprefs);
 		
 	    final JLabel description = new JLabel("Type in the parameters:");
@@ -169,22 +168,14 @@ public class TSDRSource {
 	    cont.add(params);
 	    params.setBounds(12, 12+32, 400-12, 24);
 	    
-	    final JButton ok = new JButton("OK");
-	    cont.add(ok);
-	    ok.setBounds(12, 12+2*32, 84, 24);
-	    
-	    ok.addActionListener(new ActionListener() {
+	    okbutton.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(ActionEvent arg0) {
-				new Thread() {
-					public void run() {
-						ok.setEnabled(false);
-						setParams(params.getText());
-						ok.setEnabled(true);
-					};
-				}.start();
+				setParams(params.getText());
 			}
 		});
+	    
+	    return true;
 	}
 	
 	/**
@@ -202,5 +193,9 @@ public class TSDRSource {
 		 * @param source the {@link TSDRSource} that was changed
 		 */
 		void onParametersChanged(final TSDRSource source);
+	}
+	
+	public static interface ActionListenerRegistrator {
+		public void addActionListener(ActionListener l);
 	}
 }

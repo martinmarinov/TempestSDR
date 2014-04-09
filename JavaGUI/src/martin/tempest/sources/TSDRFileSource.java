@@ -86,7 +86,7 @@ public class TSDRFileSource extends TSDRSource {
 
 	@SuppressWarnings({ "rawtypes", "unchecked" })
 	@Override
-	public void populateGUI(final Container cont, String defaultprefs) {
+	public boolean populateGUI(final Container cont, final String defaultprefs, final ActionListenerRegistrator okbutton) {
 		
 		final ParsedTSDRFileSource parsed = new ParsedTSDRFileSource(defaultprefs);
 		
@@ -129,23 +129,16 @@ public class TSDRFileSource extends TSDRSource {
 				}
 			}	
 		});
-	    
-		final JButton open = new JButton("Open");
-		cont.add(open);
-		open.setBounds(12*3+150+100+100, 12, 150, 24);
 		
-		open.addActionListener(new ActionListener() {
+		okbutton.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(ActionEvent arg0) {
-				new Thread() {
-					public void run() {
-						final String params = "\""+filename.getText()+"\" "+samplerate.getText()+" "+type.getSelectedItem();
-						setParams(params);
-					};
-				}.start();
+				final String params = "\""+filename.getText()+"\" "+samplerate.getText()+" "+type.getSelectedItem();
+				setParams(params);
 			}
 		});
 	
+		return true;
 	}
 	
 	private static class ParsedTSDRFileSource {

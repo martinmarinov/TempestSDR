@@ -121,17 +121,17 @@ public class TSDRExtIOSource extends TSDRSource {
 	}
 
 	@Override
-	public void populateGUI(final Container cont, final String defaultprefs) {
+	public boolean populateGUI(final Container cont, final String defaultprefs, final ActionListenerRegistrator okbutton) {
 		
 		final String[] paths = System.getProperty("java.library.path").split(File.pathSeparator);
 		for (final String path : paths) {
 			final ArrayList<File> plugins = findExtIOpluginsInFolder(new File(path));
 			if (plugins.size() == 1) {
 				setParams(plugins.get(0).getAbsolutePath());
-				return;
+				return false;
 			} else if (plugins.size() > 1) {
 				makeDeviceSelectionDialog(cont, plugins);
-				return;
+				return false;
 			}
 		}
 		
@@ -139,13 +139,14 @@ public class TSDRExtIOSource extends TSDRSource {
 			final ArrayList<File> plugins = findExtIOpluginsInFolder(new File("."));
 			if (plugins.size() == 1) {
 				setParams(plugins.get(0).getAbsolutePath());
-				return;
+				return false;
 			} else if (plugins.size() > 1) {
 				makeDeviceSelectionDialog(cont, plugins);
-				return;
+				return false;
 			}
 		}
 		
 		makeFileSelectionDialog(cont);
+		return false;
 	}
 }

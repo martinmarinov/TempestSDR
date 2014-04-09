@@ -11,6 +11,8 @@
 package martin.tempest.gui;
 
 import java.awt.Component;
+import java.awt.Container;
+import java.awt.Dialog;
 import java.awt.EventQueue;
 import java.awt.Insets;
 import java.awt.Rectangle;
@@ -18,6 +20,7 @@ import java.awt.Toolkit;
 
 import javax.imageio.ImageIO;
 import javax.swing.JComponent;
+import javax.swing.JDialog;
 import javax.swing.JFrame;
 import javax.swing.JComboBox;
 import javax.swing.JButton;
@@ -37,6 +40,7 @@ import martin.tempest.core.exceptions.TSDRException;
 import martin.tempest.core.exceptions.TSDRLoadPluginException;
 import martin.tempest.gui.HoldButton.HoldListener;
 import martin.tempest.sources.TSDRSource;
+import martin.tempest.sources.TSDRSource.ActionListenerRegistrator;
 import martin.tempest.sources.TSDRSource.TSDRSourceParamChangedListener;
 
 import javax.swing.JSlider;
@@ -58,14 +62,16 @@ import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.io.File;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.prefs.Preferences;
 
 import javax.swing.JPanel;
-import javax.swing.border.TitledBorder;
-import javax.swing.UIManager;
-import javax.swing.JScrollPane;
 import javax.swing.JToggleButton;
+import javax.swing.JTabbedPane;
+import javax.swing.JMenuBar;
+import javax.swing.JMenu;
+import javax.swing.JMenuItem;
 
 public class Main implements TSDRLibrary.FrameReadyCallback, TSDRLibrary.IncomingValueCallback, TSDRSourceParamChangedListener, OnTSDRParamChangedCallback {
 	
@@ -88,7 +94,6 @@ public class Main implements TSDRLibrary.FrameReadyCallback, TSDRLibrary.Incomin
 	private final static String PREF_FREQ = "frequency";
 	private final static String PREF_GAIN = "gain";
 	private final static String PREF_MOTIONBLUR = "motionblur";
-	private final static String PREF_SOURCE_ID = "source_id";
 	private final static String PREF_HEIGHT_LOCK = "height_lock";
 
 	private final JComponent additionalTweaks[] = new JComponent[] {
@@ -99,12 +104,11 @@ public class Main implements TSDRLibrary.FrameReadyCallback, TSDRLibrary.Incomin
 	
 	private JFrame frmTempestSdr;
 	private JFrame fullscreenframe;
+	private JDialog deviceframe;
 	private JSpinner spWidth;
 	private JSpinner spHeight;
 	@SuppressWarnings("rawtypes")
 	private JComboBox cbVideoModes;
-	@SuppressWarnings("rawtypes")
-	private JComboBox cbDevice;
 	private JSpinner spFrequency;
 	private JLabel lblFrequency;
 	private JSlider slGain;
@@ -113,18 +117,20 @@ public class Main implements TSDRLibrary.FrameReadyCallback, TSDRLibrary.Incomin
 	private JButton btnStartStop;
 	private final TSDRLibrary mSdrlib;
 	private ImageVisualizer visualizer;
-	private PlotVisualizer line_plotter;
+	private PlotVisualizer line_plotter, frame_plotter;
 	private Rectangle visualizer_bounds;
 	private double framerate = 25;
 	private JTextField txtFramerate;
 	private HoldButton btnLowerFramerate, btnHigherFramerate, btnUp, btnDown, btnLeft, btnRight;
-	private String current_plugin_name = "";
 	private JPanel pnInputDeviceSettings;
 	private ParametersToggleButton tglbtnAutoResolution, tglbtnAutoPosition, tglbtnPllFramerate;
 	private JToggleButton tglbtnLockHeightAndFramerate;
+	private JOptionPane optpaneDevices;
 	
 	private final TSDRSource[] souces = TSDRSource.getAvailableSources();
+	private final JMenuItem[] souces_menues = new JMenuItem[souces.length];
 	private final VideoMode[] videomodes = VideoMode.getVideoModes();
+
 	
 	private volatile boolean snapshot = false;
 	private volatile boolean height_change_from_auto = false;
@@ -182,7 +188,7 @@ public class Main implements TSDRLibrary.FrameReadyCallback, TSDRLibrary.Incomin
 		frmTempestSdr.addKeyListener(keyhook);
 		frmTempestSdr.setResizable(false);
 		frmTempestSdr.setTitle("TempestSDR");
-		frmTempestSdr.setBounds(100, 100, 802, 738);
+		frmTempestSdr.setBounds(100, 100, 813, 704);
 		frmTempestSdr.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 		frmTempestSdr.addMouseListener(new MouseAdapter() {
 			@Override
@@ -192,7 +198,7 @@ public class Main implements TSDRLibrary.FrameReadyCallback, TSDRLibrary.Incomin
 		});
 		
 		visualizer = new ImageVisualizer();
-		visualizer.setBounds(12, 13, 551, 372);
+		visualizer.setBounds(10, 33, 551, 411);
 		visualizer.addKeyListener(keyhook);
 		visualizer.setFocusable(true);
 		visualizer.addMouseListener(new MouseAdapter() {
@@ -221,24 +227,11 @@ public class Main implements TSDRLibrary.FrameReadyCallback, TSDRLibrary.Incomin
 		frmTempestSdr.getContentPane().add(visualizer);
 		
 		line_plotter = new PlotVisualizer();
-		line_plotter.setBounds(12, 398, 551, 121);
+		line_plotter.setBounds(10, 490, 793, 81);
 		frmTempestSdr.getContentPane().add(line_plotter);
 		
-		cbDevice = new JComboBox();
-		cbDevice.setBounds(12, 532, 218, 22);
-		final int cbDeviceIndex = prefs.getInt(PREF_SOURCE_ID, 0);
-		current_plugin_name = souces[cbDeviceIndex < souces.length ? cbDeviceIndex : 0].descr;
-		cbDevice.setModel(new DefaultComboBoxModel(souces));
-		cbDevice.setSelectedIndex(cbDeviceIndex);
-		cbDevice.addActionListener(new ActionListener() {
-			public void actionPerformed(ActionEvent arg0) {
-				onPluginSelected();
-			}
-		});
-		frmTempestSdr.getContentPane().add(cbDevice);
-		
 		btnStartStop = new JButton("Start");
-		btnStartStop.setBounds(575, 13, 209, 25);
+		btnStartStop.setBounds(573, 33, 230, 25);
 		btnStartStop.setEnabled(false);
 		btnStartStop.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
@@ -246,45 +239,73 @@ public class Main implements TSDRLibrary.FrameReadyCallback, TSDRLibrary.Incomin
 			}
 		});
 		frmTempestSdr.getContentPane().add(btnStartStop);
+
 		
-		cbVideoModes = new JComboBox();
-		cbVideoModes.setBounds(575, 43, 172, 22);
-		cbVideoModes.setModel(new DefaultComboBoxModel(videomodes));
-		if (closest_videomode_id != -1 && closest_videomode_id < videomodes.length && closest_videomode_id >= 0) cbVideoModes.setSelectedIndex(closest_videomode_id);
-		cbVideoModes.addActionListener(new ActionListener() {
-			public void actionPerformed(ActionEvent arg0) {
-				final VideoMode selected = (VideoMode) cbVideoModes.getSelectedItem();
-				for (int i = 0; i < videomodes.length; i++)
-					if (videomodes[i].equals(selected)) {
-						onVideoModeSelected(i);
-						return;
-					}
+		lblFrequency = new JLabel("Frequency:");
+		lblFrequency.setBounds(240, 456, 139, 16);
+		lblFrequency.setHorizontalAlignment(SwingConstants.RIGHT);
+		frmTempestSdr.getContentPane().add(lblFrequency);
+		
+		spFrequency = new JSpinner();
+		spFrequency.setBounds(379, 456, 182, 22);
+		spFrequency.addChangeListener(new ChangeListener() {
+			public void stateChanged(ChangeEvent arg0) {
+				onCenterFreqChange();
 			}
 		});
-		frmTempestSdr.getContentPane().add(cbVideoModes);
+		spFrequency.setModel(frequency_spinner_model);
+		frmTempestSdr.getContentPane().add(spFrequency);
+		framerate = framerate_initial;
 		
-		JLabel lblWidth = new JLabel("Width:");
-		lblWidth.setBounds(575, 73, 65, 16);
-		lblWidth.setHorizontalAlignment(SwingConstants.RIGHT);
-		frmTempestSdr.getContentPane().add(lblWidth);
+		frame_plotter = new PlotVisualizer();
+		frame_plotter.setBounds(10, 583, 793, 81);
+		frmTempestSdr.getContentPane().add(frame_plotter);
+		
+		tabbedPane = new JTabbedPane(JTabbedPane.TOP);
+		tabbedPane.setBounds(573, 64, 230, 414);
+		frmTempestSdr.getContentPane().add(tabbedPane);
+		
+		JPanel panel = new JPanel();
+		tabbedPane.addTab("Basic", null, panel, null);
+		panel.setLayout(null);
+		
+		cbVideoModes = new JComboBox();
+		cbVideoModes.setBounds(8, 12, 172, 22);
+		panel.add(cbVideoModes);
+		cbVideoModes.setModel(new DefaultComboBoxModel(videomodes));
+		if (closest_videomode_id != -1 && closest_videomode_id < videomodes.length && closest_videomode_id >= 0) cbVideoModes.setSelectedIndex(closest_videomode_id);
+
+		
+		tglbtnAutoResolution = new ParametersToggleButton(PARAM.AUTORESOLUTION, "A", prefs, true);
+		tglbtnAutoResolution.setBounds(192, 12, 25, 22);
+		panel.add(tglbtnAutoResolution);
+		tglbtnAutoResolution.setToolTipText("Automatically detect resolution");
+		tglbtnAutoResolution.setParaChangeCallback(this);
+		tglbtnAutoResolution.setMargin(new Insets(0, 0, 0, 0));
 		
 		spWidth = new JSpinner();
-		spWidth.setBounds(645, 70, 102, 22);
+		spWidth.setBounds(78, 39, 102, 22);
+		panel.add(spWidth);
 		spWidth.addChangeListener(new ChangeListener() {
 			public void stateChanged(ChangeEvent arg0) {
 				onResolutionChange((Integer) spWidth.getValue(), (Integer) spHeight.getValue(), framerate);
 			}
 		});
 		spWidth.setModel(new SpinnerNumberModel(width_initial, 1, 10000, 1));
-		frmTempestSdr.getContentPane().add(spWidth);
+		
+		JLabel lblWidth = new JLabel("Width:");
+		lblWidth.setBounds(8, 42, 65, 16);
+		panel.add(lblWidth);
+		lblWidth.setHorizontalAlignment(SwingConstants.RIGHT);
 		
 		JLabel lblHeight = new JLabel("Height:");
-		lblHeight.setBounds(575, 100, 65, 16);
+		lblHeight.setBounds(8, 69, 65, 16);
+		panel.add(lblHeight);
 		lblHeight.setHorizontalAlignment(SwingConstants.RIGHT);
-		frmTempestSdr.getContentPane().add(lblHeight);
 		
 		spHeight = new JSpinner();
-		spHeight.setBounds(645, 97, 102, 22);
+		spHeight.setBounds(78, 66, 102, 22);
+		panel.add(spHeight);
 		spHeight.addChangeListener(new ChangeListener() {
 			private Integer oldheight = null;
 			public void stateChanged(ChangeEvent arg0) {
@@ -301,97 +322,25 @@ public class Main implements TSDRLibrary.FrameReadyCallback, TSDRLibrary.Incomin
 			}
 		});
 		spHeight.setModel(new SpinnerNumberModel(height_initial, 1, 10000, 1));
-		frmTempestSdr.getContentPane().add(spHeight);
 		
-		JLabel lblFramerate = new JLabel("FPS:");
-		lblFramerate.setBounds(575, 127, 65, 16);
-		lblFramerate.setHorizontalAlignment(SwingConstants.RIGHT);
-		frmTempestSdr.getContentPane().add(lblFramerate);
+		tglbtnLockHeightAndFramerate = new JToggleButton("L");
+		tglbtnLockHeightAndFramerate.setBounds(192, 65, 25, 22);
+		panel.add(tglbtnLockHeightAndFramerate);
+		tglbtnLockHeightAndFramerate.setToolTipText("Link the framerate with the height");
+		tglbtnLockHeightAndFramerate.setSelected(heightlock_enabled);
+		tglbtnLockHeightAndFramerate.setMargin(new Insets(0, 0, 0, 0));
 		
-		lblGain = new JLabel("Gain:");
-		lblGain.setBounds(575, 374, 65, 16);
-		lblGain.setHorizontalAlignment(SwingConstants.LEFT);
-		frmTempestSdr.getContentPane().add(lblGain);
-		
-		slGain = new JSlider();
-		slGain.setBounds(575, 399, 209, 26);
-		slGain.setValue((int) (prefs.getFloat(PREF_GAIN, 0.5f) * (slGain.getMaximum() - slGain.getMinimum()) + slGain.getMinimum()));
-		slGain.addChangeListener(new ChangeListener() {
-			public void stateChanged(ChangeEvent e) {
-				onGainLevelChanged();
-			}
-		});
-		frmTempestSdr.getContentPane().add(slGain);
-		
-		lblFrequency = new JLabel("Frequency:");
-		lblFrequency.setBounds(242, 532, 139, 16);
-		lblFrequency.setHorizontalAlignment(SwingConstants.RIGHT);
-		frmTempestSdr.getContentPane().add(lblFrequency);
-		
-		spFrequency = new JSpinner();
-		spFrequency.setBounds(381, 532, 182, 22);
-		spFrequency.addChangeListener(new ChangeListener() {
-			public void stateChanged(ChangeEvent arg0) {
-				onCenterFreqChange();
-			}
-		});
-		spFrequency.setModel(frequency_spinner_model);
-		frmTempestSdr.getContentPane().add(spFrequency);
-		
-		final JCheckBox chckbxInvertedColours = new JCheckBox("Inverted colours");
-		chckbxInvertedColours.setBounds(575, 180, 159, 25);
-		chckbxInvertedColours.addActionListener(new ActionListener() {
-			public void actionPerformed(ActionEvent arg0) {
-				mSdrlib.setInvertedColors(chckbxInvertedColours.isSelected());
-			}
-		});
-		chckbxInvertedColours.setHorizontalAlignment(SwingConstants.LEFT);
-		frmTempestSdr.getContentPane().add(chckbxInvertedColours);
-		
-		btnUp = new HoldButton("Up");
-		btnUp.setMargin(new Insets(0, 0, 0, 0));
-		btnUp.setBounds(646, 241, 70, 25);
-		btnUp.addHoldListener(new HoldListener() {
-			public void onHold(final int clickssofar) {
-				onSync(SYNC_DIRECTION.UP, clickssofar);
-			}
-		});
-		frmTempestSdr.getContentPane().add(btnUp);
-		
-		btnLeft = new HoldButton("Left");
-		btnLeft.setMargin(new Insets(0, 0, 0, 0));
-		btnLeft.setBounds(575, 272, 65, 25);
-		btnLeft.addHoldListener(new HoldListener() {
-			public void onHold(final int clickssofar) {
-				onSync(SYNC_DIRECTION.LEFT, clickssofar);
-			}
-		});
-		frmTempestSdr.getContentPane().add(btnLeft);
-		
-		btnRight = new HoldButton("Right");
-		btnRight.setMargin(new Insets(0, 0, 0, 0));
-		btnRight.setBounds(719, 272, 65, 25);
-		btnRight.addHoldListener(new HoldListener() {
-			public void onHold(final int clickssofar) {
-				onSync(SYNC_DIRECTION.RIGHT, clickssofar);
-			}
-		});
-		frmTempestSdr.getContentPane().add(btnRight);
-		
-		btnDown = new HoldButton("Down");
-		btnDown.setMargin(new Insets(0, 0, 0, 0));
-		btnDown.setBounds(645, 302, 70, 25);
-		btnDown.addHoldListener(new HoldListener() {
-			public void onHold(final int clickssofar) {
-				onSync(SYNC_DIRECTION.DOWN, clickssofar);
-			}
-		});
-		frmTempestSdr.getContentPane().add(btnDown);
+		tglbtnPllFramerate = new ParametersToggleButton(PARAM.PLLFRAMERATE, "A", prefs, true);
+		tglbtnPllFramerate.setBounds(192, 93, 25, 22);
+		panel.add(tglbtnPllFramerate);
+		tglbtnPllFramerate.setToolTipText("Automatically adjust the FPS to keep the video stable");
+		tglbtnPllFramerate.setParaChangeCallback(this);
+		tglbtnPllFramerate.setMargin(new Insets(0, 0, 0, 0));
 		
 		txtFramerate = new JTextField();
-		txtFramerate.setBounds(645, 124, 102, 22);
+		txtFramerate.setBounds(78, 93, 102, 22);
+		panel.add(txtFramerate);
 		txtFramerate.setText(String.format(FRAMERATE_FORMAT, framerate_initial));
-		framerate = framerate_initial;
 		txtFramerate.addFocusListener(new FocusAdapter() {
 			@Override
 			public void focusLost(FocusEvent e) {
@@ -405,127 +354,204 @@ public class Main implements TSDRLibrary.FrameReadyCallback, TSDRLibrary.Incomin
 					onFrameRateTextChanged();
 			}
 		});
-		frmTempestSdr.getContentPane().add(txtFramerate);
 		txtFramerate.setColumns(10);
 		
+		JLabel lblFramerate = new JLabel("FPS:");
+		lblFramerate.setBounds(8, 96, 65, 16);
+		panel.add(lblFramerate);
+		lblFramerate.setHorizontalAlignment(SwingConstants.RIGHT);
+		
 		btnLowerFramerate = new HoldButton("<");
+		btnLowerFramerate.setBounds(78, 115, 41, 25);
+		panel.add(btnLowerFramerate);
 		btnLowerFramerate.setMargin(new Insets(0, 0, 0, 0));
-		btnLowerFramerate.setBounds(645, 146, 41, 25);
-		btnLowerFramerate.addHoldListener(new HoldListener() {
-			public void onHold(final int clickssofar) {
-				onFrameRateChanged(true, clickssofar);
-			}
-		});
-		frmTempestSdr.getContentPane().add(btnLowerFramerate);
 		
 		btnHigherFramerate = new HoldButton(">");
+		btnHigherFramerate.setBounds(139, 116, 41, 25);
+		panel.add(btnHigherFramerate);
 		btnHigherFramerate.setMargin(new Insets(0, 0, 0, 0));
-		btnHigherFramerate.setBounds(706, 147, 41, 25);
-		btnHigherFramerate.addHoldListener(new HoldListener() {
-			public void onHold(final int clickssofar) {
-				onFrameRateChanged(false, clickssofar);
-			}
-		});
-		frmTempestSdr.getContentPane().add(btnHigherFramerate);
+		
+		btnUp = new HoldButton("Up");
+		btnUp.setBounds(79, 152, 70, 25);
+		panel.add(btnUp);
+		btnUp.setMargin(new Insets(0, 0, 0, 0));
+		
+		btnLeft = new HoldButton("Left");
+		btnLeft.setBounds(8, 183, 65, 25);
+		panel.add(btnLeft);
+		btnLeft.setMargin(new Insets(0, 0, 0, 0));
+		
+		tglbtnAutoPosition = new ParametersToggleButton(PARAM.AUTOSHIFT, "Auto", prefs, true);
+		tglbtnAutoPosition.setBounds(78, 182, 70, 26);
+		panel.add(tglbtnAutoPosition);
+		tglbtnAutoPosition.setToolTipText("Automatically try to center on the image");
+		tglbtnAutoPosition.setParaChangeCallback(this);
+		tglbtnAutoPosition.setMargin(new Insets(0, 0, 0, 0));
+		
+		btnRight = new HoldButton("Right");
+		btnRight.setBounds(152, 183, 65, 25);
+		panel.add(btnRight);
+		btnRight.setMargin(new Insets(0, 0, 0, 0));
+		
+		btnDown = new HoldButton("Down");
+		btnDown.setBounds(78, 213, 70, 25);
+		panel.add(btnDown);
+		btnDown.setMargin(new Insets(0, 0, 0, 0));
+		
+		JLabel lblMotionBlur = new JLabel("Lpass:");
+		lblMotionBlur.setBounds(8, 266, 65, 16);
+		panel.add(lblMotionBlur);
+		lblMotionBlur.setHorizontalAlignment(SwingConstants.RIGHT);
 		
 		slMotionBlur = new JSlider();
-		slMotionBlur.setBounds(645, 212, 139, 22);
+		slMotionBlur.setBounds(79, 266, 139, 22);
+		panel.add(slMotionBlur);
 		slMotionBlur.setValue((int) (prefs.getFloat(PREF_MOTIONBLUR, 0.0f) * (slMotionBlur.getMaximum() - slMotionBlur.getMinimum()) + slMotionBlur.getMinimum()));
-		slMotionBlur.addChangeListener(new ChangeListener() {
-			public void stateChanged(ChangeEvent e) {
-				onMotionBlurLevelChanged();
-			}
-		});
-		frmTempestSdr.getContentPane().add(slMotionBlur);
+		
+		lblGain = new JLabel("Gain:");
+		lblGain.setBounds(8, 286, 65, 16);
+		panel.add(lblGain);
+		lblGain.setHorizontalAlignment(SwingConstants.RIGHT);
+		
+		slGain = new JSlider();
+		slGain.setBounds(79, 286, 138, 26);
+		panel.add(slGain);
+		slGain.setValue((int) (prefs.getFloat(PREF_GAIN, 0.5f) * (slGain.getMaximum() - slGain.getMinimum()) + slGain.getMinimum()));
 		
 		JButton btnSnapshot = new HoldButton("Snapshot");
-		btnSnapshot.setBounds(575, 336, 209, 25);
+		btnSnapshot.setBounds(8, 324, 209, 25);
+		panel.add(btnSnapshot);
+		
+		final JCheckBox chckbxInvertedColours = new JCheckBox("Inverted colours");
+		chckbxInvertedColours.setBounds(8, 361, 159, 25);
+		panel.add(chckbxInvertedColours);
+		chckbxInvertedColours.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent arg0) {
+				mSdrlib.setInvertedColors(chckbxInvertedColours.isSelected());
+			}
+		});
+		chckbxInvertedColours.setHorizontalAlignment(SwingConstants.LEFT);
 		btnSnapshot.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(ActionEvent arg0) {
 				snapshot = true;
 			}
 		});
-		frmTempestSdr.getContentPane().add(btnSnapshot);
-		
-		JLabel lblMotionBlur = new JLabel("Lpass:");
-		lblMotionBlur.setBounds(575, 212, 65, 16);
-		lblMotionBlur.setHorizontalAlignment(SwingConstants.RIGHT);
-		frmTempestSdr.getContentPane().add(lblMotionBlur);
-		
-		pnInputDeviceSettings = new JPanel();
-		pnInputDeviceSettings.setBounds(12, 567, 551, 123);
-		pnInputDeviceSettings.setBorder(new TitledBorder(UIManager.getBorder("TitledBorder.border"), "Input device settings", TitledBorder.LEADING, TitledBorder.TOP, null, null));
-		frmTempestSdr.getContentPane().add(pnInputDeviceSettings);
-		pnInputDeviceSettings.setLayout(null);
-		
-		JScrollPane scrAdvancedTweaks = new JScrollPane();
-		scrAdvancedTweaks.setBounds(575, 532, 209, 158);
-		scrAdvancedTweaks.setViewportBorder(new TitledBorder(null, "Advanced tweaks", TitledBorder.LEADING, TitledBorder.TOP, null, null));
-		frmTempestSdr.getContentPane().add(scrAdvancedTweaks);
-		
-		JPanel pnAdvancedTweaksContainer = new JPanel();
-		scrAdvancedTweaks.setViewportView(pnAdvancedTweaksContainer);
-		pnAdvancedTweaksContainer.setLayout(null);
-		
-		tglbtnAutoResolution = new ParametersToggleButton(PARAM.AUTORESOLUTION, "A", prefs, true);
-		tglbtnAutoResolution.setToolTipText("Automatically detect resolution");
-		tglbtnAutoResolution.setParaChangeCallback(this);
-		tglbtnAutoResolution.setMargin(new Insets(0, 0, 0, 0));
-		tglbtnAutoResolution.setBounds(759, 43, 25, 22);
-		tglbtnAutoResolution.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(ActionEvent arg0) {
-				onAutoResolutionChanged();
+		slGain.addChangeListener(new ChangeListener() {
+			public void stateChanged(ChangeEvent e) {
+				onGainLevelChanged();
 			}
 		});
-		frmTempestSdr.getContentPane().add(tglbtnAutoResolution);
-		
-		tglbtnAutoPosition = new ParametersToggleButton(PARAM.AUTOSHIFT, "Auto", prefs, true);
-		tglbtnAutoPosition.setToolTipText("Automatically try to center on the image");
-		tglbtnAutoPosition.setParaChangeCallback(this);
-		tglbtnAutoPosition.setMargin(new Insets(0, 0, 0, 0));
-		tglbtnAutoPosition.setBounds(645, 271, 70, 26);
+		slMotionBlur.addChangeListener(new ChangeListener() {
+			public void stateChanged(ChangeEvent e) {
+				onMotionBlurLevelChanged();
+			}
+		});
+		btnDown.addHoldListener(new HoldListener() {
+			public void onHold(final int clickssofar) {
+				onSync(SYNC_DIRECTION.DOWN, clickssofar);
+			}
+		});
+		btnRight.addHoldListener(new HoldListener() {
+			public void onHold(final int clickssofar) {
+				onSync(SYNC_DIRECTION.RIGHT, clickssofar);
+			}
+		});
 		tglbtnAutoPosition.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(ActionEvent arg0) {
 				onAutoPostionChanged();
 			}
 		});
-		frmTempestSdr.getContentPane().add(tglbtnAutoPosition);
-		
-		tglbtnPllFramerate = new ParametersToggleButton(PARAM.PLLFRAMERATE, "A", prefs, true);
-		tglbtnPllFramerate.setToolTipText("Automatically adjust the FPS to keep the video stable");
-		tglbtnPllFramerate.setParaChangeCallback(this);
-		tglbtnPllFramerate.setMargin(new Insets(0, 0, 0, 0));
-		tglbtnPllFramerate.setBounds(759, 124, 25, 22);
+		btnLeft.addHoldListener(new HoldListener() {
+			public void onHold(final int clickssofar) {
+				onSync(SYNC_DIRECTION.LEFT, clickssofar);
+			}
+		});
+		btnUp.addHoldListener(new HoldListener() {
+			public void onHold(final int clickssofar) {
+				onSync(SYNC_DIRECTION.UP, clickssofar);
+			}
+		});
+		btnHigherFramerate.addHoldListener(new HoldListener() {
+			public void onHold(final int clickssofar) {
+				onFrameRateChanged(false, clickssofar);
+			}
+		});
+		btnLowerFramerate.addHoldListener(new HoldListener() {
+			public void onHold(final int clickssofar) {
+				onFrameRateChanged(true, clickssofar);
+			}
+		});
 		tglbtnPllFramerate.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(ActionEvent arg0) {
 				onPllFramerateChanged();
 			}
 		});
-		frmTempestSdr.getContentPane().add(tglbtnPllFramerate);
-		
-		tglbtnLockHeightAndFramerate = new JToggleButton("L");
-		tglbtnLockHeightAndFramerate.setToolTipText("Link the framerate with the height");
-		tglbtnLockHeightAndFramerate.setSelected(heightlock_enabled);
-		tglbtnLockHeightAndFramerate.setMargin(new Insets(0, 0, 0, 0));
-		tglbtnLockHeightAndFramerate.setBounds(759, 96, 25, 22);
 		tglbtnLockHeightAndFramerate.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(ActionEvent arg0) {
 				prefs.putBoolean(PREF_HEIGHT_LOCK, tglbtnLockHeightAndFramerate.isSelected());
 			}
 		});
-		frmTempestSdr.getContentPane().add(tglbtnLockHeightAndFramerate);
-
+		tglbtnAutoResolution.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent arg0) {
+				onAutoResolutionChanged();
+			}
+		});
+		cbVideoModes.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent arg0) {
+				final VideoMode selected = (VideoMode) cbVideoModes.getSelectedItem();
+				for (int i = 0; i < videomodes.length; i++)
+					if (videomodes[i].equals(selected)) {
+						onVideoModeSelected(i);
+						return;
+					}
+			}
+		});
 		
+		panel_1 = new JPanel();
+		tabbedPane.addTab("Advanced", null, panel_1, null);
+		
+		menuBar = new JMenuBar();
+		menuBar.setBounds(0, 0, 825, 21);
+		frmTempestSdr.getContentPane().add(menuBar);
+		
+		JMenu mnFile = new JMenu("File");
+		menuBar.add(mnFile);
+		
+		for (int i = 0; i < souces.length; i++) {
+			final TSDRSource src = souces[i];
+			
+			souces_menues[i] = new JMenuItem("Load "+src.toString());
+			souces_menues[i].addActionListener(new ActionListener() {
+				
+				@Override
+				public void actionPerformed(ActionEvent e) {
+					onPluginSelected(src);
+				}
+			});
+			mnFile.add(souces_menues[i]);
+		}
+		
+		mnFile.addSeparator();
+		
+		JMenuItem exit = new JMenuItem("Exit");
+		exit.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				System.exit(0);
+			}
+		});
+		mnFile.add(exit);
+        
 		int containery = 0;
 		for (int i = 0; i < additionalTweaks.length; i++) {
 			additionalTweaks[i].setBounds(0, containery, 159, 25);
 			containery += 25;
-			pnAdvancedTweaksContainer.add(additionalTweaks[i]);
+			panel_1.add(additionalTweaks[i]);
 		}
 		
 		frmTempestSdr.setFocusableWindowState(true);
@@ -545,7 +571,24 @@ public class Main implements TSDRLibrary.FrameReadyCallback, TSDRLibrary.Incomin
 		fullscreenframe.setUndecorated(true);
 		fullscreenframe.setLocation(0, 0);
 		
-		onPluginSelected();
+		
+
+		
+		pnInputDeviceSettings = new JPanel();
+		pnInputDeviceSettings.setBounds(10, 68, 551, 74);
+		pnInputDeviceSettings.setLayout(null);
+		
+		optpaneDevices = new JOptionPane();
+		optpaneDevices.setMessage(pnInputDeviceSettings);
+		optpaneDevices.setMessageType(JOptionPane.PLAIN_MESSAGE);
+		optpaneDevices.setOptionType(JOptionPane.OK_CANCEL_OPTION);
+		
+		// dialog frame
+		deviceframe = optpaneDevices.createDialog(frmTempestSdr, "");
+		deviceframe.setResizable(false);
+		
+		deviceframe.getContentPane().add(optpaneDevices);
+		
 		onAutoResolutionChanged();
 		onAutoPostionChanged();
 	}
@@ -597,7 +640,7 @@ public class Main implements TSDRLibrary.FrameReadyCallback, TSDRLibrary.Incomin
 			}
 
 			btnStartStop.setText("Stop");
-			cbDevice.setEnabled(false);
+			setPluginMenuEnabled(false);
 		}
 		
 	}
@@ -836,7 +879,12 @@ public class Main implements TSDRLibrary.FrameReadyCallback, TSDRLibrary.Incomin
 		}
 	}
 	
-	private void onPluginSelected() {
+	private void setPluginMenuEnabled(boolean value) {
+		for (int i = 0; i < souces_menues.length; i++)
+			souces_menues[i].setEnabled(value);
+	}
+	
+	private void onPluginSelected(final TSDRSource current) {
 		
 		if (!mSdrlib.isRunning()) btnStartStop.setEnabled(false);
 		try {
@@ -847,17 +895,29 @@ public class Main implements TSDRLibrary.FrameReadyCallback, TSDRLibrary.Incomin
 		pnInputDeviceSettings.revalidate();
 		pnInputDeviceSettings.repaint(); 
 		
-		final int id = cbDevice.getSelectedIndex();
-		prefs.putInt(PREF_SOURCE_ID, id);
-		current_plugin_name = souces[id].descr;
 		
-		final String preferences = prefs.get(PREF_COMMAND_PREFIX+current_plugin_name, "");
-		final TSDRSource current = (TSDRSource) cbDevice.getSelectedItem();
+		final String preferences = prefs.get(PREF_COMMAND_PREFIX+current, "");
+		
 		current.setOnParameterChangedCallback(this);
 		
-		current.populateGUI(pnInputDeviceSettings, preferences);
-		pnInputDeviceSettings.revalidate();
-		pnInputDeviceSettings.repaint(); 
+		final ActRegistrator reg = new ActRegistrator();
+		final boolean usesdialog = current.populateGUI(pnInputDeviceSettings, preferences, reg);
+		
+		if (usesdialog) {
+			pnInputDeviceSettings.revalidate();
+			pnInputDeviceSettings.repaint(); 
+
+			deviceframe.setTitle("Load "+current);
+			deviceframe.setSize(570, 170);
+			deviceframe.setLocationByPlatform(true);
+			deviceframe.setVisible(true);
+
+			try {
+				if (((Integer)optpaneDevices.getValue()).intValue() == JOptionPane.OK_OPTION)
+					reg.action();
+			} catch (NullPointerException e) {};
+		}
+	
 	}
 
 	@Override
@@ -884,7 +944,7 @@ public class Main implements TSDRLibrary.FrameReadyCallback, TSDRLibrary.Incomin
 	public void onException(TSDRLibrary lib, Exception e) {
 		btnStartStop.setEnabled(true);
 		btnStartStop.setText("Start");
-		cbDevice.setEnabled(true);
+		setPluginMenuEnabled(true);
 		displayException(frmTempestSdr, e);
 		System.gc();
 	}
@@ -893,7 +953,7 @@ public class Main implements TSDRLibrary.FrameReadyCallback, TSDRLibrary.Incomin
 	public void onStopped(TSDRLibrary lib) {
 		btnStartStop.setEnabled(true);
 		btnStartStop.setText("Start");
-		cbDevice.setEnabled(true);
+		setPluginMenuEnabled(true);
 		System.gc();
 	}
 	
@@ -909,10 +969,13 @@ public class Main implements TSDRLibrary.FrameReadyCallback, TSDRLibrary.Incomin
 			super.keyReleased(e);
 		}
 	};
+	private JTabbedPane tabbedPane;
+	private JPanel panel_1;
+	private JMenuBar menuBar;
 
 	@Override
 	public void onParametersChanged(TSDRSource source) {
-		cbDevice.setEnabled(false);
+		setPluginMenuEnabled(false);
 		if (!mSdrlib.isRunning())  btnStartStop.setEnabled(false);
 		
 		try {
@@ -924,14 +987,14 @@ public class Main implements TSDRLibrary.FrameReadyCallback, TSDRLibrary.Incomin
 		} catch (Throwable t) {
 			if (!mSdrlib.isRunning())  btnStartStop.setEnabled(false);
 			displayException(frmTempestSdr, t);
-			cbDevice.setEnabled(true);
+			setPluginMenuEnabled(true);
 			return;
 		}
-		cbDevice.setEnabled(true);
+		setPluginMenuEnabled(true);
 		btnStartStop.setEnabled(true);
 		
 		// set the field with the text arguments
-		prefs.put(PREF_COMMAND_PREFIX+current_plugin_name, source.getParams());
+		prefs.put(PREF_COMMAND_PREFIX+source, source.getParams());
 	}
 
 	@Override
@@ -992,12 +1055,27 @@ public class Main implements TSDRLibrary.FrameReadyCallback, TSDRLibrary.Incomin
 			line_plotter.plot(data, offset, size, samplerate);
 			break;
 		case FRAME:
-			
+			frame_plotter.plot(data, offset, size, samplerate);
 			break;
-
 		default:
 			System.out.println("Java Main received unimplemented notification plot value "+id+" with size "+size);
 			break;
 		}
 	}
+	
+	private class ActRegistrator implements ActionListenerRegistrator {
+		
+		private final ArrayList<ActionListener> listeners = new ArrayList<ActionListener>();
+		private final ActionEvent e = new ActionEvent(Main.this, 0, null);
+		
+		@Override
+		public void addActionListener(ActionListener l) {
+			listeners.add(l);
+		}
+		
+		public void action() {
+			for (final ActionListener l : listeners)
+				l.actionPerformed(e);
+		}
+	};
 }

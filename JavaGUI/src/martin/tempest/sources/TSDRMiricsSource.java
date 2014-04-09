@@ -25,8 +25,9 @@ public class TSDRMiricsSource extends TSDRSource {
 	}
 	
 	@Override
-	public void populateGUI(final Container cont, final String defaultprefs) {
+	public boolean populateGUI(final Container cont, final String defaultprefs, final ActionListenerRegistrator okbutton) {
 		setParams(defaultprefs);
+		return false;
 	}
 
 }
