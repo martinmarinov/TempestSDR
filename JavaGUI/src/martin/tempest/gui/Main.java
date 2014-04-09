@@ -11,8 +11,6 @@
 package martin.tempest.gui;
 
 import java.awt.Component;
-import java.awt.Container;
-import java.awt.Dialog;
 import java.awt.EventQueue;
 import java.awt.Insets;
 import java.awt.Rectangle;
@@ -52,7 +50,6 @@ import java.awt.image.BufferedImage;
 import javax.swing.SwingConstants;
 import javax.swing.event.ChangeListener;
 import javax.swing.event.ChangeEvent;
-import javax.swing.JCheckBox;
 
 import java.awt.event.KeyAdapter;
 import java.awt.event.KeyEvent;
@@ -72,6 +69,7 @@ import javax.swing.JTabbedPane;
 import javax.swing.JMenuBar;
 import javax.swing.JMenu;
 import javax.swing.JMenuItem;
+import javax.swing.JCheckBoxMenuItem;
 
 public class Main implements TSDRLibrary.FrameReadyCallback, TSDRLibrary.IncomingValueCallback, TSDRSourceParamChangedListener, OnTSDRParamChangedCallback {
 	
@@ -188,7 +186,7 @@ public class Main implements TSDRLibrary.FrameReadyCallback, TSDRLibrary.Incomin
 		frmTempestSdr.addKeyListener(keyhook);
 		frmTempestSdr.setResizable(false);
 		frmTempestSdr.setTitle("TempestSDR");
-		frmTempestSdr.setBounds(100, 100, 813, 704);
+		frmTempestSdr.setBounds(100, 100, 813, 642);
 		frmTempestSdr.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 		frmTempestSdr.addMouseListener(new MouseAdapter() {
 			@Override
@@ -198,7 +196,7 @@ public class Main implements TSDRLibrary.FrameReadyCallback, TSDRLibrary.Incomin
 		});
 		
 		visualizer = new ImageVisualizer();
-		visualizer.setBounds(10, 33, 551, 411);
+		visualizer.setBounds(10, 33, 551, 324);
 		visualizer.addKeyListener(keyhook);
 		visualizer.setFocusable(true);
 		visualizer.addMouseListener(new MouseAdapter() {
@@ -227,7 +225,7 @@ public class Main implements TSDRLibrary.FrameReadyCallback, TSDRLibrary.Incomin
 		frmTempestSdr.getContentPane().add(visualizer);
 		
 		line_plotter = new PlotVisualizer();
-		line_plotter.setBounds(10, 490, 793, 81);
+		line_plotter.setBounds(10, 397, 793, 95);
 		frmTempestSdr.getContentPane().add(line_plotter);
 		
 		btnStartStop = new JButton("Start");
@@ -242,12 +240,12 @@ public class Main implements TSDRLibrary.FrameReadyCallback, TSDRLibrary.Incomin
 
 		
 		lblFrequency = new JLabel("Frequency:");
-		lblFrequency.setBounds(240, 456, 139, 16);
+		lblFrequency.setBounds(240, 369, 139, 16);
 		lblFrequency.setHorizontalAlignment(SwingConstants.RIGHT);
 		frmTempestSdr.getContentPane().add(lblFrequency);
 		
 		spFrequency = new JSpinner();
-		spFrequency.setBounds(379, 456, 182, 22);
+		spFrequency.setBounds(379, 369, 182, 22);
 		spFrequency.addChangeListener(new ChangeListener() {
 			public void stateChanged(ChangeEvent arg0) {
 				onCenterFreqChange();
@@ -258,11 +256,11 @@ public class Main implements TSDRLibrary.FrameReadyCallback, TSDRLibrary.Incomin
 		framerate = framerate_initial;
 		
 		frame_plotter = new PlotVisualizer();
-		frame_plotter.setBounds(10, 583, 793, 81);
+		frame_plotter.setBounds(10, 504, 793, 95);
 		frmTempestSdr.getContentPane().add(frame_plotter);
 		
 		tabbedPane = new JTabbedPane(JTabbedPane.TOP);
-		tabbedPane.setBounds(573, 64, 230, 414);
+		tabbedPane.setBounds(573, 64, 230, 327);
 		frmTempestSdr.getContentPane().add(tabbedPane);
 		
 		JPanel panel = new JPanel();
@@ -399,44 +397,25 @@ public class Main implements TSDRLibrary.FrameReadyCallback, TSDRLibrary.Incomin
 		btnDown.setMargin(new Insets(0, 0, 0, 0));
 		
 		JLabel lblMotionBlur = new JLabel("Lpass:");
-		lblMotionBlur.setBounds(8, 266, 65, 16);
+		lblMotionBlur.setBounds(8, 250, 65, 16);
 		panel.add(lblMotionBlur);
 		lblMotionBlur.setHorizontalAlignment(SwingConstants.RIGHT);
 		
 		slMotionBlur = new JSlider();
-		slMotionBlur.setBounds(79, 266, 139, 22);
+		slMotionBlur.setBounds(79, 250, 139, 22);
 		panel.add(slMotionBlur);
 		slMotionBlur.setValue((int) (prefs.getFloat(PREF_MOTIONBLUR, 0.0f) * (slMotionBlur.getMaximum() - slMotionBlur.getMinimum()) + slMotionBlur.getMinimum()));
 		
 		lblGain = new JLabel("Gain:");
-		lblGain.setBounds(8, 286, 65, 16);
+		lblGain.setBounds(8, 270, 65, 16);
 		panel.add(lblGain);
 		lblGain.setHorizontalAlignment(SwingConstants.RIGHT);
 		
 		slGain = new JSlider();
-		slGain.setBounds(79, 286, 138, 26);
+		slGain.setBounds(79, 270, 138, 26);
 		panel.add(slGain);
 		slGain.setValue((int) (prefs.getFloat(PREF_GAIN, 0.5f) * (slGain.getMaximum() - slGain.getMinimum()) + slGain.getMinimum()));
-		
-		JButton btnSnapshot = new HoldButton("Snapshot");
-		btnSnapshot.setBounds(8, 324, 209, 25);
-		panel.add(btnSnapshot);
-		
-		final JCheckBox chckbxInvertedColours = new JCheckBox("Inverted colours");
-		chckbxInvertedColours.setBounds(8, 361, 159, 25);
-		panel.add(chckbxInvertedColours);
-		chckbxInvertedColours.addActionListener(new ActionListener() {
-			public void actionPerformed(ActionEvent arg0) {
-				mSdrlib.setInvertedColors(chckbxInvertedColours.isSelected());
-			}
-		});
-		chckbxInvertedColours.setHorizontalAlignment(SwingConstants.LEFT);
-		btnSnapshot.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(ActionEvent arg0) {
-				snapshot = true;
-			}
-		});
+	
 		slGain.addChangeListener(new ChangeListener() {
 			public void stateChanged(ChangeEvent e) {
 				onGainLevelChanged();
@@ -546,6 +525,25 @@ public class Main implements TSDRLibrary.FrameReadyCallback, TSDRLibrary.Incomin
 			}
 		});
 		mnFile.add(exit);
+		
+		mnTweaks = new JMenu("Tweaks");
+		menuBar.add(mnTweaks);
+		
+		mntmTakeSnapshot = new JMenuItem("Take snapshot");
+		mntmTakeSnapshot.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				snapshot = true;
+			}
+		});
+		mnTweaks.add(mntmTakeSnapshot);
+		
+		chckbxmntmNewCheckItem = new JCheckBoxMenuItem("Inverted colours");
+		chckbxmntmNewCheckItem.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				mSdrlib.setInvertedColors(chckbxmntmNewCheckItem.isSelected());
+			}
+		});
+		mnTweaks.add(chckbxmntmNewCheckItem);
         
 		int containery = 0;
 		for (int i = 0; i < additionalTweaks.length; i++) {
@@ -570,9 +568,6 @@ public class Main implements TSDRLibrary.FrameReadyCallback, TSDRLibrary.Incomin
 		fullscreenframe.setSize(xSize,ySize);
 		fullscreenframe.setUndecorated(true);
 		fullscreenframe.setLocation(0, 0);
-		
-		
-
 		
 		pnInputDeviceSettings = new JPanel();
 		pnInputDeviceSettings.setBounds(10, 68, 551, 74);
@@ -972,6 +967,9 @@ public class Main implements TSDRLibrary.FrameReadyCallback, TSDRLibrary.Incomin
 	private JTabbedPane tabbedPane;
 	private JPanel panel_1;
 	private JMenuBar menuBar;
+	private JMenu mnTweaks;
+	private JMenuItem mntmTakeSnapshot;
+	private JCheckBoxMenuItem chckbxmntmNewCheckItem;
 
 	@Override
 	public void onParametersChanged(TSDRSource source) {
