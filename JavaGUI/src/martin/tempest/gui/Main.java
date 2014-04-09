@@ -122,6 +122,7 @@ public class Main implements TSDRLibrary.FrameReadyCallback, TSDRLibrary.Incomin
 	private JOptionPane optpaneDevices;
 	private JToggleButton btnReset;
 	private JLabel lblFrames;
+	private JSpinner spAreaAroundMouse;
 	
 	private final TSDRSource[] souces = TSDRSource.getAvailableSources();
 	private final JMenuItem[] souces_menues = new JMenuItem[souces.length];
@@ -254,8 +255,9 @@ public class Main implements TSDRLibrary.FrameReadyCallback, TSDRLibrary.Incomin
 		framerate = framerate_initial;
 		
 		frame_plotter = new PlotVisualizer(fps_transofmer);
-		frame_plotter.setBounds(10, 391, 772, 95);
+		frame_plotter.setBounds(10, 391, 719, 95);
 		frmTempestSdr.getContentPane().add(frame_plotter);
+		frame_plotter.selectVal((float) framerate);
 		
 		menuBar = new JMenuBar();
 		menuBar.setBounds(0, 0, 825, 21);
@@ -321,7 +323,7 @@ public class Main implements TSDRLibrary.FrameReadyCallback, TSDRLibrary.Incomin
 		});
 		btnReset.setToolTipText("Reset the autocorrelation plots");
 		btnReset.setMargin(new Insets(0, 0, 0, 0));
-		btnReset.setBounds(741, 498, 41, 22);
+		btnReset.setBounds(741, 417, 41, 22);
 		frmTempestSdr.getContentPane().add(btnReset);
 		
 		cbVideoModes = new JComboBox();
@@ -397,7 +399,7 @@ public class Main implements TSDRLibrary.FrameReadyCallback, TSDRLibrary.Incomin
 				tglbtnPllFramerate.setMargin(new Insets(0, 0, 0, 0));
 				
 				tglbtnAutocorrPlots = new ParametersToggleButton(PARAM.AUTOCORR_PLOTS_OFF, "OFF", prefs, false);
-				tglbtnAutocorrPlots.setBounds(741, 523, 41, 22);
+				tglbtnAutocorrPlots.setBounds(741, 442, 41, 22);
 				frmTempestSdr.getContentPane().add(tglbtnAutocorrPlots);
 				tglbtnAutocorrPlots.setToolTipText("Turn off autocorrelation plots");
 				tglbtnAutocorrPlots.setParaChangeCallback(this);
@@ -482,8 +484,19 @@ public class Main implements TSDRLibrary.FrameReadyCallback, TSDRLibrary.Incomin
 				lblFrames = new JLabel("00");
 				lblFrames.setToolTipText("The number of  runs of the autocorrelation averaging");
 				lblFrames.setHorizontalAlignment(SwingConstants.RIGHT);
-				lblFrames.setBounds(734, 576, 48, 15);
+				lblFrames.setBounds(734, 390, 48, 15);
 				frmTempestSdr.getContentPane().add(lblFrames);
+				
+				spAreaAroundMouse = new JSpinner();
+				spAreaAroundMouse.addChangeListener(new ChangeListener() {
+					public void stateChanged(ChangeEvent arg0) {
+						setAreaAroundMouse();
+					}
+				});
+				spAreaAroundMouse.setToolTipText("The area around the mouse in pixels used to picking the best value");
+				spAreaAroundMouse.setModel(new SpinnerNumberModel(new Integer(5), new Integer(0), null, new Integer(1)));
+				spAreaAroundMouse.setBounds(741, 466, 41, 20);
+				frmTempestSdr.getContentPane().add(spAreaAroundMouse);
 				slMotionBlur.addChangeListener(new ChangeListener() {
 					public void stateChanged(ChangeEvent e) {
 						onMotionBlurLevelChanged();
@@ -601,11 +614,21 @@ public class Main implements TSDRLibrary.FrameReadyCallback, TSDRLibrary.Incomin
 		
 		onAutoResolutionChanged();
 		onAutoPostionChanged();
+		
+		setAreaAroundMouse();
 	}
 	
 	private void onVideoModeSelected(final int modeid) {
 		if (video_mode_change_manually_triggered) return;
 		onResolutionChange(modeid);
+	}
+	
+	private void setAreaAroundMouse() {
+		try {
+			final int area_around_mouse = (Integer) spAreaAroundMouse.getValue();
+			line_plotter.setAreaAroundMouse(area_around_mouse); 
+			frame_plotter.setAreaAroundMouse(area_around_mouse); 
+		} catch (Throwable t) {};
 	}
 	
 	private void performStartStop() {
@@ -679,6 +702,7 @@ public class Main implements TSDRLibrary.FrameReadyCallback, TSDRLibrary.Incomin
 	
 	private void onResolutionChange(int width, int height, double framerate, int closest_videomode_id) {
 		this.framerate = framerate;
+		frame_plotter.selectVal((float) framerate);
 		final String frameratetext = String.format(FRAMERATE_FORMAT, framerate);
 		txtFramerate.setText(frameratetext);
 		
@@ -741,13 +765,17 @@ public class Main implements TSDRLibrary.FrameReadyCallback, TSDRLibrary.Incomin
 	private void onFrameRateTextChanged() {
 		try {
 			final Double val = Double.parseDouble(txtFramerate.getText().trim());
-			if (val != null && val > 0) framerate = val;
+			if (val != null && val > 0) {
+				framerate = val;
+				frame_plotter.selectVal((float) framerate);
+			}
 		} catch (NumberFormatException e) {}
 		setFrameRate(framerate);
 	}
 	
 	private void setFramerateValButDoNotSyncWithLibrary(final double val) {
 		framerate = val;
+		frame_plotter.selectVal((float) framerate);
 		final String frameratetext = String.format(FRAMERATE_FORMAT, framerate);
 		txtFramerate.setText(frameratetext);
 		prefs.putDouble(PREF_FRAMERATE, framerate);
@@ -1075,6 +1103,7 @@ public class Main implements TSDRLibrary.FrameReadyCallback, TSDRLibrary.Incomin
 			break;
 		case FRAME:
 			frame_plotter.plot(data, offset, size, samplerate);
+			frame_plotter.selectVal((float) framerate);
 			break;
 		default:
 			System.out.println("Java Main received unimplemented notification plot value "+id+" with size "+size);
@@ -1105,19 +1134,28 @@ public class Main implements TSDRLibrary.FrameReadyCallback, TSDRLibrary.Incomin
 		
 		@Override
 		public float fromIndex(int id, int offset, long samplerate) {
-			final float length = offset + id;
-			return samplerate / length;
+			return samplerate / (float) (offset + id);
 		}
 		
 		public void onMouseExited() {
 			height_transformer.setLength(null);
 			line_plotter.repaint();
-		};
+		}
 		
 		public void onMouseMoved(int m_id, int offset, long samplerate) {
 			height_transformer.setLength(offset + m_id);
 			line_plotter.repaint();
-		};
+		}
+		
+		public void executeIdSelected(int sel_id, int offset, long samplerate) {
+			float fps = fromIndex(sel_id, offset, samplerate);
+			setFrameRate(fps);
+		}
+
+		@Override
+		public int toIndex(float val, int offset, long samplerate) {
+			return (int) (samplerate / val - offset);
+		}
 	};
 	
 	private class TransformerAndCallbackHeight extends TransformerAndCallback {
@@ -1136,6 +1174,17 @@ public class Main implements TSDRLibrary.FrameReadyCallback, TSDRLibrary.Incomin
 			final float length = (this.length == null) ? ((float) (samplerate / framerate)) : ((float) this.length);
 			
 			return length / linelength;
+		}
+		
+		public void executeIdSelected(int sel_id, int offset, long samplerate) {
+			// TODO! change height
+		}
+
+		@Override
+		public int toIndex(float val, int offset, long samplerate) {
+			final float length = (this.length == null) ? ((float) (samplerate / framerate)) : ((float) this.length);
+
+			return (int) (length / val - offset);
 		}
 	}
 	
