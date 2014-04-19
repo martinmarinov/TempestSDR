@@ -11,9 +11,7 @@
 package martin.tempest.gui;
 import java.awt.Color;
 import java.awt.Graphics;
-import java.awt.Graphics2D;
 import java.awt.Rectangle;
-import java.awt.RenderingHints;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
 import java.awt.event.MouseMotionListener;
@@ -28,6 +26,7 @@ public class PlotVisualizer extends JPanel {
 	
 	private Object locker = new Object();
 	private float[] data = null;
+	private float[] visdata = null;
 	private int size = 0;
 	private float max_val = 0;
 	private float min_val = 0;
@@ -128,25 +127,61 @@ public class PlotVisualizer extends JPanel {
 		return String.format(text_format, val);
 	}
 
-	public void plot(float[] incoming_data, int offset, int size, long samplerate) {
+	public void plot(float[] incoming_data, int offset, final int size, long samplerate) {
 		if (size <= 0) return;
 		
 		synchronized (locker) {
 			if (data == null || data.length < size)
 				data = new float[size];
 			System.arraycopy(incoming_data, 0, data, 0, size);
+			
+			if (visdata == null || visdata.length != nwidth)
+				visdata = new float[nwidth];
+			
 			this.size = size;
 			this.offset = offset;
 			this.samplerate = samplerate;
 			
 			max_val = data[0];
 			min_val = data[0];
-			for (int i = 1; i < this.size; i++) {
+			
+			float localmin = data[0];
+			float oldlocalmin = localmin;
+			int old_px = 0;
+			
+			for (int i = 1; i < size; i++) {
+				final int curr_px = nwidth * i / size;
 				final float val = data[i];
-				if (val > max_val) max_val = val;
-				else if (val < min_val) min_val = val;
+
+				if (old_px != curr_px) {
+
+					final float diff = curr_px - old_px;
+
+					for (int px = old_px; px < curr_px; px++) {
+						final float coeff = (px - old_px) / diff;
+						visdata[px] = localmin * coeff + oldlocalmin * (1.0f - coeff);
+					}
+
+					if (localmin < min_val) min_val = localmin;
+					oldlocalmin = localmin;
+					localmin = val;
+				}
+				
+				old_px = curr_px;
+				
+				if (val < localmin)
+					localmin = val;
+				
+				if (val > max_val)
+					max_val = val;
 			}
+			
 			range_val = max_val - min_val;
+			
+			if (range_val == 0 || Float.isInfinite(range_val) || Float.isNaN(range_val)) return;
+			
+			for (int x = 0; x < nwidth; x++)
+				visdata[x] = nheight * (visdata[x] - min_val) / range_val;
 		}
 		
 		repaint();
@@ -194,11 +229,6 @@ public class PlotVisualizer extends JPanel {
 		
 		synchronized (locker) {
 
-			if (g instanceof Graphics2D) {
-				final Graphics2D graphics2D = (Graphics2D)g;
-				graphics2D.setRenderingHint(RenderingHints.KEY_ANTIALIASING,  RenderingHints.VALUE_ANTIALIAS_ON);
-			}
-
 			if (range_val == 0 || Float.isInfinite(range_val) || Float.isNaN(range_val)) return;
 
 			g.setColor(enabled ? Color.black : Color.DARK_GRAY);
@@ -240,31 +270,16 @@ public class PlotVisualizer extends JPanel {
 			
 			g.setColor(Color.white);
 			g.drawString(getValueAt(0), 0+nheight / 10, nheight / 5);
-			
-			int ly = (int) (nheight * (data[0] - min_val) / range_val);
-			int lx = 0;
 
-			if (size < nwidth) {
+			if (visdata.length == nwidth) {
 
-				for (int i = 1; i < size; i++) {
-					final int x = nwidth * i / size;
-					final int y = (int) (nheight * (data[i] - min_val) / range_val);
-					g.drawLine(lx, ly, x, y);
-					lx = x;
-					ly = y;
-				}
+				for (int x = 1; x < nwidth; x++)
+					g.drawLine(x, (int) visdata[x], x, nheight);
 
 			} else {
-
-				for (int x = 1; x < nwidth; x++) {
-					final int i = size * x / nwidth;
-					final int y = (int) (nheight * (data[i] - min_val) / range_val);
-					g.drawLine(lx, ly, x, y);
-
-					lx = x;
-					ly = y;
-				}
-
+				g.setColor(Color.blue);
+				g.fillRect(0, 0, nwidth, nheight);
+				return;
 			}
 		}
 	}
