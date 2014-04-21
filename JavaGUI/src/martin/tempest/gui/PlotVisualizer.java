@@ -137,9 +137,13 @@ public class PlotVisualizer extends JPanel {
 			return trans.fromIndex(index_selected, offset, samplerate);
 	}
 	
+	public Float getValueFromId(int id) {
+		return trans.fromIndex(id, offset, samplerate);
+	}
+	
 	private String getValueAt(int id) {
 		final float val = trans.fromIndex(id, offset, samplerate);
-		return trans.getDescription(val);
+		return trans.getDescription(val, id);
 	}
 
 	public void plot(float[] incoming_data, int offset, final int size, long samplerate) {
@@ -328,7 +332,7 @@ public class PlotVisualizer extends JPanel {
 	public static abstract class TransformerAndCallback {
 		public abstract float fromIndex(final int id, final int offset, final long samplerate);
 		public abstract int toIndex(final float val, final int offset, final long samplerate);
-		public abstract String getDescription(final float val);
+		public abstract String getDescription(final float val, final int id);
 		
 		public void onMouseMoved(final int m_id, final int offset, final long samplerate) {};
 		public void onMouseExited() {};

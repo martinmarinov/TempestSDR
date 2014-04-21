@@ -643,6 +643,9 @@ int tsdr_setparameter_double(tsdr_lib_t * tsdr, int parameter, double value) {
 }
 
  void tsdr_free(tsdr_lib_t ** tsdr) {
+	 (*tsdr)->callback = NULL;
+	 (*tsdr)->plotready_callback = NULL;
+
 	 unloadplugin(*tsdr);
 
 	 free((*tsdr)->errormsg);

@@ -14,6 +14,7 @@
 #include <assert.h>
 #include "threading.h"
 #include <math.h>
+#include "extbuffer.h"
 
 #define MIN_FRAMERATE (55)
 #define MIN_HEIGHT (590)
@@ -50,10 +51,13 @@ inline static double frameratedetector_fitvalue(float * data, int offset, int le
 }
 
 inline static void frameratedetector_estimatedirectlength(extbuffer_t * buff, float * data, int size, int length, int endlength, const int startlength, int accuracy) {
+
 	assert(endlength + length <= size);
 
 	const int buffsize = endlength - startlength;
 	extbuffer_preparetohandle(buff, buffsize);
+	if (!buff->valid) return;
+
 	buff->offset = startlength;
 
 	int l = startlength;
@@ -67,6 +71,7 @@ inline static void frameratedetector_estimatedirectlength(extbuffer_t * buff, fl
 }
 
 void framedetector_estimatelinelength(extbuffer_t * buff, float * data, int size, uint32_t samplerate) {
+
 	const int maxlength = samplerate / (double) (MIN_HEIGHT * MIN_FRAMERATE);
 	const int minlength = samplerate / (double) (MAX_HEIGHT * MAX_FRAMERATE);
 
@@ -85,7 +90,7 @@ float toheight(int linelength, void  * ctx) {
 	return crudelength / (double) linelength;
 }
 
-void frameratedetector_runontodata(frameratedetector_t * frameratedetector, float * data, int size) {
+void frameratedetector_runontodata(frameratedetector_t * frameratedetector, float * data, int size, extbuffer_t * extbuff, extbuffer_t * extbuff_small) {
 
 	if (frameratedetector->tsdr->params_int[PARAM_AUTOCORR_PLOTS_OFF]) return;
 
@@ -94,25 +99,31 @@ void frameratedetector_runontodata(frameratedetector_t * frameratedetector, floa
 
 	if (frameratedetector->tsdr->params_int[PARAM_AUTOCORR_PLOTS_RESET]) {
 		frameratedetector->tsdr->params_int[PARAM_AUTOCORR_PLOTS_RESET] = 0;
-		extbuffer_cleartozero(&frameratedetector->extbuff);
-		extbuffer_cleartozero(&frameratedetector->extbuff_small);
+		extbuffer_cleartozero(extbuff);
+		extbuffer_cleartozero(extbuff_small);
 		announce_callback_changed(frameratedetector->tsdr, VALUE_ID_AUTOCORRECT_RESET, 0, 0);
 	}
 
 	// estimate the length of a horizontal line in samples
-	frameratedetector_estimatedirectlength(&frameratedetector->extbuff, data, size, minlength, maxlength, minlength, FRAMERATEDETECTOR_ACCURACY);
-	framedetector_estimatelinelength(&frameratedetector->extbuff_small, data, size, frameratedetector->samplerate);
+	frameratedetector_estimatedirectlength(extbuff, data, size, minlength, maxlength, minlength, FRAMERATEDETECTOR_ACCURACY);
+	framedetector_estimatelinelength(extbuff_small, data, size, frameratedetector->samplerate);
 
 	if (frameratedetector->tsdr->params_int[PARAM_AUTOCORR_PLOTS_OFF]) return;
 
-	announce_plotready(frameratedetector->tsdr, PLOT_ID_FRAME, &frameratedetector->extbuff, frameratedetector->samplerate);
-	announce_plotready(frameratedetector->tsdr, PLOT_ID_LINE, &frameratedetector->extbuff_small, frameratedetector->samplerate);
-	announce_callback_changed(frameratedetector->tsdr, VALUE_ID_AUTOCORRECT_FRAMES_COUNT, 0, frameratedetector->extbuff.calls);
+	announce_plotready(frameratedetector->tsdr, PLOT_ID_FRAME, extbuff, frameratedetector->samplerate);
+	announce_plotready(frameratedetector->tsdr, PLOT_ID_LINE, extbuff_small, frameratedetector->samplerate);
+	announce_callback_changed(frameratedetector->tsdr, VALUE_ID_AUTOCORRECT_FRAMES_COUNT, 0, extbuff->calls);
 
 }
 
 void frameratedetector_thread(void * ctx) {
 	frameratedetector_t * frameratedetector = (frameratedetector_t *) ctx;
+
+	extbuffer_t extbuff;
+	extbuffer_t extbuff_small;
+
+	extbuffer_init(&extbuff);
+	extbuffer_init(&extbuff_small);
 
 	float * buf = NULL;
 	int bufsize = 0;
@@ -130,11 +141,20 @@ void frameratedetector_thread(void * ctx) {
 			if (buf == NULL) buf = malloc(sizeof(float) * bufsize); else buf = realloc(buf, sizeof(float) * bufsize);
 		}
 
+		if (frameratedetector->purge_buffers) {
+			extbuffer_cleartozero(&extbuff);
+			extbuffer_cleartozero(&extbuff_small);
+			frameratedetector->purge_buffers = 0;
+		}
+
 		if (cb_rem_blocking(&frameratedetector->circbuff, buf, desiredsize) == CB_OK)
-			frameratedetector_runontodata(frameratedetector, buf, desiredsize);
+			frameratedetector_runontodata(frameratedetector, buf, desiredsize, &extbuff, &extbuff_small);
 	}
 
 	free (buf);
+
+	extbuffer_free(&extbuff);
+	extbuffer_free(&extbuff_small);
 }
 
 void frameratedetector_init(frameratedetector_t * frameratedetector, tsdr_lib_t * tsdr) {
@@ -143,13 +163,10 @@ void frameratedetector_init(frameratedetector_t * frameratedetector, tsdr_lib_t 
 	frameratedetector->alive = 0;
 
 	cb_init(&frameratedetector->circbuff, CB_SIZE_MAX_COEFF_HIGH_LATENCY);
-	extbuffer_init(&frameratedetector->extbuff);
-	extbuffer_init(&frameratedetector->extbuff_small);
 }
 
 void frameratedetector_flushcachedestimation(frameratedetector_t * frameratedetector) {
-	extbuffer_cleartozero(&frameratedetector->extbuff);
-	extbuffer_cleartozero(&frameratedetector->extbuff_small);
+	frameratedetector->purge_buffers = 1;
 	cb_purge(&frameratedetector->circbuff);
 }
 
@@ -182,7 +199,6 @@ void frameratedetector_run(frameratedetector_t * frameratedetector, float * data
 }
 
 void frameratedetector_free(frameratedetector_t * frameratedetector) {
+	frameratedetector_stopthread(frameratedetector);
 	cb_free(&frameratedetector->circbuff);
-	extbuffer_free(&frameratedetector->extbuff);
-	extbuffer_free(&frameratedetector->extbuff_small);
 }

@@ -16,7 +16,6 @@
 #include "circbuff.h"
 
 #include <stddef.h>
-#include "extbuffer.h"
 
 typedef struct frameratedetector {
 
@@ -24,10 +23,9 @@ typedef struct frameratedetector {
 	uint32_t samplerate;
 
 	volatile int alive;
+	volatile int purge_buffers;
 
 	CircBuff_t circbuff;
-	extbuffer_t extbuff;
-	extbuffer_t extbuff_small;
 
 } frameratedetector_t;
 

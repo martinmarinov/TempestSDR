@@ -58,7 +58,11 @@ void extbuffer_cleartozero(extbuffer_t * container) {
 void extbuffer_free(extbuffer_t * container) {
 
 	container->valid = 0;
-	if (container->buffer != NULL) free(container->buffer);
+	if (container->buffer != NULL) {
+		float * buff = container->buffer;
+		container->buffer = NULL;
+		free(buff);
+	}
 }
 
 void extbuffer_dumptofile(extbuffer_t * container, char * filename, char * xname, char * yname) {

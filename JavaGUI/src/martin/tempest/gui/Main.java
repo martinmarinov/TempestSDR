@@ -914,8 +914,8 @@ public class Main implements TSDRLibrary.FrameReadyCallback, TSDRLibrary.Incomin
 			souces_menues[i].setEnabled(value);
 	}
 	
-	private int roundHeight(float height) {
-		return (int) height;
+	private int roundData(float height) {
+		return (int) Math.round(height);
 	}
 	
 	private void onPluginSelected(final TSDRSource current) {
@@ -1098,7 +1098,7 @@ public class Main implements TSDRLibrary.FrameReadyCallback, TSDRLibrary.Incomin
 
 				if (frame_plotter.getSamplerate() == samplerate) {
 					final float fps = fps_transofmer.fromIndex(auto_resolution_fps_id, auto_resolution_fps_offset, samplerate);
-					final int height = roundHeight(height_transformer.fromIndexAndLength(line_plotter.getMinIndex(), line_plotter.getOffset(), samplerate, auto_resolution_fps_id+auto_resolution_fps_offset));
+					final int height = roundData(height_transformer.fromIndexAndLength(line_plotter.getMinIndex(), line_plotter.getOffset(), samplerate, auto_resolution_fps_id+auto_resolution_fps_offset));
 				
 					final Long key = hashHeightAndFPS(fps, height);
 					
@@ -1143,7 +1143,7 @@ public class Main implements TSDRLibrary.FrameReadyCallback, TSDRLibrary.Incomin
 	private final TransformerAndCallback fps_transofmer = new TransformerAndCallback() {
 		
 		@Override
-		public String getDescription(final float val) { return String.format("%.1f fps", val); }
+		public String getDescription(final float val, final int id) { return String.format("%.1f fps", val); }
 		
 		@Override
 		public float fromIndex(int id, int offset, long samplerate) {
@@ -1164,13 +1164,13 @@ public class Main implements TSDRLibrary.FrameReadyCallback, TSDRLibrary.Incomin
 			height_transformer.setLength(offset + sel_id);
 			
 			final float fps = frame_plotter.getSelectedValue();
-			final int height = roundHeight(line_plotter.getSelectedValue());
+			final int height = roundData(line_plotter.getSelectedValue());
 			onResolutionChange(fps, height, "Chosen %s");
 		}
 
 		@Override
 		public int toIndex(float val, int offset, long samplerate) {
-			return (int) (samplerate / val - offset);
+			return roundData (samplerate / val - offset);
 		}
 	};
 	
@@ -1182,7 +1182,13 @@ public class Main implements TSDRLibrary.FrameReadyCallback, TSDRLibrary.Incomin
 		}
 		
 		@Override
-		public String getDescription(final float val) {return String.format("%d px", (int) val);	}
+		public String getDescription(final float val, final int id) {
+			final int err = roundData( Math.max(Math.abs(line_plotter.getValueFromId(id+1)-val), Math.abs(line_plotter.getValueFromId(id-1)-val)) ) - 1;
+			if (err > 0)
+				return String.format("%d (±%d) px",roundData(val), err);
+			else
+				return String.format("%d px",roundData(val));
+		}
 		
 		public float fromIndexAndLength(int id, int offset, long samplerate, float length) {
 			final float linelength = offset + id;
@@ -1197,7 +1203,7 @@ public class Main implements TSDRLibrary.FrameReadyCallback, TSDRLibrary.Incomin
 		
 		public void executeIdSelected(int sel_id, int offset, long samplerate) {
 			final float fps = frame_plotter.getSelectedValue();
-			final int height = roundHeight(line_plotter.getSelectedValue());
+			final int height = roundData(line_plotter.getSelectedValue());
 			onResolutionChange(fps, height, "Chosen %s");
 		}
 
@@ -1205,7 +1211,7 @@ public class Main implements TSDRLibrary.FrameReadyCallback, TSDRLibrary.Incomin
 		public int toIndex(float val, int offset, long samplerate) {
 			final float length = (this.length == null) ? ((float) (samplerate / framerate)) : ((float) this.length);
 
-			return (int) (length / val - offset);
+			return roundData (length / val - offset);
 		}
 	}
 	
