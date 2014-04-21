@@ -74,7 +74,7 @@ public class Main implements TSDRLibrary.FrameReadyCallback, TSDRLibrary.Incomin
 	
 	private final static String SNAPSHOT_FORMAT = "png";
 	private final static int OSD_TIME = 2000;
-	//private final static int OSD_TIME_LONG = 5000;
+	private final static int OSD_TIME_LONG = 5000;
 	
 	private final static int FRAMERATE_SIGNIFICANT_FIGURES = 6;
 	private final static long FREQUENCY_STEP = 5000000;
@@ -226,7 +226,8 @@ public class Main implements TSDRLibrary.FrameReadyCallback, TSDRLibrary.Incomin
 		line_plotter = new PlotVisualizer(height_transformer);
 		line_plotter.setBounds(10, 498, 719, 95);
 		frmTempestSdr.getContentPane().add(line_plotter);
-		
+		line_plotter.setSelectedValue(height_initial);
+
 		btnStartStop = new JButton("Start");
 		btnStartStop.setBounds(573, 33, 209, 25);
 		btnStartStop.setEnabled(false);
@@ -257,7 +258,7 @@ public class Main implements TSDRLibrary.FrameReadyCallback, TSDRLibrary.Incomin
 		frame_plotter = new PlotVisualizer(fps_transofmer);
 		frame_plotter.setBounds(10, 391, 719, 95);
 		frmTempestSdr.getContentPane().add(frame_plotter);
-		frame_plotter.selectVal((float) framerate);
+		frame_plotter.setSelectedValue((float) framerate);
 		
 		menuBar = new JMenuBar();
 		menuBar.setBounds(0, 0, 825, 21);
@@ -494,7 +495,7 @@ public class Main implements TSDRLibrary.FrameReadyCallback, TSDRLibrary.Incomin
 					}
 				});
 				spAreaAroundMouse.setToolTipText("The area around the mouse in pixels used to picking the best value");
-				spAreaAroundMouse.setModel(new SpinnerNumberModel(new Integer(5), new Integer(0), null, new Integer(1)));
+				spAreaAroundMouse.setModel(new SpinnerNumberModel(new Integer(15), new Integer(0), null, new Integer(1)));
 				spAreaAroundMouse.setBounds(741, 466, 41, 20);
 				frmTempestSdr.getContentPane().add(spAreaAroundMouse);
 				slMotionBlur.addChangeListener(new ChangeListener() {
@@ -542,12 +543,6 @@ public class Main implements TSDRLibrary.FrameReadyCallback, TSDRLibrary.Incomin
 				btnHigherFramerate.addHoldListener(new HoldListener() {
 					public void onHold(final int clickssofar) {
 						onFrameRateChanged(false, clickssofar);
-					}
-				});
-				tglbtnPllFramerate.addActionListener(new ActionListener() {
-					@Override
-					public void actionPerformed(ActionEvent arg0) {
-						onPllFramerateChanged();
 					}
 				});
 				tglbtnAutocorrPlots.addActionListener(new ActionListener() {
@@ -702,7 +697,8 @@ public class Main implements TSDRLibrary.FrameReadyCallback, TSDRLibrary.Incomin
 	
 	private void onResolutionChange(int width, int height, double framerate, int closest_videomode_id) {
 		this.framerate = framerate;
-		frame_plotter.selectVal((float) framerate);
+		frame_plotter.setSelectedValue((float) framerate);
+		line_plotter.setSelectedValue(height);
 		final String frameratetext = String.format(FRAMERATE_FORMAT, framerate);
 		txtFramerate.setText(frameratetext);
 		
@@ -767,7 +763,7 @@ public class Main implements TSDRLibrary.FrameReadyCallback, TSDRLibrary.Incomin
 			final Double val = Double.parseDouble(txtFramerate.getText().trim());
 			if (val != null && val > 0) {
 				framerate = val;
-				frame_plotter.selectVal((float) framerate);
+				frame_plotter.setSelectedValue((float) framerate);
 			}
 		} catch (NumberFormatException e) {}
 		setFrameRate(framerate);
@@ -775,7 +771,7 @@ public class Main implements TSDRLibrary.FrameReadyCallback, TSDRLibrary.Incomin
 	
 	private void setFramerateValButDoNotSyncWithLibrary(final double val) {
 		framerate = val;
-		frame_plotter.selectVal((float) framerate);
+		frame_plotter.setSelectedValue((float) framerate);
 		final String frameratetext = String.format(FRAMERATE_FORMAT, framerate);
 		txtFramerate.setText(frameratetext);
 		prefs.putDouble(PREF_FRAMERATE, framerate);
@@ -895,14 +891,6 @@ public class Main implements TSDRLibrary.FrameReadyCallback, TSDRLibrary.Incomin
 		}
 	}
 	
-	private void onPllFramerateChanged() {
-		if (tglbtnPllFramerate.isSelected()) {
-			txtFramerate.setEnabled(false);
-		} else {
-			if (!tglbtnAutoResolution.isSelected()) txtFramerate.setEnabled(true);
-		}
-	}
-	
 	private void onAutoPostionChanged() {
 		if (tglbtnAutoPosition.isSelected()) {
 			btnDown.setEnabled(false);
@@ -920,6 +908,19 @@ public class Main implements TSDRLibrary.FrameReadyCallback, TSDRLibrary.Incomin
 	private void setPluginMenuEnabled(boolean value) {
 		for (int i = 0; i < souces_menues.length; i++)
 			souces_menues[i].setEnabled(value);
+	}
+	
+	private void onChooseFpsHeight() {
+		final float fps = frame_plotter.getSelectedValue();
+		final int height = (int) (float) (line_plotter.getSelectedValue());
+		
+		final int modeid = VideoMode.findClosestVideoModeId(fps, height, videomodes);
+		if (modeid >= 0 && modeid < videomodes.length) {
+			onResolutionChange(modeid, fps, height);
+			visualizer.setOSD("Chosen "+videomodes[modeid], OSD_TIME_LONG);
+		} else {
+			setFrameRate(fps);
+		}
 	}
 	
 	private void onPluginSelected(final TSDRSource current) {
@@ -1061,22 +1062,6 @@ public class Main implements TSDRLibrary.FrameReadyCallback, TSDRLibrary.Incomin
 	@Override
 	public void onValueChanged(VALUE_ID id, double arg0, int arg1) {
 		switch (id) {
-//		case AUTO_RESOLUTION_RESULT: {
-//			
-//			tglbtnAutoResolution.setSelected(false);
-//			onAutoResolutionChanged();
-//			
-//			height_change_from_auto = true;
-//			final int modeid = VideoMode.findClosestVideoModeId(arg0, arg1, videomodes);
-//			if (modeid >= 0 && modeid < videomodes.length) {
-//				onResolutionChange(modeid, arg0, arg1);
-//				visualizer.setOSD("Detected "+videomodes[modeid], OSD_TIME_LONG);
-//			} else {
-//				setFrameRate(arg0);
-//			}
-//			height_change_from_auto = false;
-//
-//		} break;
 		case PLL_FRAMERATE:
 			setFramerateValButDoNotSyncWithLibrary(arg0);
 			break;
@@ -1103,7 +1088,6 @@ public class Main implements TSDRLibrary.FrameReadyCallback, TSDRLibrary.Incomin
 			break;
 		case FRAME:
 			frame_plotter.plot(data, offset, size, samplerate);
-			frame_plotter.selectVal((float) framerate);
 			break;
 		default:
 			System.out.println("Java Main received unimplemented notification plot value "+id+" with size "+size);
@@ -1130,7 +1114,7 @@ public class Main implements TSDRLibrary.FrameReadyCallback, TSDRLibrary.Incomin
 	private final TransformerAndCallback fps_transofmer = new TransformerAndCallback() {
 		
 		@Override
-		public String getUnit() { return "fps";}
+		public String getDescription(final float val) { return String.format("%.1f fps", val); }
 		
 		@Override
 		public float fromIndex(int id, int offset, long samplerate) {
@@ -1148,8 +1132,9 @@ public class Main implements TSDRLibrary.FrameReadyCallback, TSDRLibrary.Incomin
 		}
 		
 		public void executeIdSelected(int sel_id, int offset, long samplerate) {
-			float fps = fromIndex(sel_id, offset, samplerate);
-			setFrameRate(fps);
+			height_transformer.setLength(offset + sel_id);
+			
+			onChooseFpsHeight();
 		}
 
 		@Override
@@ -1166,7 +1151,7 @@ public class Main implements TSDRLibrary.FrameReadyCallback, TSDRLibrary.Incomin
 		}
 		
 		@Override
-		public String getUnit() { return "px";	}
+		public String getDescription(final float val) {return String.format("%d px", (int) val);	}
 		
 		@Override
 		public float fromIndex(int id, int offset, long samplerate) {
@@ -1177,7 +1162,7 @@ public class Main implements TSDRLibrary.FrameReadyCallback, TSDRLibrary.Incomin
 		}
 		
 		public void executeIdSelected(int sel_id, int offset, long samplerate) {
-			// TODO! change height
+			onChooseFpsHeight();
 		}
 
 		@Override

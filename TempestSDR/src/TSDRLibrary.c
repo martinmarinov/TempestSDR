@@ -86,7 +86,7 @@ static inline void announceexception(tsdr_lib_t * tsdr, const char * message, in
  }
 
  void announce_plotready(tsdr_lib_t * tsdr, int plot_id, extbuffer_t * buffer, uint32_t samplerate) {
-		assert (buffer->valid);
+		if (!buffer->valid) return;
 
 		if (tsdr->plotready_callback != NULL)
 			tsdr->plotready_callback(plot_id, buffer->offset, buffer->buffer, buffer->size_valid_elements, samplerate, tsdr->callbackctx);
