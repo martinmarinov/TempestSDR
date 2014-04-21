@@ -30,6 +30,7 @@ public class PlotVisualizer extends JPanel {
 	private float max_val = 0;
 	private float min_val = 0;
 	private float range_val = 0;
+	private int min_index = 0;
 	private boolean enabled;
 	private int mouse_x = -1;
 	private Integer index_selected = null;
@@ -164,6 +165,7 @@ public class PlotVisualizer extends JPanel {
 			min_val = data[0];
 			
 			float localmin = data[0];
+			min_index = 0;
 			int old_px = 0;
 			
 			for (int i = 1; i < size; i++) {
@@ -175,7 +177,6 @@ public class PlotVisualizer extends JPanel {
 					for (int px = old_px; px < curr_px; px++)
 						visdata[px] = localmin;
 
-					if (localmin < min_val) min_val = localmin;
 					localmin = val;
 				}
 				
@@ -186,6 +187,10 @@ public class PlotVisualizer extends JPanel {
 				
 				if (val > max_val)
 					max_val = val;
+				else if (val < min_val) {
+					min_val = val;
+					min_index = i;
+				}
 			}
 			
 			range_val = max_val - min_val;
@@ -203,6 +208,18 @@ public class PlotVisualizer extends JPanel {
 		}
 		
 		repaint();
+	}
+	
+	public int getMinIndex() {
+		return min_index;
+	}
+	
+	public int getOffset() {
+		return offset;
+	}
+	
+	public long getSamplerate() {
+		return samplerate;
 	}
 	
 	@Override

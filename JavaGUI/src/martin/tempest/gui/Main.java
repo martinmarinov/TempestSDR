@@ -61,6 +61,7 @@ import java.io.File;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.prefs.Preferences;
 
 import javax.swing.JPanel;
@@ -75,6 +76,8 @@ public class Main implements TSDRLibrary.FrameReadyCallback, TSDRLibrary.Incomin
 	private final static String SNAPSHOT_FORMAT = "png";
 	private final static int OSD_TIME = 2000;
 	private final static int OSD_TIME_LONG = 5000;
+	
+	private final static int AUTO_FRAMERATE_CONVERGANCE_ITERATIONS = 3;
 	
 	private final static int FRAMERATE_SIGNIFICANT_FIGURES = 6;
 	private final static long FREQUENCY_STEP = 5000000;
@@ -92,6 +95,7 @@ public class Main implements TSDRLibrary.FrameReadyCallback, TSDRLibrary.Incomin
 	private final static String PREF_GAIN = "gain";
 	private final static String PREF_MOTIONBLUR = "motionblur";
 	private final static String PREF_HEIGHT_LOCK = "height_lock";
+	private final static String PREF_AREA_AROUND_MOUSE = "area_around_mouse";
 
 	private final SpinnerModel frequency_spinner_model = new SpinnerNumberModel(new Long(prefs.getLong(PREF_FREQ, 400000000)), new Long(0), new Long(2147483647), new Long(FREQUENCY_STEP));
 	
@@ -116,18 +120,23 @@ public class Main implements TSDRLibrary.FrameReadyCallback, TSDRLibrary.Incomin
 	private JTextField txtFramerate;
 	private HoldButton btnLowerFramerate, btnHigherFramerate, btnUp, btnDown, btnLeft, btnRight;
 	private JPanel pnInputDeviceSettings;
-	private JToggleButton tglbtnAutoResolution;
 	private ParametersToggleButton tglbtnAutoPosition, tglbtnPllFramerate, tglbtnAutocorrPlots;
 	private JToggleButton tglbtnLockHeightAndFramerate;
-	private JOptionPane optpaneDevices;
 	private JToggleButton btnReset;
+	private JToggleButton btnAutoResolution;
 	private JLabel lblFrames;
 	private JSpinner spAreaAroundMouse;
+	private JOptionPane optpaneDevices;
+
 	
 	private final TSDRSource[] souces = TSDRSource.getAvailableSources();
 	private final JMenuItem[] souces_menues = new JMenuItem[souces.length];
 	private final VideoMode[] videomodes = VideoMode.getVideoModes();
 
+	private volatile boolean auto_resolution = false;
+	private Integer auto_resolution_fps_id = null;
+	private Integer auto_resolution_fps_offset = null;
+	private final HashMap<Long, Integer> auto_resolution_map = new HashMap<Long, Integer>();
 	
 	private volatile boolean snapshot = false;
 	private volatile boolean height_change_from_auto = false;
@@ -328,7 +337,7 @@ public class Main implements TSDRLibrary.FrameReadyCallback, TSDRLibrary.Incomin
 		frmTempestSdr.getContentPane().add(btnReset);
 		
 		cbVideoModes = new JComboBox();
-		cbVideoModes.setBounds(573, 70, 172, 22);
+		cbVideoModes.setBounds(573, 70, 209, 22);
 		frmTempestSdr.getContentPane().add(cbVideoModes);
 		cbVideoModes.setModel(new DefaultComboBoxModel(videomodes));
 		if (closest_videomode_id != -1 && closest_videomode_id < videomodes.length && closest_videomode_id >= 0) cbVideoModes.setSelectedIndex(closest_videomode_id);
@@ -377,13 +386,6 @@ public class Main implements TSDRLibrary.FrameReadyCallback, TSDRLibrary.Incomin
 			}
 		});
 		spHeight.setModel(new SpinnerNumberModel(height_initial, 1, 10000, 1));
-		
-				
-				tglbtnAutoResolution = new JToggleButton("A");
-				tglbtnAutoResolution.setBounds(757, 70, 25, 22);
-				frmTempestSdr.getContentPane().add(tglbtnAutoResolution);
-				tglbtnAutoResolution.setToolTipText("Automatically detect resolution");
-				tglbtnAutoResolution.setMargin(new Insets(0, 0, 0, 0));
 				
 				tglbtnLockHeightAndFramerate = new JToggleButton("L");
 				tglbtnLockHeightAndFramerate.setBounds(757, 123, 25, 22);
@@ -495,9 +497,26 @@ public class Main implements TSDRLibrary.FrameReadyCallback, TSDRLibrary.Incomin
 					}
 				});
 				spAreaAroundMouse.setToolTipText("The area around the mouse in pixels used to picking the best value");
-				spAreaAroundMouse.setModel(new SpinnerNumberModel(new Integer(15), new Integer(0), null, new Integer(1)));
+				spAreaAroundMouse.setModel(new SpinnerNumberModel(new Integer(prefs.getInt(PREF_AREA_AROUND_MOUSE, 15)), new Integer(0), null, new Integer(1)));
 				spAreaAroundMouse.setBounds(741, 466, 41, 20);
 				frmTempestSdr.getContentPane().add(spAreaAroundMouse);
+				
+				btnAutoResolution = new JToggleButton("AUT");
+				btnAutoResolution.addActionListener(new ActionListener() {
+					public void actionPerformed(ActionEvent arg0) {
+						final boolean selected = btnAutoResolution.isSelected();
+						if (selected) {
+							auto_resolution_map.clear();
+							auto_resolution_fps_id = null;
+							auto_resolution_fps_offset = null;
+						}
+						auto_resolution = selected;
+					}
+				});
+				btnAutoResolution.setToolTipText("Automatically choose the best resolution and framerate from the available data");
+				btnAutoResolution.setMargin(new Insets(0, 0, 0, 0));
+				btnAutoResolution.setBounds(741, 571, 41, 22);
+				frmTempestSdr.getContentPane().add(btnAutoResolution);
 				slMotionBlur.addChangeListener(new ChangeListener() {
 					public void stateChanged(ChangeEvent e) {
 						onMotionBlurLevelChanged();
@@ -558,12 +577,6 @@ public class Main implements TSDRLibrary.FrameReadyCallback, TSDRLibrary.Incomin
 						prefs.putBoolean(PREF_HEIGHT_LOCK, tglbtnLockHeightAndFramerate.isSelected());
 					}
 				});
-				tglbtnAutoResolution.addActionListener(new ActionListener() {
-					@Override
-					public void actionPerformed(ActionEvent arg0) {
-						onAutoResolutionChanged();
-					}
-				});
 		cbVideoModes.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent arg0) {
 				final VideoMode selected = (VideoMode) cbVideoModes.getSelectedItem();
@@ -607,7 +620,6 @@ public class Main implements TSDRLibrary.FrameReadyCallback, TSDRLibrary.Incomin
 		
 		deviceframe.getContentPane().add(optpaneDevices);
 		
-		onAutoResolutionChanged();
 		onAutoPostionChanged();
 		
 		setAreaAroundMouse();
@@ -623,6 +635,7 @@ public class Main implements TSDRLibrary.FrameReadyCallback, TSDRLibrary.Incomin
 			final int area_around_mouse = (Integer) spAreaAroundMouse.getValue();
 			line_plotter.setAreaAroundMouse(area_around_mouse); 
 			frame_plotter.setAreaAroundMouse(area_around_mouse); 
+			prefs.putInt(PREF_AREA_AROUND_MOUSE, area_around_mouse);
 		} catch (Throwable t) {};
 	}
 	
@@ -689,6 +702,17 @@ public class Main implements TSDRLibrary.FrameReadyCallback, TSDRLibrary.Incomin
 		
 		final VideoMode mode = videomodes[id];
 		onResolutionChange(mode.width, mode.height, mode.refreshrate, id);
+	}
+	
+	private void onResolutionChange(final float fps, final int height, final String msg) {
+		
+		final int modeid = VideoMode.findClosestVideoModeId(fps, height, videomodes);
+		if (modeid >= 0 && modeid < videomodes.length) {
+			onResolutionChange(modeid, fps, height);
+			visualizer.setOSD(String.format(msg, " "+videomodes[modeid]), OSD_TIME_LONG);
+		} else {
+			setFrameRate(fps);
+		}
 	}
 	
 	private void onResolutionChange(int width, int height, double framerate) {
@@ -871,26 +895,6 @@ public class Main implements TSDRLibrary.FrameReadyCallback, TSDRLibrary.Incomin
 		setFrameRate(framerate);
 	}
 	
-	private void onAutoResolutionChanged() {
-		if (tglbtnAutoResolution.isSelected()) {
-			txtFramerate.setEnabled(false);
-			txtFramerate.setText("----");
-			btnLowerFramerate.setEnabled(false);
-			btnHigherFramerate.setEnabled(false);
-			cbVideoModes.setEnabled(false);
-			spWidth.setEnabled(false);
-			spHeight.setEnabled(false);
-		} else {
-			txtFramerate.setText(String.format(FRAMERATE_FORMAT, framerate));
-			if (!tglbtnPllFramerate.isSelected()) txtFramerate.setEnabled(true);
-			btnLowerFramerate.setEnabled(true);
-			btnHigherFramerate.setEnabled(true);
-			cbVideoModes.setEnabled(true);
-			spWidth.setEnabled(true);
-			spHeight.setEnabled(true);
-		}
-	}
-	
 	private void onAutoPostionChanged() {
 		if (tglbtnAutoPosition.isSelected()) {
 			btnDown.setEnabled(false);
@@ -910,17 +914,8 @@ public class Main implements TSDRLibrary.FrameReadyCallback, TSDRLibrary.Incomin
 			souces_menues[i].setEnabled(value);
 	}
 	
-	private void onChooseFpsHeight() {
-		final float fps = frame_plotter.getSelectedValue();
-		final int height = (int) (float) (line_plotter.getSelectedValue());
-		
-		final int modeid = VideoMode.findClosestVideoModeId(fps, height, videomodes);
-		if (modeid >= 0 && modeid < videomodes.length) {
-			onResolutionChange(modeid, fps, height);
-			visualizer.setOSD("Chosen "+videomodes[modeid], OSD_TIME_LONG);
-		} else {
-			setFrameRate(fps);
-		}
+	private int roundHeight(float height) {
+		return (int) height;
 	}
 	
 	private void onPluginSelected(final TSDRSource current) {
@@ -1077,17 +1072,51 @@ public class Main implements TSDRLibrary.FrameReadyCallback, TSDRLibrary.Incomin
 		}
 
 	}
+	
+	private Long hashHeightAndFPS(float fps, int height) {
+		return (Long) (long) (fps * height);
+	}
 
 	@Override
 	public void onIncommingPlot(PLOT_ID id, int offset, float[] data, int size, long samplerate) {
 		btnReset.setSelected(false);
 		
 		switch (id) {
-		case LINE:
-			line_plotter.plot(data, offset, size, samplerate);
-			break;
 		case FRAME:
 			frame_plotter.plot(data, offset, size, samplerate);
+			if (auto_resolution) {
+				auto_resolution_fps_id = frame_plotter.getMinIndex();
+				auto_resolution_fps_offset = frame_plotter.getOffset();
+			}
+
+			break;
+		case LINE:
+			line_plotter.plot(data, offset, size, samplerate);
+			if (auto_resolution && auto_resolution_fps_id != null) {
+				assert(auto_resolution_fps_offset != null);
+				assert(samplerate == line_plotter.getSamplerate());
+
+				if (frame_plotter.getSamplerate() == samplerate) {
+					final float fps = fps_transofmer.fromIndex(auto_resolution_fps_id, auto_resolution_fps_offset, samplerate);
+					final int height = roundHeight(height_transformer.fromIndexAndLength(line_plotter.getMinIndex(), line_plotter.getOffset(), samplerate, auto_resolution_fps_id+auto_resolution_fps_offset));
+				
+					final Long key = hashHeightAndFPS(fps, height);
+					
+					Integer value = auto_resolution_map.get(key);
+					
+					if (value != null && value == AUTO_FRAMERATE_CONVERGANCE_ITERATIONS) {
+						onResolutionChange(fps, height, "Detected %s");
+						btnAutoResolution.setSelected(false);
+						auto_resolution = false;
+					} else {
+
+						if (value == null) value = 0;
+						value++;
+						auto_resolution_map.put(key, value);
+					}
+				}
+				
+			}
 			break;
 		default:
 			System.out.println("Java Main received unimplemented notification plot value "+id+" with size "+size);
@@ -1134,7 +1163,9 @@ public class Main implements TSDRLibrary.FrameReadyCallback, TSDRLibrary.Incomin
 		public void executeIdSelected(int sel_id, int offset, long samplerate) {
 			height_transformer.setLength(offset + sel_id);
 			
-			onChooseFpsHeight();
+			final float fps = frame_plotter.getSelectedValue();
+			final int height = roundHeight(line_plotter.getSelectedValue());
+			onResolutionChange(fps, height, "Chosen %s");
 		}
 
 		@Override
@@ -1153,16 +1184,21 @@ public class Main implements TSDRLibrary.FrameReadyCallback, TSDRLibrary.Incomin
 		@Override
 		public String getDescription(final float val) {return String.format("%d px", (int) val);	}
 		
-		@Override
-		public float fromIndex(int id, int offset, long samplerate) {
+		public float fromIndexAndLength(int id, int offset, long samplerate, float length) {
 			final float linelength = offset + id;
-			final float length = (this.length == null) ? ((float) (samplerate / framerate)) : ((float) this.length);
 			
 			return length / linelength;
 		}
 		
+		@Override
+		public float fromIndex(int id, int offset, long samplerate) {
+			return fromIndexAndLength(id, offset, samplerate, (this.length == null) ? ((float) (samplerate / framerate)) : ((float) this.length));
+		}
+		
 		public void executeIdSelected(int sel_id, int offset, long samplerate) {
-			onChooseFpsHeight();
+			final float fps = frame_plotter.getSelectedValue();
+			final int height = roundHeight(line_plotter.getSelectedValue());
+			onResolutionChange(fps, height, "Chosen %s");
 		}
 
 		@Override
