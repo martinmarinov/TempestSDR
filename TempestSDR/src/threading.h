@@ -27,6 +27,7 @@
 	struct mutex {
 		void * thing1;
 		void * thing2;
+		volatile int valid;
 	} typedef mutex_t;
 
 	struct semaphore {
@@ -34,6 +35,14 @@
 		mutex_t locker;
 		mutex_t signaller;
 	} typedef semaphore_t;
+
+	struct locking_variable {
+		volatile int value;
+		mutex_t signaller;
+		mutex_t locker;
+		volatile int someonewaiting;
+		volatile int set;
+	} typedef locking_variable_t;
 
 #define THREAD_INIT ={NULL, NULL}
 
@@ -55,5 +64,10 @@
 	void semaphore_leave(semaphore_t * semaphore);
 	void semaphore_wait(semaphore_t * semaphore);
 	void semaphore_free(semaphore_t * semaphore);
+
+	void lockvar_init(locking_variable_t * var);
+	int lockvar_waitandgetval(locking_variable_t * var);
+	void lockvar_free(locking_variable_t * var);
+	void lockvar_setval(locking_variable_t * var, int value);
 
 #endif

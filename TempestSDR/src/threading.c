@@ -13,9 +13,8 @@
 #include "threading.h"
 #include <stdio.h>
 #include <stdlib.h>
-
-// A platform independent threading library with mutexes
-// based on: http://www.cs.wustl.edu/~schmidt/win32-cv-1.html
+#include <assert.h>
+#include <string.h>
 
 
 #if WINHEAD
@@ -78,9 +77,11 @@
 		pthread_mutex_init((pthread_mutex_t *) mutex->thing1, NULL);
 		pthread_cond_init((pthread_cond_t *) mutex->thing2, NULL);
 #endif
+		mutex->valid = 1;
 	}
 
 	void critical_enter(mutex_t * mutex) {
+		if (!mutex->valid) return;
 #if WINHEAD
 		EnterCriticalSection((CRITICAL_SECTION *) mutex->thing2);
 #else
@@ -89,6 +90,7 @@
 	}
 
 	void critical_leave(mutex_t * mutex) {
+		if (!mutex->valid) return;
 #if WINHEAD
 		LeaveCriticalSection((CRITICAL_SECTION *) mutex->thing2);
 #else
@@ -97,6 +99,7 @@
 	}
 
 	int mutex_waitforever(mutex_t * imutex) {
+		if (!imutex->valid) return THREAD_NOT_INITED;
 #if WINHEAD
 		return (WaitForSingleObject ((HANDLE) imutex->thing1, INFINITE) == WAIT_TIMEOUT) ? (THREAD_TIMEOUT) : (THREAD_OK);
 #else
@@ -117,6 +120,7 @@
 	}
 
 	int mutex_wait(mutex_t * imutex) {
+		if (!imutex->valid) return THREAD_NOT_INITED;
 #if WINHEAD
 		return (WaitForSingleObject ((HANDLE) imutex->thing1, 100) == WAIT_TIMEOUT) ? (THREAD_TIMEOUT) : (THREAD_OK);
 #else
@@ -125,26 +129,36 @@
 		pthread_mutex_t * mutex = (pthread_mutex_t *) imutex->thing1;
 		pthread_cond_t * cond = (pthread_cond_t *) imutex->thing2;
 
-		struct timespec timeToWait;
-		struct timeval now;
+		struct timeval tp;
+		struct timespec ts;
+		gettimeofday(&tp, NULL);
 
-		gettimeofday(&now, NULL);
+		ts.tv_sec = tp.tv_sec;
+		ts.tv_nsec = tp.tv_usec * 1000;
 
-		timeToWait.tv_sec = now.tv_sec;
-		timeToWait.tv_nsec = now.tv_usec*1000UL + 10 * 1000000;
+		ts.tv_nsec += 30 * 1000000;
+
+		ts.tv_sec += ts.tv_nsec / 1000000000L;
+		ts.tv_nsec = ts.tv_nsec % 1000000000L;
 
 		pthread_mutex_lock(mutex);
-		const int res = pthread_cond_timedwait(cond, mutex, &timeToWait);
+		const int res = pthread_cond_timedwait(cond, mutex, &ts);
 		pthread_mutex_unlock(mutex);
 
 		if (res == ETIMEDOUT)
 			return THREAD_TIMEOUT;
+
+		if (res != ETIMEDOUT && res != 0) {
+			fprintf(stderr, "Thread returned result of %d: %s\n", res, strerror(res)); fflush(stderr);
+			assert(0);
+		}
 #endif
 
 		return THREAD_OK;
 	}
 
 	void mutex_signal(mutex_t * imutex) {
+		if (!imutex->valid) return;
 #if WINHEAD
 		SetEvent ((HANDLE) imutex->thing1);
 #else
@@ -158,6 +172,7 @@
 	}
 
 	void mutex_free(mutex_t * imutex) {
+		if (!imutex->valid) return;
 #if WINHEAD
 		CloseHandle ((HANDLE) imutex->thing1);
 		DeleteCriticalSection((CRITICAL_SECTION *) imutex->thing2);
@@ -169,6 +184,7 @@
 		pthread_mutex_destroy(mutex);
 		pthread_cond_destroy(cond);
 #endif
+		imutex->valid = 0;
 	}
 
 	void semaphore_init(semaphore_t * semaphore) {
@@ -194,6 +210,7 @@
 	void semaphore_wait(semaphore_t * semaphore) {
 		int locked = 1;
 		critical_enter(&semaphore->locker);
+		assert(semaphore -> count >= 0);
 		if (semaphore -> count == 0)
 			locked = 0;
 		critical_leave(&semaphore->locker);
@@ -202,6 +219,7 @@
 		while (mutex_wait(&semaphore->signaller) != THREAD_OK) {
 			int locked = 1;
 			critical_enter(&semaphore->locker);
+			assert(semaphore -> count >= 0);
 			if (semaphore -> count == 0)
 				locked = 0;
 			critical_leave(&semaphore->locker);
@@ -212,4 +230,84 @@
 	void semaphore_free(semaphore_t * semaphore) {
 		mutex_free(&semaphore->locker);
 		mutex_free(&semaphore->signaller);
+	}
+
+	void lockvar_init(locking_variable_t * var) {
+		assert(var != NULL);
+
+		mutex_init(&var->signaller);
+		mutex_init(&var->locker);
+
+		critical_enter(&var->locker);
+		var->someonewaiting = 0;
+		var->set = 0;
+		critical_leave(&var->locker);
+	}
+
+	int lockvar_waitandgetval(locking_variable_t * var) {
+		assert(var != NULL);
+
+		critical_enter(&var->locker);
+		assert(var->someonewaiting >= 0);
+		var->someonewaiting++;
+		critical_leave(&var->locker);
+
+		int set = 0;
+		int val = -1;
+		critical_enter(&var->locker);
+		set = var->set;
+		val = var->value;
+		critical_leave(&var->locker);
+		if (set) {
+			critical_enter(&var->locker);
+			var->someonewaiting--;
+			critical_leave(&var->locker);
+			return val;
+		}
+
+		mutex_waitforever(&var->signaller);
+
+		critical_enter(&var->locker);
+		assert(var->set);
+
+		val = var->value;
+
+		var->someonewaiting--;
+
+		critical_leave(&var->locker);
+
+		return val;
+	}
+
+	void lockvar_free(locking_variable_t * var) {
+		assert(var != NULL);
+
+		assert(!var->someonewaiting);
+
+		mutex_free(&var->signaller);
+		mutex_free(&var->locker);
+	}
+
+	void lockvar_setval(locking_variable_t * var, int value) {
+		assert(var != NULL);
+
+		int someonewaiting = 1;
+		critical_enter(&var->locker);
+		assert(var->someonewaiting >= 0);
+
+		var->value = value;
+		var->set = 1;
+
+		someonewaiting = var->someonewaiting;
+		critical_leave(&var->locker);
+
+		if (!someonewaiting) return;
+
+		while (someonewaiting > 0) {
+			mutex_signal(&var->signaller);
+
+			critical_enter(&var->locker);
+			someonewaiting = var->someonewaiting;
+			critical_leave(&var->locker);
+		}
 	}
