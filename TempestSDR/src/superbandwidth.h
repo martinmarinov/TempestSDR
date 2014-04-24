@@ -16,6 +16,8 @@
 #ifndef SUPERBANDWIDTH_H_
 #define SUPERBANDWIDTH_H_
 
+#include "extbuffer.h"
+
 typedef struct {
 	int state;
 	int samples_to_gather;
@@ -31,11 +33,12 @@ typedef struct {
 	int buffsbuffcount;
 	int buffid_current;
 
+	extbuffer_t extb;
 } superbandwidth_t;
 
 void superb_init(superbandwidth_t * bw);
 void superb_free(superbandwidth_t * bw);
-void superb_run(superbandwidth_t * bw, float * iq, int size, tsdr_lib_t * tsdr, int dropped);
+void superb_run(superbandwidth_t * bw, float * iq, int size, tsdr_lib_t * tsdr, int dropped, float ** outbuff, int * outbufsize);
 void superb_stop(superbandwidth_t * bw, tsdr_lib_t * tsdr);
 
 

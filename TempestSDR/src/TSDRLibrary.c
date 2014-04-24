@@ -310,9 +310,16 @@ void process(float *buf, uint32_t items_count, void *ctx, int samples_dropped) {
 	const int size2 = items_count >> 1;
 	context->decimator_items_to_poll = size2;
 
-	if (context->this->params_int[PARAM_AUTOCORR_SUPERRESOLUTION])
-		superb_run(&context->this->super, buf, items_count, context->this, samples_dropped);
-	else {
+	if (context->this->params_int[PARAM_AUTOCORR_SUPERRESOLUTION]) {
+		float * superbuf = NULL; int superbuff_samples;
+		superb_run(&context->this->super, buf, items_count, context->this, samples_dropped, &superbuf, &superbuff_samples);
+
+		if (superbuf) {
+			am_demod(superbuf, superbuff_samples);
+			cb_add(&context->circbuf_device_to_decimation, superbuf, superbuff_samples);
+		}
+
+	} else {
 		superb_stop(&context->this->super, context->this);
 
 		if (samples_dropped > 0)

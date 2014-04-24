@@ -14,12 +14,14 @@
 #ifndef EXTBUFFER_H_
 #define EXTBUFFER_H_
 
+#include "stdint.h"
+
 typedef struct extbuffer {
 
 	float * buffer;
-	int size_valid_elements;
+	uint32_t size_valid_elements;
 
-	int buffer_max_size;
+	uint32_t buffer_max_size;
 
 	int offset;
 	volatile int valid;
@@ -30,7 +32,7 @@ typedef struct extbuffer {
 } extbuffer_t;
 
 void extbuffer_init(extbuffer_t * container);
-void extbuffer_preparetohandle(extbuffer_t * container, int size);
+void extbuffer_preparetohandle(extbuffer_t * container, uint32_t size);
 void extbuffer_cleartozero(extbuffer_t * container);
 void extbuffer_dumptofile(extbuffer_t * container, char * filename, char * xname, char * yname);
 void extbuffer_free(extbuffer_t * container);

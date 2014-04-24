@@ -27,7 +27,7 @@ void extbuffer_init(extbuffer_t * container) {
 	container->calls = 0;
 }
 
-void extbuffer_preparetohandle(extbuffer_t * container, int size) {
+void extbuffer_preparetohandle(extbuffer_t * container, uint32_t size) {
 	assert (size > 0);
 
 	if (container->buffer_max_size < size || container->buffer_max_size > (size << 1)) {
