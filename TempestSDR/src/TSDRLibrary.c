@@ -23,6 +23,7 @@
 #include "circbuff.h"
 #include "syncdetector.h"
 #include "internaldefinitions.h"
+#include "superbandwidth.h"
 
 #define MAX_ARR_SIZE (4000*4000)
 #define MAX_SAMP_RATE (500e6)
@@ -122,6 +123,7 @@ static inline void announceexception(tsdr_lib_t * tsdr, const char * message, in
 	mutex_init(&(*tsdr)->stopsync);
 
 	frameratedetector_init(&(*tsdr)->frameratedetect, *tsdr);
+	superb_init(&(*tsdr)->super);
 
 }
 
@@ -155,6 +157,11 @@ static inline void announceexception(tsdr_lib_t * tsdr, const char * message, in
 	return 0; // to avoid getting warning from stupid Eclpse
 }
 
+
+void shiftfreq(tsdr_lib_t * tsdr, int32_t diff) {
+	if (tsdr->plugin.initialized)
+		tsdr->plugin.tsdrplugin_setbasefreq(tsdr->centfreq+diff);
+}
 
  int tsdr_stop(tsdr_lib_t * tsdr) {
 	if (!tsdr->running) RETURN_OK(tsdr);
@@ -303,30 +310,36 @@ void process(float *buf, uint32_t items_count, void *ctx, int samples_dropped) {
 	const int size2 = items_count >> 1;
 	context->decimator_items_to_poll = size2;
 
-	if (samples_dropped > 0)
-		context->device_items_dropped += (samples_dropped << 1);
-
-	if (context->device_items_dropped > 0) {
-
-		const unsigned int size2 = round(((context->this->width * context->this->height) << 1) * context->this->pixeltimeoversampletime);
-		const unsigned int moddropped = context->device_items_dropped % size2;
-		context->device_items_to_drop += size2-moddropped; // how much to drop so that it ends up on one frame
-		context->device_items_dropped = 0;
-	}
-
-	const size_t device_items_to_drop = context->device_items_to_drop;
-	if (device_items_to_drop >= items_count)
-		context->device_items_to_drop -= items_count;
+	if (context->this->params_int[PARAM_AUTOCORR_SUPERRESOLUTION])
+		superb_run(&context->this->super, buf, items_count, context->this, samples_dropped);
 	else {
+		superb_stop(&context->this->super, context->this);
 
-		am_demod(buf, size2);
+		if (samples_dropped > 0)
+			context->device_items_dropped += (samples_dropped << 1);
 
-		frameratedetector_run(&context->this->frameratedetect, buf, size2, context->this->samplerate, device_items_to_drop != 0);
+		if (context->device_items_dropped > 0) {
 
-		if (cb_add(&context->circbuf_device_to_decimation, &buf[device_items_to_drop >> 1], (items_count-device_items_to_drop) >> 1) == CB_OK)
-			context->device_items_to_drop = 0;
-		else// we lost samples due to buffer overflow
-			context->device_items_dropped += items_count;
+			const unsigned int size2 = round(((context->this->width * context->this->height) << 1) * context->this->pixeltimeoversampletime);
+			const unsigned int moddropped = context->device_items_dropped % size2;
+			context->device_items_to_drop += size2-moddropped; // how much to drop so that it ends up on one frame
+			context->device_items_dropped = 0;
+		}
+
+		const size_t device_items_to_drop = context->device_items_to_drop;
+		if (device_items_to_drop >= items_count)
+			context->device_items_to_drop -= items_count;
+		else {
+
+			am_demod(buf, size2);
+
+			frameratedetector_run(&context->this->frameratedetect, buf, size2, context->this->samplerate, device_items_to_drop != 0);
+
+			if (cb_add(&context->circbuf_device_to_decimation, &buf[device_items_to_drop >> 1], (items_count-device_items_to_drop) >> 1) == CB_OK)
+				context->device_items_to_drop = 0;
+			else// we lost samples due to buffer overflow
+				context->device_items_dropped += items_count;
+		}
 	}
 
 }
@@ -655,6 +668,7 @@ int tsdr_setparameter_double(tsdr_lib_t * tsdr, int parameter, double value) {
 	 mutex_free(&(*tsdr)->stopsync);
 
 	frameratedetector_free(&(*tsdr)->frameratedetect);
+	superb_free(&(*tsdr)->super);
 
 	 free (*tsdr);
 	 *tsdr = NULL;

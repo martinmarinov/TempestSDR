@@ -15,6 +15,7 @@
 #include "circbuff.h"
 #include "TSDRPluginLoader.h"
 #include "frameratedetector.h"
+#include "superbandwidth.h"
 
 #include "extbuffer.h"
 
@@ -50,9 +51,13 @@
 		tsdr_value_changed_callback callback;
 		tsdr_on_plot_ready_callback plotready_callback;
 		void * callbackctx;
+
+		superbandwidth_t super;
 	};
 
 	void announce_callback_changed(tsdr_lib_t * tsdr, int value_id, double arg0, int arg1);
 	void announce_plotready(tsdr_lib_t * tsdr, int plot_id, extbuffer_t * buffer, uint32_t samplerate);
+
+	void shiftfreq(tsdr_lib_t * tsdr, int32_t diff);
 
 #endif

@@ -46,7 +46,7 @@ public class TSDRLibrary {
 	/** The desired direction of manual synchronisation */
 	public enum SYNC_DIRECTION {ANY, UP, DOWN, LEFT, RIGHT};
 	
-	public enum PARAM {AUTOSHIFT, PLLFRAMERATE, AUTOCORR_PLOTS_RESET, AUTOCORR_PLOTS_OFF};
+	public enum PARAM {AUTOSHIFT, PLLFRAMERATE, AUTOCORR_PLOTS_RESET, AUTOCORR_PLOTS_OFF, SUPERRESOLUTION};
 	public enum PARAM_DOUBLE {};
 	
 	/** Whether native is running or not */

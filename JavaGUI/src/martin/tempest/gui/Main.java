@@ -120,7 +120,7 @@ public class Main implements TSDRLibrary.FrameReadyCallback, TSDRLibrary.Incomin
 	private JTextField txtFramerate;
 	private HoldButton btnLowerFramerate, btnHigherFramerate, btnUp, btnDown, btnLeft, btnRight;
 	private JPanel pnInputDeviceSettings;
-	private ParametersToggleButton tglbtnAutoPosition, tglbtnPllFramerate, tglbtnAutocorrPlots;
+	private ParametersToggleButton tglbtnAutoPosition, tglbtnPllFramerate, tglbtnAutocorrPlots, tglbtnSuperBandwidth;
 	private JToggleButton tglbtnLockHeightAndFramerate;
 	private JToggleButton btnReset;
 	private JToggleButton btnAutoResolution;
@@ -517,6 +517,13 @@ public class Main implements TSDRLibrary.FrameReadyCallback, TSDRLibrary.Incomin
 				btnAutoResolution.setMargin(new Insets(0, 0, 0, 0));
 				btnAutoResolution.setBounds(741, 571, 41, 22);
 				frmTempestSdr.getContentPane().add(btnAutoResolution);
+				
+				tglbtnSuperBandwidth = new ParametersToggleButton(PARAM.SUPERRESOLUTION, "T", prefs, true);
+				tglbtnSuperBandwidth.setToolTipText("Simulate bandwidth several times bigger than what the device can offer");
+				tglbtnSuperBandwidth.setMargin(new Insets(0, 0, 0, 0));
+				tglbtnSuperBandwidth.setBounds(569, 195, 25, 22);
+				tglbtnSuperBandwidth.setParaChangeCallback(this);
+				frmTempestSdr.getContentPane().add(tglbtnSuperBandwidth);
 				slMotionBlur.addChangeListener(new ChangeListener() {
 					public void stateChanged(ChangeEvent e) {
 						onMotionBlurLevelChanged();
