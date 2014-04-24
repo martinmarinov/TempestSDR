@@ -15,6 +15,7 @@
 #include <string.h>
 #include "superbandwidth.h"
 #include "internaldefinitions.h"
+#include "fft.h"
 
 #define SUPER_FRAMES_TO_REC (3.5)
 #define SUPER_HOPS_TO_MAKE (4)
@@ -116,6 +117,7 @@ void superb_ondataready(superbandwidth_t * bw, float ** outbuff, int * outbufsiz
 	//printf("Data ready. Gathered %d frames\n", bw->buffsbuffcount / bw->samples_in_frame);fflush(stdout);
 
 	const uint32_t totalsamples = bw->buffscount * bw->buffsbuffcount;
+	const uint32_t fft_realsize_per_freq = fft_getrealsize(bw->buffsbuffcount);
 
 	extbuffer_preparetohandle(&bw->extb, totalsamples * 2);
 
@@ -127,23 +129,17 @@ void superb_ondataready(superbandwidth_t * bw, float ** outbuff, int * outbufsiz
 		memcpy(bw->extb.buffer, &bw->buffs[i][best_offset], (bufsize - best_offset) * sizeof(float));
 		memcpy(&bw->buffs[i][bufsize -best_offset], bw->buffs[i], best_offset * sizeof(float));
 		memcpy(bw->buffs[i], bw->extb.buffer, (bufsize - best_offset) * sizeof(float));
+		fft_perform(bw->buffs[i], bw->buffsbuffcount, 0);
+		fft_perform(bw->buffs[i], fft_realsize_per_freq, 1); // test
 	}
+	fft_perform(bw->buffs[0], bw->buffsbuffcount, 0);
+	fft_perform(bw->buffs[0], fft_realsize_per_freq, 1); // test
 
-	int x;
-	for (x = 0; x < bw->buffsbuffcount * 2; x++)
-		bw->extb.buffer[x] = 0.0f;
-
-	for (i = 0; i < bw->buffscount; i++) {
-		for (x = 0; x < bw->buffsbuffcount * 2; x++)
-			bw->extb.buffer[x] += bw->buffs[i][x];
-		//memcpy(&bw->extb.buffer[i*bw->buffsbuffcount*2], bw->buffs[i], bw->buffsbuffcount * 2 * sizeof(float));
-	}
-
-	for (x = 0; x < bw->buffsbuffcount * 2; x++)
-		bw->extb.buffer[x]  /= (float) bw->buffscount;
+	for (i = 0; i < bw->buffscount; i++)
+		memcpy(&bw->extb.buffer[i*fft_realsize_per_freq*2], bw->buffs[i], fft_realsize_per_freq * 2 * sizeof(float));
 
 	*outbuff = bw->extb.buffer;
-	*outbufsize = bw->buffsbuffcount;// totalsamples;
+	*outbufsize = fft_realsize_per_freq * bw->buffscount;
 }
 
 void superb_run(superbandwidth_t * bw, float * iq, int size, tsdr_lib_t * tsdr, int dropped, float ** outbuff, int * outbufsize) {
