@@ -17,7 +17,7 @@
 #include "internaldefinitions.h"
 #include "fft.h"
 
-#define SUPER_FRAMES_TO_REC (3.5)
+#define SUPER_FRAMES_TO_REC (1.5)
 #define SUPER_HOPS_TO_MAKE (4)
 
 #define SUPER_STATE_STOPPED (0)
@@ -27,7 +27,7 @@
 
 #define SUPER_SECS_TO_PAUSE (1)
 
-#define SUPERB_ACCURACY (200)
+#define SUPERB_ACCURACY (2000)
 
 void superb_init(superbandwidth_t * bw) {
 	bw->state = SUPER_STATE_STOPPED;
@@ -113,7 +113,7 @@ inline static int superb_bestfit(float * data1, float * data2, int length) {
 	return bestlength;
 }
 
-void superb_ondataready(superbandwidth_t * bw, float ** outbuff, int * outbufsize) {
+void superb_ondataready(superbandwidth_t * bw, float ** outbuff, int * outbufsize, tsdr_lib_t * tsdr) {
 	//printf("Data ready. Gathered %d frames\n", bw->buffsbuffcount / bw->samples_in_frame);fflush(stdout);
 
 	const uint32_t totalsamples = bw->buffscount * bw->buffsbuffcount;
@@ -130,16 +130,20 @@ void superb_ondataready(superbandwidth_t * bw, float ** outbuff, int * outbufsiz
 		memcpy(&bw->buffs[i][bufsize -best_offset], bw->buffs[i], best_offset * sizeof(float));
 		memcpy(bw->buffs[i], bw->extb.buffer, (bufsize - best_offset) * sizeof(float));
 		fft_perform(bw->buffs[i], bw->buffsbuffcount, 0);
-		fft_perform(bw->buffs[i], fft_realsize_per_freq, 1); // test
 	}
 	fft_perform(bw->buffs[0], bw->buffsbuffcount, 0);
-	fft_perform(bw->buffs[0], fft_realsize_per_freq, 1); // test
 
+	// stick the ffts next to each other
 	for (i = 0; i < bw->buffscount; i++)
 		memcpy(&bw->extb.buffer[i*fft_realsize_per_freq*2], bw->buffs[i], fft_realsize_per_freq * 2 * sizeof(float));
 
+	const uint32_t fft_outsize = fft_getrealsize(fft_realsize_per_freq * bw->buffscount);
+	fft_perform(bw->extb.buffer, fft_outsize, 1);
+
 	*outbuff = bw->extb.buffer;
-	*outbufsize = fft_realsize_per_freq * bw->buffscount;
+	*outbufsize = fft_outsize;
+
+	set_internal_samplerate(tsdr, bw->buffscount*bw->samplerate);
 }
 
 void superb_run(superbandwidth_t * bw, float * iq, int size, tsdr_lib_t * tsdr, int dropped, float ** outbuff, int * outbufsize) {
@@ -152,12 +156,12 @@ void superb_run(superbandwidth_t * bw, float * iq, int size, tsdr_lib_t * tsdr, 
 		bw->samples_gathered = 0;
 		bw->buffsbuffcount = 0;
 
-		if (tsdr->samplerate != bw->samplerate) {
-			bw->samplerate = tsdr->samplerate;
+		if (tsdr->samplerate_real != bw->samplerate) {
+			bw->samplerate = tsdr->samplerate_real;
 
-			bw->samples_in_frame =  tsdr->samplerate / tsdr->refreshrate;
+			bw->samples_in_frame =  tsdr->samplerate_real / tsdr->refreshrate;
 			bw->samples_to_gather = SUPER_FRAMES_TO_REC * bw->samples_in_frame;
-			bw->samples_to_pause = SUPER_SECS_TO_PAUSE * tsdr->samplerate;
+			bw->samples_to_pause = SUPER_SECS_TO_PAUSE * tsdr->samplerate_real;
 
 			super_freebuff(bw);
 
@@ -194,7 +198,7 @@ void superb_run(superbandwidth_t * bw, float * iq, int size, tsdr_lib_t * tsdr, 
 			bw->samples_gathered = 0;
 
 			if (bw->buffid_current >= bw->buffscount) {
-				superb_ondataready(bw, outbuff, outbufsize);
+				superb_ondataready(bw, outbuff, outbufsize, tsdr);
 				bw->state = SUPER_STATE_STARTING;
 			} else {
 				shiftfreq(tsdr, (bw->buffid_current-bw->buffscount/2)*bw->samplerate);
@@ -210,6 +214,7 @@ void superb_stop(superbandwidth_t * bw, tsdr_lib_t * tsdr) {
 	if (bw->state != SUPER_STATE_STOPPED) {
 		bw->state = SUPER_STATE_STOPPED;
 		shiftfreq(tsdr, 0);
+		set_internal_samplerate(tsdr, tsdr->samplerate_real);
 	}
 
 }

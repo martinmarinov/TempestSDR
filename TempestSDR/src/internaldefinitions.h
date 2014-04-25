@@ -26,6 +26,7 @@
 		semaphore_t threadsync;
 		mutex_t stopsync;
 		uint32_t samplerate;
+		uint32_t samplerate_real;
 		double sampletime;
 		int width;
 		int height;
@@ -59,5 +60,6 @@
 	void announce_plotready(tsdr_lib_t * tsdr, int plot_id, extbuffer_t * buffer, uint32_t samplerate);
 
 	void shiftfreq(tsdr_lib_t * tsdr, int32_t diff);
+	void set_internal_samplerate(tsdr_lib_t * tsdr, uint32_t samplerate);
 
 #endif

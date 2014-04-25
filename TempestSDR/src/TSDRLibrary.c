@@ -131,15 +131,22 @@ static inline void announceexception(tsdr_lib_t * tsdr, const char * message, in
 	return tsdr->nativerunning;
 }
 
+ void set_internal_samplerate(tsdr_lib_t * tsdr, uint32_t samplerate) {
+		tsdr->samplerate = samplerate;
+
+		tsdr->sampletime = 1.0 / (double) tsdr->samplerate;
+		if (tsdr->sampletime != 0)
+			tsdr->pixeltimeoversampletime = tsdr->pixeltime /  tsdr->sampletime;
+ }
+
  int tsdr_getsamplerate(tsdr_lib_t * tsdr) {
 	if (!tsdr->plugin.initialized) RETURN_EXCEPTION(tsdr, "Cannot change sample rate. Plugin not loaded yet.", TSDR_ERR_PLUGIN);
 
-	tsdr->samplerate = tsdr->plugin.tsdrplugin_getsamplerate();
-	if (tsdr->samplerate == 0 || tsdr->samplerate > 500e6) RETURN_EXCEPTION(tsdr, "Invalid/unsupported value for sample rate.", TSDR_SAMPLE_RATE_WRONG);
+	tsdr->samplerate_real = tsdr->plugin.tsdrplugin_getsamplerate();
 
-	tsdr->sampletime = 1.0 / (double) tsdr->samplerate;
-	if (tsdr->sampletime != 0)
-		tsdr->pixeltimeoversampletime = tsdr->pixeltime /  tsdr->sampletime;
+	if (tsdr->samplerate_real == 0 || tsdr->samplerate_real > 500e6) RETURN_EXCEPTION(tsdr, "Invalid/unsupported value for sample rate.", TSDR_SAMPLE_RATE_WRONG);
+
+	set_internal_samplerate(tsdr, tsdr->samplerate_real);
 
 	RETURN_OK(tsdr);
 
