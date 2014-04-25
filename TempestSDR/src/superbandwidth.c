@@ -27,7 +27,9 @@
 
 #define SUPER_SECS_TO_PAUSE (1)
 
-#define SUPERB_ACCURACY (2000)
+#define SUPERB_ACCURACY (500)
+
+//TODO! separate thread
 
 void superb_init(superbandwidth_t * bw) {
 	bw->state = SUPER_STATE_STOPPED;
@@ -62,7 +64,8 @@ inline static double superb_fitvalue(float * data1, float * data2, int offset_da
 	float * firstend = data1 + length;
 	float * secondend = data2 + length;
 
-	const int toskip = (SUPERB_ACCURACY == 0) ? (0) : (length / SUPERB_ACCURACY);
+	int toskip = (SUPERB_ACCURACY == 0) ? (0) : (length / SUPERB_ACCURACY);
+	toskip = (toskip >> 1) << 1; // make sure this is even
 	int counted = 0;
 
 	float firstI = *(first++); float firstQ = *(first++);
@@ -88,7 +91,7 @@ inline static double superb_fitvalue(float * data1, float * data2, int offset_da
 
 		if (second > secondend) second -= length;
 
-		const float d1 = fd - sd;
+		const float d1 = ((fd < 0) ? (-fd) : (fd)) - ((sd < 0) ? (-sd) : (sd));
 
 		sum += d1 * d1;
 		counted++;
