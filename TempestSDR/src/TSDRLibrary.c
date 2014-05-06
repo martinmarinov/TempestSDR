@@ -573,12 +573,14 @@ int tsdr_loadplugin(tsdr_lib_t * tsdr, const char * pluginfilepath, const char *
 	cb_init(&context->circbuf_device_to_decimation, CB_SIZE_MAX_COEFF_LOW_LATENCY);
 
 	frameratedetector_startthread(&tsdr->frameratedetect);
+	super_startthread(&tsdr->super);
 	thread_start(decimatingthread, (void *) context);
 	thread_start(videodecodingthread, (void *) context);
 
 	status = tsdr->plugin.tsdrplugin_readasync(process, (void *) context);
 
 	frameratedetector_stopthread(&tsdr->frameratedetect);
+	super_stopthread(&tsdr->super);
 
 	if (status != TSDR_OK) pluginsfault =1;
 

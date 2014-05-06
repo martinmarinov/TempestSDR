@@ -17,6 +17,7 @@
 #define SUPERBANDWIDTH_H_
 
 #include "extbuffer.h"
+#include "threading.h"
 
 typedef struct {
 	int state;
@@ -33,13 +34,23 @@ typedef struct {
 	int buffsbuffcount;
 	int buffid_current;
 
+	float * outbuf;
+	int outbufsize;
+	tsdr_lib_t * tsdr;
+
+	mutex_t thread_unlock;
+
 	extbuffer_t extb;
+
+	volatile int alive;
 } superbandwidth_t;
 
 void superb_init(superbandwidth_t * bw);
 void superb_free(superbandwidth_t * bw);
 void superb_run(superbandwidth_t * bw, float * iq, int size, tsdr_lib_t * tsdr, int dropped, float ** outbuff, int * outbufsize);
 void superb_stop(superbandwidth_t * bw, tsdr_lib_t * tsdr);
+void super_startthread(superbandwidth_t * bw);
+void super_stopthread(superbandwidth_t * bw);
 
 
 #endif /* SUPERBANDWIDTH_H_ */
