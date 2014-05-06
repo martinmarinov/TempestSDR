@@ -131,6 +131,17 @@ JNIEXPORT void JNICALL Java_martin_tempest_core_TSDRLibrary_free
 }
 #endif
 #endif
+/* Header for class martin_tempest_core_TSDRLibrary_FrameReadyCallback */
+
+#ifndef _Included_martin_tempest_core_TSDRLibrary_FrameReadyCallback
+#define _Included_martin_tempest_core_TSDRLibrary_FrameReadyCallback
+#ifdef __cplusplus
+extern "C" {
+#endif
+#ifdef __cplusplus
+}
+#endif
+#endif
 /* Header for class martin_tempest_core_TSDRLibrary_IncomingValueCallback */
 
 #ifndef _Included_martin_tempest_core_TSDRLibrary_IncomingValueCallback
@@ -164,10 +175,10 @@ extern "C" {
 }
 #endif
 #endif
-/* Header for class martin_tempest_core_TSDRLibrary_FrameReadyCallback */
+/* Header for class martin_tempest_core_TSDRLibrary_PARAM */
 
-#ifndef _Included_martin_tempest_core_TSDRLibrary_FrameReadyCallback
-#define _Included_martin_tempest_core_TSDRLibrary_FrameReadyCallback
+#ifndef _Included_martin_tempest_core_TSDRLibrary_PARAM
+#define _Included_martin_tempest_core_TSDRLibrary_PARAM
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -179,17 +190,6 @@ extern "C" {
 
 #ifndef _Included_martin_tempest_core_TSDRLibrary_PARAM_DOUBLE
 #define _Included_martin_tempest_core_TSDRLibrary_PARAM_DOUBLE
-#ifdef __cplusplus
-extern "C" {
-#endif
-#ifdef __cplusplus
-}
-#endif
-#endif
-/* Header for class martin_tempest_core_TSDRLibrary_PARAM */
-
-#ifndef _Included_martin_tempest_core_TSDRLibrary_PARAM
-#define _Included_martin_tempest_core_TSDRLibrary_PARAM
 #ifdef __cplusplus
 extern "C" {
 #endif

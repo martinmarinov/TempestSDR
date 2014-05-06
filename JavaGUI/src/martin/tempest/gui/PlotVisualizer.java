@@ -30,7 +30,7 @@ public class PlotVisualizer extends JPanel {
 	private float max_val = 0;
 	private float min_val = 0;
 	private float range_val = 0;
-	private int min_index = 0;
+	private int max_index = 0;
 	private boolean enabled;
 	private int mouse_x = -1;
 	private Integer index_selected = null;
@@ -102,10 +102,10 @@ public class PlotVisualizer extends JPanel {
 		if (end_id > size) end_id = size;
 		
 		int bestid = start_id;
-		float min = data[bestid];
+		float max = data[bestid];
 		for (int id = start_id+1; id < end_id; id++)
-			if (data[id] < min) {
-				min = data[id];
+			if (data[id] > max) {
+				max = data[id];
 				bestid = id;
 			}
 		
@@ -168,8 +168,8 @@ public class PlotVisualizer extends JPanel {
 			max_val = data[0];
 			min_val = data[0];
 			
-			float localmin = data[0];
-			min_index = 0;
+			float localmax = data[0];
+			max_index = 0;
 			int old_px = 0;
 			
 			for (int i = 1; i < size; i++) {
@@ -179,22 +179,21 @@ public class PlotVisualizer extends JPanel {
 				if (old_px != curr_px) {
 
 					for (int px = old_px; px < curr_px; px++)
-						visdata[px] = localmin;
+						visdata[px] = localmax;
 
-					localmin = val;
+					localmax = val;
 				}
 				
 				old_px = curr_px;
 				
-				if (val < localmin)
-					localmin = val;
+				if (val > localmax)
+					localmax = val;
 				
-				if (val > max_val)
+				if (val > max_val) {
 					max_val = val;
-				else if (val < min_val) {
+					max_index = i;
+				} else if (val < min_val)
 					min_val = val;
-					min_index = i;
-				}
 			}
 			
 			range_val = max_val - min_val;
@@ -214,8 +213,8 @@ public class PlotVisualizer extends JPanel {
 		repaint();
 	}
 	
-	public int getMinIndex() {
-		return min_index;
+	public int getMaxIndex() {
+		return max_index;
 	}
 	
 	public int getOffset() {
@@ -284,7 +283,7 @@ public class PlotVisualizer extends JPanel {
 				g.setColor(Color.gray);
 
 				for (int x = 0; x < nwidth; x++)
-					g.drawLine(x, (int) visdata[x], x, nheight);
+					g.drawLine(x, (int) (nheight - visdata[x]), x, nheight);
 
 			} else {
 				g.setColor(Color.blue);
@@ -305,9 +304,8 @@ public class PlotVisualizer extends JPanel {
 					
 					g.drawString(getValueAt(id), mouse_x+nheight / 10, nheight / 5);
 					
-					//g.fillOval(x-3-shift2, y-3-shift2, 6+shift, 6+shift);
 					g.setColor(Color.yellow);
-					g.fillRect(x-shift2, y, shift+1, nheight-y);
+					g.fillRect(x-shift2, nheight - y, shift+1, nheight);
 				}
 			}
 			

@@ -2,23 +2,63 @@
 #include <math.h>
 
 uint32_t fft_getrealsize(uint32_t size) {
-	int m =0;
+	uint32_t m =0;
 	while ((size /= 2) != 0)
 		m++;
 
 	return 1 << m;
 }
 
+// the array temp needs to be of size at least 2*size
+// the answer will be written in answer at entries fro 0 to size
+void fft_autocorrelation(float * answer, float * real, uint32_t size) {
+	uint32_t i;
+
+	// set the real ids in answer to the val, the imaginary ones to 0
+	float * answer_ptr = answer;
+	float * real_ptr = real;
+	for (i = 0; i < size; i++) {
+		*(answer_ptr++) = *(real_ptr++);
+		*(answer_ptr++) = 0.0f;
+	}
+
+	// do the fft
+	uint32_t fft_size = fft_getrealsize(size);
+	uint32_t fft_size2 = fft_size * 2;
+	fft_perform(answer, fft_size, 0);
+
+	// get the abs value
+	for (i = 0; i < fft_size2; i+=2) {
+		const int i1 = i+1;
+		const float I = answer[i];
+		const float Q = answer[i1];
+		answer[i] = sqrtf(I*I+Q*Q);
+		answer[i1] = 0;
+	}
+
+	// get the ifft
+	fft_perform(answer, fft_size, 1);
+
+	// get the abs value
+	answer_ptr = answer;
+	for (i = 0; i < fft_size2; i+=2) {
+		const int i1 = i+1;
+		const float I = answer[i];
+		const float Q = answer[i1];
+		*(answer_ptr++) = sqrtf(I*I+Q*Q);
+	}
+}
+
 void fft_perform(float * iq, uint32_t size, int inverse)
 {
-	long i,i1,j,k,i2,l,l1,l2;
+	int64_t i,i1,j,k,i2,l,l1,l2;
 	float c1,c2,tx,ty,t1,t2,u1,u2,z;
 
 	int m =0;
 	while ((size /= 2) != 0)
 		m++;
 
-	int nn = 1 << m;
+	uint32_t nn = 1 << m;
 	i2 = nn >> 1;
 	j = 0;
 

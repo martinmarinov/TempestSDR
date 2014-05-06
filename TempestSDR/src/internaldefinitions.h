@@ -57,7 +57,7 @@
 	};
 
 	void announce_callback_changed(tsdr_lib_t * tsdr, int value_id, double arg0, int arg1);
-	void announce_plotready(tsdr_lib_t * tsdr, int plot_id, extbuffer_t * buffer, uint32_t samplerate);
+	void announce_plotready(tsdr_lib_t * tsdr, int plot_id, extbuffer_t * buffer, uint32_t data_size, uint32_t data_offset, uint32_t samplerate);
 
 	void shiftfreq(tsdr_lib_t * tsdr, int32_t diff);
 	void set_internal_samplerate(tsdr_lib_t * tsdr, uint32_t samplerate);

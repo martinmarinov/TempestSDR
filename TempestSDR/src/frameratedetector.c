@@ -15,79 +15,38 @@
 #include "threading.h"
 #include <math.h>
 #include "extbuffer.h"
+#include "fft.h"
 
 #define MIN_FRAMERATE (55)
 #define MIN_HEIGHT (590)
 #define MAX_FRAMERATE (87)
 #define MAX_HEIGHT (1500)
+#define FRAMES_TO_CAPTURE (4.5)
 
-#define FRAMERATE_RUNS (50)
+void autocorrelate(extbuffer_t * buff, float * data, int size) {
+	extbuffer_preparetohandle(buff, 2*size);
 
-// higher is better
-#define FRAMERATEDETECTOR_ACCURACY (2000)
-
-inline static double frameratedetector_fitvalue(float * data, int offset, int length, int accuracy) {
-	double sum = 0.0;
-
-	float * first = data;
-	float * second = data + offset;
-	float * firstend = data + length;
-
-	const int toskip = (accuracy == 0) ? (0) : (length / accuracy);
-	int counted = 0;
-
-	while (first < firstend) {
-		const float d1 = *(first++) - *(second++);
-
-		first+=toskip;
-		second+=toskip;
-
-		sum += d1 * d1;
-		counted++;
-	}
-
-	assert(counted != 0);
-	return sum / (double) counted;
-}
-
-inline static void frameratedetector_estimatedirectlength(extbuffer_t * buff, float * data, int size, int length, int endlength, const int startlength, int accuracy) {
-
-	assert(endlength + length <= size);
-
-	const int buffsize = endlength - startlength;
-	extbuffer_preparetohandle(buff, buffsize);
+	fft_autocorrelation(buff->buffer, data, size);
 	if (!buff->valid) return;
 
-	buff->offset = startlength;
+}
 
-	int l = startlength;
-	buff->buffer[0] += frameratedetector_fitvalue(data, l, length, accuracy);
-	l++;
-	while (l < endlength) {
-		const float fitvalue = frameratedetector_fitvalue(data, l, length, accuracy);
-		buff->buffer[l-startlength] += fitvalue;
-		l++;
+void accummulate(extbuffer_t * out, extbuffer_t * in) {
+	const int size = in->size_valid_elements;
+	const int calls = in->calls;
+	const int currcalls = calls - 1;
+
+	extbuffer_preparetohandle(out, size);
+	uint32_t i;
+
+	if (currcalls < 0) {
+		memcpy(out->buffer, in->buffer, size*sizeof(float));
+	} else {
+		for (i = 0; i < size; i++) {
+			const float prev_avg = out->buffer[i];
+			out->buffer[i] = (prev_avg*currcalls + in->buffer[i])/calls;
+		}
 	}
-}
-
-void framedetector_estimatelinelength(extbuffer_t * buff, float * data, int size, uint32_t samplerate) {
-
-	const int maxlength = samplerate / (double) (MIN_HEIGHT * MIN_FRAMERATE);
-	const int minlength = samplerate / (double) (MAX_HEIGHT * MAX_FRAMERATE);
-
-	const int offset_maxsize = size - 2*maxlength;
-	const int offset_step = offset_maxsize / FRAMERATE_RUNS;
-
-	assert (offset_step != 0);
-
-	int offset;
-	for (offset = 0; offset < offset_maxsize; offset += offset_step)
-		frameratedetector_estimatedirectlength(buff, &data[offset], size-offset, maxlength, maxlength, minlength, 0);
-}
-
-float toheight(int linelength, void  * ctx) {
-	int crudelength = *((int *) ctx);
-	return crudelength / (double) linelength;
 }
 
 void frameratedetector_runontodata(frameratedetector_t * frameratedetector, float * data, int size, extbuffer_t * extbuff, extbuffer_t * extbuff_small) {
@@ -97,21 +56,23 @@ void frameratedetector_runontodata(frameratedetector_t * frameratedetector, floa
 	const int maxlength = frameratedetector->samplerate / (double) (MIN_FRAMERATE);
 	const int minlength = frameratedetector->samplerate / (double) (MAX_FRAMERATE);
 
+	const int height_maxlength = frameratedetector->samplerate / (double) (MIN_HEIGHT * MIN_FRAMERATE);
+	const int height_minlength = frameratedetector->samplerate / (double) (MAX_HEIGHT * MAX_FRAMERATE);
+
 	if (frameratedetector->tsdr->params_int[PARAM_AUTOCORR_PLOTS_RESET]) {
 		frameratedetector->tsdr->params_int[PARAM_AUTOCORR_PLOTS_RESET] = 0;
 		extbuffer_cleartozero(extbuff);
-		extbuffer_cleartozero(extbuff_small);
 		announce_callback_changed(frameratedetector->tsdr, VALUE_ID_AUTOCORRECT_RESET, 0, 0);
 	}
 
-	// estimate the length of a horizontal line in samples
-	frameratedetector_estimatedirectlength(extbuff, data, size, minlength, maxlength, minlength, FRAMERATEDETECTOR_ACCURACY);
-	framedetector_estimatelinelength(extbuff_small, data, size, frameratedetector->samplerate);
-
 	if (frameratedetector->tsdr->params_int[PARAM_AUTOCORR_PLOTS_OFF]) return;
 
-	announce_plotready(frameratedetector->tsdr, PLOT_ID_FRAME, extbuff, frameratedetector->samplerate);
-	announce_plotready(frameratedetector->tsdr, PLOT_ID_LINE, extbuff_small, frameratedetector->samplerate);
+	autocorrelate(extbuff, data, size);
+	accummulate(extbuff_small, extbuff);
+
+	announce_plotready(frameratedetector->tsdr, PLOT_ID_FRAME, extbuff_small, maxlength-minlength, minlength, frameratedetector->samplerate);
+	announce_plotready(frameratedetector->tsdr, PLOT_ID_LINE, extbuff_small, height_maxlength-height_minlength, height_minlength, frameratedetector->samplerate);
+
 	announce_callback_changed(frameratedetector->tsdr, VALUE_ID_AUTOCORRECT_FRAMES_COUNT, 0, extbuff->calls);
 
 }
@@ -130,7 +91,7 @@ void frameratedetector_thread(void * ctx) {
 
 	while (frameratedetector->alive) {
 
-		const int desiredsize = 2.5 * frameratedetector->samplerate / (double) (MIN_FRAMERATE);
+		const int desiredsize = FRAMES_TO_CAPTURE * frameratedetector->samplerate / (double) (MIN_FRAMERATE);
 		if (desiredsize == 0) {
 			thread_sleep(10);
 			continue;

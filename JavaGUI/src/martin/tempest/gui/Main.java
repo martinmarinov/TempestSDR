@@ -1092,7 +1092,7 @@ public class Main implements TSDRLibrary.FrameReadyCallback, TSDRLibrary.Incomin
 		case FRAME:
 			frame_plotter.plot(data, offset, size, samplerate);
 			if (auto_resolution) {
-				auto_resolution_fps_id = frame_plotter.getMinIndex();
+				auto_resolution_fps_id = frame_plotter.getMaxIndex();
 				auto_resolution_fps_offset = frame_plotter.getOffset();
 			}
 
@@ -1105,7 +1105,7 @@ public class Main implements TSDRLibrary.FrameReadyCallback, TSDRLibrary.Incomin
 
 				if (frame_plotter.getSamplerate() == samplerate) {
 					final float fps = fps_transofmer.fromIndex(auto_resolution_fps_id, auto_resolution_fps_offset, samplerate);
-					final int height = roundData(height_transformer.fromIndexAndLength(line_plotter.getMinIndex(), line_plotter.getOffset(), samplerate, auto_resolution_fps_id+auto_resolution_fps_offset));
+					final int height = roundData(height_transformer.fromIndexAndLength(line_plotter.getMaxIndex(), line_plotter.getOffset(), samplerate, auto_resolution_fps_id+auto_resolution_fps_offset));
 				
 					final Long key = hashHeightAndFPS(fps, height);
 					
