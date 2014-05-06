@@ -9,18 +9,35 @@ uint32_t fft_getrealsize(uint32_t size) {
 	return 1 << m;
 }
 
+// out should have a size of 2*in_size
+void real_to_complex(float * out, float * in, int in_size) {
+	int i;
+
+	// set the real ids in answer to the val, the imaginary ones to 0
+	for (i = 0; i < in_size; i++) {
+		*(out++) = *(in++);
+		*(out++) = 0.0f;
+	}
+}
+
+void complex_to_real(float * data, int data_size){
+	float * src = data;
+	const int size2 = data_size/2;
+	int i;
+	for (i = 0; i < size2; i++) {
+		const float I = *(src++);
+		const float Q = *(src++);
+		*(data++) = sqrtf(I*I+Q*Q);
+	}
+}
+
 // the array temp needs to be of size at least 2*size
 // the answer will be written in answer at entries fro 0 to size
 void fft_autocorrelation(float * answer, float * real, uint32_t size) {
 	uint32_t i;
 
 	// set the real ids in answer to the val, the imaginary ones to 0
-	float * answer_ptr = answer;
-	float * real_ptr = real;
-	for (i = 0; i < size; i++) {
-		*(answer_ptr++) = *(real_ptr++);
-		*(answer_ptr++) = 0.0f;
-	}
+	real_to_complex(answer, real, size);
 
 	// do the fft
 	uint32_t fft_size = fft_getrealsize(size);
@@ -40,15 +57,46 @@ void fft_autocorrelation(float * answer, float * real, uint32_t size) {
 	fft_perform(answer, fft_size, 1);
 
 	// get the abs value
-	answer_ptr = answer;
-	for (i = 0; i < fft_size2; i+=2) {
-		const int i1 = i+1;
-		const float I = answer[i];
-		const float Q = answer[i1];
-		*(answer_ptr++) = sqrtf(I*I+Q*Q);
-	}
+	complex_to_real(answer, fft_size2);
 }
 
+// answer_out and answer_temp need to have size of size * 2
+// a and b need to have size of size
+// the final answer can be found in answer_out
+void fft_crosscorrelation(float * answer_out, float * answer_temp, float * a, float * b, int size) {
+	uint32_t i;
+
+	// turn them to complex numbers
+	real_to_complex(answer_out, a, size);
+	real_to_complex(answer_temp, b, size);
+
+	uint32_t fft_size = fft_getrealsize(size);
+	uint32_t fft_size2 = fft_size * 2;
+
+	// perform the ffts
+	fft_perform(answer_out, fft_size, 0);
+	fft_perform(answer_temp, fft_size, 0);
+
+	// multiply the cojugate
+	for (i = 0; i < fft_size2; i+=2) {
+		const int i1 = i+1;
+		const float aI = answer_out[i];
+		const float aQ = answer_out[i1];
+		const float bI = answer_temp[i];
+		const float bQ = answer_temp[i1];
+
+		answer_out[i] = aI*bI + aQ*bQ;
+		answer_out[i1] = aI*bQ-aQ*bI;
+	}
+
+	// get the ifft
+	fft_perform(answer_out, fft_size, 1);
+
+	// get the abs value
+	complex_to_real(answer_out, fft_size2);
+}
+
+// iq must have a size of size*2
 void fft_perform(float * iq, uint32_t size, int inverse)
 {
 	int64_t i,i1,j,k,i2,l,l1,l2;
