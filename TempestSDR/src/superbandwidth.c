@@ -17,8 +17,8 @@
 #include "internaldefinitions.h"
 #include "fft.h"
 #include "threading.h"
+#include <math.h>
 
-#define SUPER_FRAMES_TO_REC (1.5)
 #define SUPER_HOPS_TO_MAKE (4)
 
 #define SUPER_STATE_STOPPED (0)
@@ -28,9 +28,9 @@
 #define SUPER_STATE_DATA_READY (4)
 #define SUPER_STATE_OUTPUT_DATA_READY (5)
 
-#define SUPER_SECS_TO_PAUSE (1)
+#define SUPER_SECS_TO_RECORD (2)
 
-#define SUPERB_ACCURACY (500)
+#define SUPER_SECS_TO_PAUSE (0.5)
 
 void superb_init(superbandwidth_t * bw) {
 	bw->state = SUPER_STATE_STOPPED;
@@ -40,6 +40,8 @@ void superb_init(superbandwidth_t * bw) {
 	bw->buffs = NULL;
 
 	extbuffer_init(&bw->extb);
+	extbuffer_init(&bw->extb_out);
+	extbuffer_init(&bw->extb_temp);
 	mutex_init(&bw->thread_unlock);
 }
 
@@ -57,85 +59,61 @@ void superb_free(superbandwidth_t * bw) {
 	super_freebuff(bw);
 
 	extbuffer_free(&bw->extb);
+	extbuffer_free(&bw->extb_out);
+	extbuffer_free(&bw->extb_temp);
 	mutex_free(&bw->thread_unlock);
 }
 
-inline static double superb_fitvalue(float * data1, float * data2, int offset_data2, uint32_t length) {
-	double sum = 0.0;
+inline static int superb_bestfit(superbandwidth_t * bw, float * data1, float * data2, int size) {
+	size = fft_getrealsize(size);
+	const int samples = size/2;
 
-	float * first = data1;
-	float * second = data2 + offset_data2;
-	float * firstend = data1 + length;
-	float * secondend = data2 + length;
+	extbuffer_preparetohandle(&bw->extb_out, size);
+	extbuffer_preparetohandle(&bw->extb_temp, size);
 
-	int toskip = (SUPERB_ACCURACY == 0) ? (0) : (length / SUPERB_ACCURACY);
-	toskip = (toskip >> 1) << 1; // make sure this is even
-	int counted = 0;
+	// copy them to prepare for fft
+	memcpy(bw->extb_out.buffer, data1, size * sizeof(float));
+	memcpy(bw->extb_temp.buffer, data2, size * sizeof(float));
 
-	float firstI = *(first++); float firstQ = *(first++);
-	float first_prev = firstI * firstI + firstQ * firstQ;
-	float secondI = *(second++); float secondQ = *(second++);
-	float second_prev = secondI * secondI + secondQ * secondQ;
+	fft_complex_to_absolute_complex(bw->extb_out.buffer, samples);
+	fft_complex_to_absolute_complex(bw->extb_temp.buffer, samples);
 
-	while (first < firstend) {
-		firstI = *(first++); firstQ = *(first++);
-		const float curr_first = firstI * firstI + firstQ * firstQ;
+	fft_crosscorrelation(bw->extb_out.buffer, bw->extb_temp.buffer, samples);
 
-		secondI = *(second++); secondQ = *(second++);
-		float curr_second = secondI * secondI + secondQ * secondQ;
+	int maxlength = 0;
+	float maxval;
 
-		const float fd = first_prev - curr_first;
-		const float sd = second_prev - curr_second;
+	int i;
+	float * out = bw->extb_out.buffer;
+	for (i = 0; i < samples; i++) {
+		const float I = *(out++);
+		const float Q = *(out++);
+		const float val = sqrtf(I*I+Q*Q);
 
-		first_prev = curr_first;
-		second_prev = curr_second;
-
-		first+=toskip;
-		second+=toskip;
-
-		if (second > secondend) second -= length;
-
-		const float d1 = ((fd < 0) ? (-fd) : (fd)) - ((sd < 0) ? (-sd) : (sd));
-
-		sum += d1 * d1;
-		counted++;
-	}
-
-	return sum / (double) counted;
-}
-
-inline static int superb_bestfit(superbandwidth_t * bw, float * data1, float * data2, int length) {
-	int l = 0;
-	int bestlength = 0;
-	double min_val = superb_fitvalue(data1, data2, 0, length);
-
-	for (l = 1; l < length; l++) {
-		if (!bw->alive) return bestlength;
-		const double val = superb_fitvalue(data1, data2, l, length);
-		if (val < min_val) {
-			min_val = val;
-			bestlength = l;
+		if (i == 0)
+			maxval = val;
+		else if (val > maxval) {
+			maxval = val;
+			maxlength = i;
 		}
 	}
 
-	return bestlength;
+	return 2*maxlength;
 }
 
 void superb_ondataready(superbandwidth_t * bw, float ** outbuff, int * outbufsize, tsdr_lib_t * tsdr) {
 	//printf("Data ready. Gathered %d frames\n", bw->buffsbuffcount / bw->samples_in_frame);fflush(stdout);
 
+	bw->buffsbuffcount = fft_getrealsize(bw->buffsbuffcount);
 	const uint32_t totalsamples = bw->buffscount * bw->buffsbuffcount;
-	const uint32_t fft_realsize_per_freq = fft_getrealsize(bw->buffsbuffcount);
 
 	extbuffer_preparetohandle(&bw->extb, totalsamples * 2);
 
 	// allign
 	int i;
-	const int fullframesrecorded = bw->buffsbuffcount / bw->samples_in_frame;
-	const int alignsize = fullframesrecorded * bw->samples_in_frame * 2;
 	const int bufsize = bw->buffsbuffcount * 2;
 	for (i = 1; i < bw->buffscount; i++) {
-		const int best_offset = superb_bestfit(bw, bw->buffs[0], bw->buffs[i], alignsize);
+		const int best_offset = superb_bestfit(bw, bw->buffs[0], bw->buffs[i], bufsize);
 		if (!bw->alive) return;
 		memcpy(bw->extb.buffer, &bw->buffs[i][best_offset], (bufsize - best_offset) * sizeof(float));
 		memcpy(&bw->buffs[i][bufsize -best_offset], bw->buffs[i], best_offset * sizeof(float));
@@ -146,13 +124,12 @@ void superb_ondataready(superbandwidth_t * bw, float ** outbuff, int * outbufsiz
 
 	// stick the ffts next to each other
 	for (i = 0; i < bw->buffscount; i++)
-		memcpy(&bw->extb.buffer[i*fft_realsize_per_freq*2], bw->buffs[i], fft_realsize_per_freq * 2 * sizeof(float));
+		memcpy(&bw->extb.buffer[i*bw->buffsbuffcount*2], bw->buffs[i], bw->buffsbuffcount * 2 * sizeof(float));
 
-	const uint32_t fft_outsize = fft_getrealsize(fft_realsize_per_freq * bw->buffscount);
-	fft_perform(bw->extb.buffer, fft_outsize, 1);
+	fft_perform(bw->extb.buffer, totalsamples, 1);
 
 	*outbuff = bw->extb.buffer;
-	*outbufsize = fft_outsize;
+	*outbufsize = totalsamples;
 
 	set_internal_samplerate(tsdr, bw->buffscount*bw->samplerate);
 }
@@ -197,7 +174,7 @@ void superb_run(superbandwidth_t * bw, float * iq, int size, tsdr_lib_t * tsdr, 
 			bw->samplerate = tsdr->samplerate_real;
 
 			bw->samples_in_frame =  tsdr->samplerate_real / tsdr->refreshrate;
-			bw->samples_to_gather = SUPER_FRAMES_TO_REC * bw->samples_in_frame;
+			bw->samples_to_gather = SUPER_SECS_TO_RECORD * bw->samples_in_frame;
 			bw->samples_to_pause = SUPER_SECS_TO_PAUSE * tsdr->samplerate_real;
 
 			super_freebuff(bw);
@@ -235,8 +212,7 @@ void superb_run(superbandwidth_t * bw, float * iq, int size, tsdr_lib_t * tsdr, 
 			printf("samples_gathered %d + samples_now %d >= samples_to_gather %d\n", bw->samples_gathered, samples_now, bw->samples_to_gather); fflush(stdout);
 
 			bw->buffid_current++;
-			if (bw->buffsbuffcount == 0) bw->buffsbuffcount = bw->samples_gathered;
-			else if (bw->samples_gathered < bw->buffsbuffcount) bw->buffsbuffcount = bw->samples_gathered;
+			bw->buffsbuffcount = bw->samples_gathered;
 			bw->samples_gathered = 0;
 
 			if (bw->buffid_current >= bw->buffscount) {

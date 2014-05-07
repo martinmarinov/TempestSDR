@@ -1,5 +1,6 @@
 #include "fft.h"
 #include <math.h>
+#include <string.h>
 
 uint32_t fft_getrealsize(uint32_t size) {
 	uint32_t m =0;
@@ -20,57 +21,58 @@ void real_to_complex(float * out, float * in, int in_size) {
 	}
 }
 
-void complex_to_real(float * data, int data_size){
+void complex_to_real(float * data, int samples){
 	float * src = data;
-	const int size2 = data_size/2;
 	int i;
-	for (i = 0; i < size2; i++) {
+	for (i = 0; i < samples; i++) {
 		const float I = *(src++);
 		const float Q = *(src++);
 		*(data++) = sqrtf(I*I+Q*Q);
 	}
 }
 
+void fft_complex_to_absolute_complex(float * data, int samples) {
+	uint32_t fft_size2 = samples * 2;
+
+	int i;
+	for (i = 0; i < fft_size2; i+=2) {
+		const int i1 = i+1;
+		const float I = data[i];
+		const float Q = data[i1];
+		data[i] = sqrtf(I*I+Q*Q);
+		data[i1] = 0;
+	}
+}
+
 // the array temp needs to be of size at least 2*size
 // the answer will be written in answer at entries fro 0 to size
 void fft_autocorrelation(float * answer, float * real, uint32_t size) {
-	uint32_t i;
 
 	// set the real ids in answer to the val, the imaginary ones to 0
 	real_to_complex(answer, real, size);
 
 	// do the fft
 	uint32_t fft_size = fft_getrealsize(size);
-	uint32_t fft_size2 = fft_size * 2;
+
 	fft_perform(answer, fft_size, 0);
 
 	// get the abs value
-	for (i = 0; i < fft_size2; i+=2) {
-		const int i1 = i+1;
-		const float I = answer[i];
-		const float Q = answer[i1];
-		answer[i] = sqrtf(I*I+Q*Q);
-		answer[i1] = 0;
-	}
+	fft_complex_to_absolute_complex(answer, size);
 
 	// get the ifft
 	fft_perform(answer, fft_size, 1);
 
 	// get the abs value
-	complex_to_real(answer, fft_size2);
+	complex_to_real(answer, size);
 }
 
-// answer_out and answer_temp need to have size of size * 2
-// a and b need to have size of size
-// the final answer can be found in answer_out
-void fft_crosscorrelation(float * answer_out, float * answer_temp, float * a, float * b, int size) {
+// a and b need to be complex with size samples * 2
+// the final answer can be found in answer_out and it is complex
+// you may need to take its absolute value to get the crosscorrelation
+void fft_crosscorrelation(float * answer_out, float * answer_temp, int samples) {
 	uint32_t i;
 
-	// turn them to complex numbers
-	real_to_complex(answer_out, a, size);
-	real_to_complex(answer_temp, b, size);
-
-	uint32_t fft_size = fft_getrealsize(size);
+	uint32_t fft_size = fft_getrealsize(samples);
 	uint32_t fft_size2 = fft_size * 2;
 
 	// perform the ffts
@@ -85,15 +87,12 @@ void fft_crosscorrelation(float * answer_out, float * answer_temp, float * a, fl
 		const float bI = answer_temp[i];
 		const float bQ = answer_temp[i1];
 
-		answer_out[i] = aI*bI + aQ*bQ;
-		answer_out[i1] = aI*bQ-aQ*bI;
+		answer_out[i]  = aI*bI + aQ*bQ;
+		answer_out[i1] = aI*bQ - aQ*bI;
 	}
 
 	// get the ifft
 	fft_perform(answer_out, fft_size, 1);
-
-	// get the abs value
-	complex_to_real(answer_out, fft_size2);
 }
 
 // iq must have a size of size*2

@@ -42,6 +42,9 @@ typedef struct {
 
 	extbuffer_t extb;
 
+	extbuffer_t extb_out;
+	extbuffer_t extb_temp;
+
 	volatile int alive;
 } superbandwidth_t;
 
