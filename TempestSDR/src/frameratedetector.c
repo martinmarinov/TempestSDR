@@ -21,7 +21,7 @@
 #define MIN_HEIGHT (590)
 #define MAX_FRAMERATE (87)
 #define MAX_HEIGHT (1500)
-#define FRAMES_TO_CAPTURE (3)
+#define FRAMES_TO_CAPTURE (2.1)
 
 void autocorrelate(extbuffer_t * buff, float * data, int size) {
 	extbuffer_preparetohandle(buff, 2*size);

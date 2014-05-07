@@ -73,7 +73,7 @@ void complex_to_abs_diff(float * data, int size) {
 		const float I = data[i];
 		const float Q = data[i1];
 		const float curr = sqrtf(I*I+Q*Q);
-		const float diff = prev - curr;
+		const float diff = curr - prev;
 		prev = curr;
 		data[i] = diff;
 		data[i1] = 0;
