@@ -347,7 +347,7 @@ void process(float *buf, uint32_t items_count, void *ctx, int samples_dropped) {
 
 			am_demod(buf, size2);
 
-			frameratedetector_run(&context->this->frameratedetect, buf, size2, context->this->samplerate, device_items_to_drop != 0);
+			frameratedetector_run(&context->this->frameratedetect, buf, size2, context->this->samplerate, samples_dropped != 0);
 
 			if (cb_add(&context->circbuf_device_to_decimation, &buf[device_items_to_drop >> 1], (items_count-device_items_to_drop) >> 1) == CB_OK)
 				context->device_items_to_drop = 0;

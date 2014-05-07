@@ -21,7 +21,7 @@
 #define MIN_HEIGHT (590)
 #define MAX_FRAMERATE (87)
 #define MAX_HEIGHT (1500)
-#define FRAMES_TO_CAPTURE (4.5)
+#define FRAMES_TO_CAPTURE (3)
 
 void autocorrelate(extbuffer_t * buff, float * data, int size) {
 	extbuffer_preparetohandle(buff, 2*size);
@@ -32,7 +32,7 @@ void autocorrelate(extbuffer_t * buff, float * data, int size) {
 }
 
 void accummulate(extbuffer_t * out, extbuffer_t * in) {
-	const int size = in->size_valid_elements;
+	const uint32_t size = in->size_valid_elements;
 	const int calls = in->calls;
 	const int currcalls = calls - 1;
 
@@ -87,11 +87,11 @@ void frameratedetector_thread(void * ctx) {
 	extbuffer_init(&extbuff_small);
 
 	float * buf = NULL;
-	int bufsize = 0;
+	uint32_t bufsize = 0;
 
 	while (frameratedetector->alive) {
 
-		const int desiredsize = FRAMES_TO_CAPTURE * frameratedetector->samplerate / (double) (MIN_FRAMERATE);
+		const uint32_t desiredsize = FRAMES_TO_CAPTURE * frameratedetector->samplerate / (double) (MIN_FRAMERATE);
 		if (desiredsize == 0) {
 			thread_sleep(10);
 			continue;

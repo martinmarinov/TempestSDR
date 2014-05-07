@@ -12,7 +12,7 @@ uint32_t fft_getrealsize(uint32_t size) {
 
 // out should have a size of 2*in_size
 void real_to_complex(float * out, float * in, int in_size) {
-	int i;
+	uint32_t i;
 
 	// set the real ids in answer to the val, the imaginary ones to 0
 	for (i = 0; i < in_size; i++) {
@@ -23,7 +23,7 @@ void real_to_complex(float * out, float * in, int in_size) {
 
 void complex_to_real(float * data, int samples){
 	float * src = data;
-	int i;
+	uint32_t i;
 	for (i = 0; i < samples; i++) {
 		const float I = *(src++);
 		const float Q = *(src++);
@@ -34,7 +34,7 @@ void complex_to_real(float * data, int samples){
 void fft_complex_to_absolute_complex(float * data, int samples) {
 	uint32_t fft_size2 = samples * 2;
 
-	int i;
+	uint32_t i;
 	for (i = 0; i < fft_size2; i+=2) {
 		const int i1 = i+1;
 		const float I = data[i];
@@ -69,7 +69,7 @@ void fft_autocorrelation(float * answer, float * real, uint32_t size) {
 // a and b need to be complex with size samples * 2
 // the final answer can be found in answer_out and it is complex
 // you may need to take its absolute value to get the crosscorrelation
-void fft_crosscorrelation(float * answer_out, float * answer_temp, int samples) {
+void fft_crosscorrelation(float * answer_out, float * answer_temp, uint32_t samples) {
 	uint32_t i;
 
 	uint32_t fft_size = fft_getrealsize(samples);
