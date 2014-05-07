@@ -99,7 +99,7 @@ void fft_crosscorrelation(float * answer_out, float * answer_temp, uint32_t samp
 void fft_perform(float * iq, uint32_t size, int inverse)
 {
 	int64_t i,i1,j,k,i2,l,l1,l2;
-	float c1,c2,tx,ty,t1,t2,u1,u2,z;
+	double c1,c2,tx,ty,t1,t2,u1,u2,z;
 
 	int m =0;
 	while ((size /= 2) != 0)
@@ -161,10 +161,10 @@ void fft_perform(float * iq, uint32_t size, int inverse)
 			u2 = u1 * c2 + u2 * c1;
 			u1 = z;
 		}
-		c2 = sqrtf((1.0f - c1) / 2.0f);
+		c2 = sqrt((1.0 - c1) / 2.0);
 		if (!inverse)
 			c2 = -c2;
-		c1 = sqrtf((1.0f + c1) / 2.0f);
+		c1 = sqrt((1.0 + c1) / 2.0);
 	}
 
 	if (!inverse) {

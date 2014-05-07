@@ -40,7 +40,7 @@ void extbuffer_preparetohandle(extbuffer_t * container, uint32_t size) {
 
 	container->size_valid_elements = size;
 	if (container->cleartozero) {
-		int i;
+		uint32_t i;
 		for (i = 0; i < container->size_valid_elements; i++)
 			container->buffer[i] = 0.0f;
 		container->cleartozero = 0;
