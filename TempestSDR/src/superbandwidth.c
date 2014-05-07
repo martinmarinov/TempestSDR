@@ -64,6 +64,22 @@ void superb_free(superbandwidth_t * bw) {
 	mutex_free(&bw->thread_unlock);
 }
 
+void complex_to_abs_diff(float * data, int size) {
+
+	int i;
+	float prev = data[0]*data[0] + data[1]*data[1];
+	for (i = 0; i < size; i+=2) {
+		const int i1 = i+1;
+		const float I = data[i];
+		const float Q = data[i1];
+		const float curr = sqrtf(I*I+Q*Q);
+		const float diff = curr - prev;
+		prev = curr;
+		data[i] = diff;
+		data[i1] = 0;
+	}
+}
+
 inline static int superb_bestfit(superbandwidth_t * bw, float * data1, float * data2, int size) {
 	size = fft_getrealsize(size);
 	const int samples = size/2;
@@ -75,8 +91,8 @@ inline static int superb_bestfit(superbandwidth_t * bw, float * data1, float * d
 	memcpy(bw->extb_out.buffer, data1, size * sizeof(float));
 	memcpy(bw->extb_temp.buffer, data2, size * sizeof(float));
 
-	fft_complex_to_absolute_complex(bw->extb_out.buffer, samples);
-	fft_complex_to_absolute_complex(bw->extb_temp.buffer, samples);
+	complex_to_abs_diff(bw->extb_out.buffer, size);
+	complex_to_abs_diff(bw->extb_temp.buffer, size);
 
 	fft_crosscorrelation(bw->extb_out.buffer, bw->extb_temp.buffer, samples);
 
@@ -209,7 +225,7 @@ void superb_run(superbandwidth_t * bw, float * iq, int size, tsdr_lib_t * tsdr, 
 			memcpy(&bw->buffs[bw->buffid_current][bw->samples_gathered*2], iq, samples_remain * 2 * sizeof(float));
 			bw->samples_gathered+=samples_remain;
 
-			printf("samples_gathered %d + samples_now %d >= samples_to_gather %d\n", bw->samples_gathered, samples_now, bw->samples_to_gather); fflush(stdout);
+			//printf("samples_gathered %d + samples_now %d >= samples_to_gather %d\n", bw->samples_gathered, samples_now, bw->samples_to_gather); fflush(stdout);
 
 			bw->buffid_current++;
 			bw->buffsbuffcount = bw->samples_gathered;
