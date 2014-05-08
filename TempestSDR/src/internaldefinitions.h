@@ -16,6 +16,7 @@
 #include "TSDRPluginLoader.h"
 #include "frameratedetector.h"
 #include "superbandwidth.h"
+#include "syncdetector.h"
 
 #include "extbuffer.h"
 
@@ -54,6 +55,9 @@
 		void * callbackctx;
 
 		superbandwidth_t super;
+
+		sweetspot_data_t db_x;
+		sweetspot_data_t db_y;
 
 	};
 

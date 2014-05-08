@@ -51,11 +51,6 @@ static inline void findbestfit(float * data, const int size, const float totalsu
 	}
 }
 
-#define SWEETSPOT_INIT {.curr_stripsize=0}
-typedef struct sweetspot_data {
-	int curr_stripsize;
-} sweetspot_data_t;
-
 #define RUNWITH_SIZE(newsize) \
 	stripsize = newsize; \
 	if (stripsize >= minsize && stripsize < size2 && stripsize != db->curr_stripsize) { \
@@ -140,10 +135,8 @@ void frameratepll(tsdr_lib_t * tsdr, int dx, int width, int height) {
 
 float * syncdetector_run(tsdr_lib_t * tsdr, float * data, float * outputdata, int width, int height, float * widthbuffer, float * heightbuffer) {
 
-	static sweetspot_data_t db_x = SWEETSPOT_INIT, db_y = SWEETSPOT_INIT;
-
-	const int dx = findthesweetspot(&db_x, widthbuffer, width, width * 0.05f );
-	const int dy = findthesweetspot(&db_y, heightbuffer, height, height * 0.01f );
+	const int dx = findthesweetspot(&tsdr->db_x, widthbuffer, width, width * 0.05f );
+	const int dy = findthesweetspot(&tsdr->db_y, heightbuffer, height, height * 0.01f );
 
 	const int size = width * height;
 
@@ -174,8 +167,10 @@ float * syncdetector_run(tsdr_lib_t * tsdr, float * data, float * outputdata, in
 
 		return outputdata;
 	} else {
+#if PIXEL_SPECIAL_COLOURS_ENABLED
 		verticalline(dx, data, width, height, PIXEL_SPECIAL_VALUE_G);
 		horizontalline(dy, data, width, height, PIXEL_SPECIAL_VALUE_G);
+#endif
 		return data;
 	}
 

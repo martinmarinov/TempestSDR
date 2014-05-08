@@ -24,6 +24,8 @@
 #include "syncdetector.h"
 #include "internaldefinitions.h"
 #include "superbandwidth.h"
+#include "syncdetector.h"
+
 
 #define MAX_ARR_SIZE (4000*4000)
 #define MAX_SAMP_RATE (500e6)
@@ -113,6 +115,8 @@ static inline void announceexception(tsdr_lib_t * tsdr, const char * message, in
 	(*tsdr)->callback = callback;
 	(*tsdr)->plotready_callback = plotready_callback;
 	(*tsdr)->callbackctx = ctx;
+	(*tsdr)->db_x.curr_stripsize = 0;
+	(*tsdr)->db_y.curr_stripsize = 0;
 
 	for (i = 0; i < COUNT_PARAM_INT; i++)
 		(*tsdr)->params_int[i] = 0;
