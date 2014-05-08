@@ -311,9 +311,6 @@ void decimatingthread(void * ctx) {
 
 	while (context->this->running) {
 
-		const int width = context->this->width;
-		const int height = context->this->height;
-
 		const int size = FRAMES_TO_POLL * context->this->samplerate / context->this->refreshrate;
 		extbuffer_preparetohandle(&buff, size);
 
@@ -414,7 +411,7 @@ int tsdr_loadplugin(tsdr_lib_t * tsdr, const char * pluginfilepath, const char *
 	context->cb = cb;
 	context->ctx = ctx;
 	cb_init(&context->circbuf_decimation_to_video, CB_SIZE_MAX_COEFF_LOW_LATENCY);
-	cb_init(&context->circbuf_device_to_decimation, CB_SIZE_MAX_COEFF_LOW_LATENCY);
+	cb_init(&context->circbuf_device_to_decimation, CB_SIZE_MAX_COEFF_MED_LATENCY);
 	dsp_dropped_compensation_init(&context->dsp_dropped);
 	dsp_dropped_compensation_init(&context->dsp_device_dropped);
 
