@@ -49,6 +49,10 @@ void cb_init(CircBuff_t * cb, int max_size_coeff) {
     mutex_init(&cb->locker);
 }
 
+int cb_size(CircBuff_t * cb) {
+	return cb->buffer_size - cb->remaining_capacity;
+}
+
 int cb_add(CircBuff_t * cb, float * in, const size_t len) {
 	if (cb->invalid) return CB_ERROR;
     if (len <= 0) return CB_OK; // handle edge case

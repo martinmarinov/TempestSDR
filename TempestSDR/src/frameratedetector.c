@@ -145,6 +145,10 @@ void frameratedetector_stopthread(frameratedetector_t * frameratedetector) {
 
 void frameratedetector_run(frameratedetector_t * frameratedetector, float * data, int size, uint32_t samplerate, int drop) {
 
+	// if we don't want to call this at all
+	if (frameratedetector->tsdr->params_int[PARAM_AUTOCORR_PLOTS_OFF])
+		return;
+
 	if (drop) {
 		cb_purge(&frameratedetector->circbuff);
 		return;
@@ -153,6 +157,8 @@ void frameratedetector_run(frameratedetector_t * frameratedetector, float * data
 	frameratedetector->samplerate = samplerate;
 	if (cb_add(&frameratedetector->circbuff, data, size) != CB_OK)
 		cb_purge(&frameratedetector->circbuff);
+
+	//printf("TUK! %d %%\n", (int) (100*cb_size(&frameratedetector->circbuff) / (FRAMES_TO_CAPTURE * frameratedetector->samplerate / (double) (MIN_FRAMERATE))));fflush(stdout);
 }
 
 void frameratedetector_free(frameratedetector_t * frameratedetector) {

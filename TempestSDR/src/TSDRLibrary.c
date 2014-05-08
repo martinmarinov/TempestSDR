@@ -34,11 +34,11 @@
 #define INTEG_TYPE (0)
 #define PI (3.141592653589793238462643383279502f)
 
-#define FRAMES_TO_POLL (1.1)
-
 #define NORMALISATION_LOWPASS_COEFF (0.1f)
 
 #define DEFAULT_DECIMATOR_TO_POLL (128)
+
+#define FRAMES_TO_POLL (1.1)
 
 struct tsdr_context {
 		tsdr_readasync_function cb;
@@ -289,12 +289,15 @@ void process(float *buf, uint32_t items_count, void *ctx, int samples_dropped) {
 		const int block = round(((context->this->width * context->this->height) << 1) * context->this->pixeltimeoversampletime);
 		dsp_dropped_compensation_shift_with(&context->dsp_device_dropped, block, samples_dropped);
 
-		am_demod(buf, size2);
+		if (!dsp_dropped_compensation_will_drop_all(&context->dsp_device_dropped, size2) || (	!context->this->params_int[PARAM_AUTOCORR_PLOTS_OFF] && samples_dropped != 0 ) ) {
+			am_demod(buf, size2);
 
-		frameratedetector_run(&context->this->frameratedetect, buf, size2, context->this->samplerate, samples_dropped != 0);
+			frameratedetector_run(&context->this->frameratedetect, buf, size2, context->this->samplerate, samples_dropped != 0);
+
+		} else
+			frameratedetector_run(&context->this->frameratedetect, NULL, 0, context->this->samplerate, samples_dropped != 0);
 
 		dsp_dropped_compensation_add(&context->dsp_device_dropped, &context->circbuf_device_to_decimation, buf, size2, block);
-
 	}
 
 }
@@ -307,6 +310,9 @@ void decimatingthread(void * ctx) {
 	extbuffer_init(&buff);
 
 	while (context->this->running) {
+
+		const int width = context->this->width;
+		const int height = context->this->height;
 
 		const int size = FRAMES_TO_POLL * context->this->samplerate / context->this->refreshrate;
 		extbuffer_preparetohandle(&buff, size);

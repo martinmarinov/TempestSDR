@@ -56,5 +56,6 @@ int cb_add(CircBuff_t * cb, float * buff, const size_t size);
 int cb_rem_blocking(CircBuff_t * cb, float * in, const size_t len);
 void cb_free(CircBuff_t * cb);
 void cb_purge(CircBuff_t * cb);
+int cb_size(CircBuff_t * cb);
 
 #endif
