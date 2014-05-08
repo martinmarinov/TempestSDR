@@ -31,10 +31,11 @@
 #define INTEG_TYPE (0)
 #define PI (3.141592653589793238462643383279502f)
 
+#define FRAMES_TO_POLL (1.1)
 
 #define NORMALISATION_LOWPASS_COEFF (0.1f)
 
-#define DEFAULT_DECIMATOR_TO_POLL (64)
+#define DEFAULT_DECIMATOR_TO_POLL (128)
 
 struct tsdr_context {
 		tsdr_readasync_function cb;
@@ -44,7 +45,6 @@ struct tsdr_context {
 		void *ctx;
 		CircBuff_t circbuf_decimation_to_video;
 		CircBuff_t circbuf_device_to_decimation;
-		size_t decimator_items_to_poll;
 
 		size_t device_items_dropped;
 		size_t device_items_to_drop;
@@ -315,7 +315,6 @@ void process(float *buf, uint32_t items_count, void *ctx, int samples_dropped) {
 	tsdr_context_t * context = (tsdr_context_t *) ctx;
 
 	const int size2 = items_count >> 1;
-	context->decimator_items_to_poll = size2;
 
 	if (context->this->params_int[PARAM_AUTOCORR_SUPERRESOLUTION]) {
 		float * superbuf = NULL; int superbuff_samples;
@@ -362,7 +361,7 @@ void decimatingthread(void * ctx) {
 	tsdr_context_t * context = (tsdr_context_t *) ctx;
 	semaphore_enter(&context->this->threadsync);
 
-	int bufsize = context->decimator_items_to_poll;
+	int bufsize = DEFAULT_DECIMATOR_TO_POLL;
 	float * buffer = (float *) malloc(sizeof(float) * bufsize);
 	int dropped_samples = 0;
 	unsigned int todrop = 0;
@@ -375,7 +374,7 @@ void decimatingthread(void * ctx) {
 
 	while (context->this->running) {
 
-		const int size = context->decimator_items_to_poll;
+		const int size = FRAMES_TO_POLL * context->this->samplerate / context->this->refreshrate;
 		if (size > bufsize) {
 			bufsize = size;
 			buffer = (float *) realloc((void*) buffer, sizeof(float) * bufsize);
@@ -566,7 +565,6 @@ int tsdr_loadplugin(tsdr_lib_t * tsdr, const char * pluginfilepath, const char *
 	context->this = tsdr;
 	context->cb = cb;
 	context->ctx = ctx;
-	context->decimator_items_to_poll = DEFAULT_DECIMATOR_TO_POLL;
 	context->device_items_dropped = 0;
 	context->device_items_to_drop = 0;
 	cb_init(&context->circbuf_decimation_to_video, CB_SIZE_MAX_COEFF_LOW_LATENCY);
