@@ -49,8 +49,8 @@ struct tsdr_context {
 		CircBuff_t circbuf_decimation_to_video;
 		CircBuff_t circbuf_device_to_decimation;
 
-		size_t device_items_dropped;
-		size_t device_items_to_drop;
+		dsp_dropped_compensation_t dsp_dropped;
+		dsp_dropped_compensation_t dsp_device_dropped;
 
 	} typedef tsdr_context_t;
 
@@ -87,6 +87,7 @@ void tsdr_init(tsdr_lib_t ** tsdr, tsdr_value_changed_callback callback, tsdr_on
 	mutex_init(&(*tsdr)->stopsync);
 
 	dsp_post_process_init(&(*tsdr)->dsp_postprocess);
+	dsp_resample_init(&(*tsdr)->dsp_resample);
 
 	frameratedetector_init(&(*tsdr)->frameratedetect, *tsdr);
 	superb_init(&(*tsdr)->super);
@@ -106,6 +107,7 @@ void tsdr_free(tsdr_lib_t ** tsdr) {
 	mutex_free(&(*tsdr)->stopsync);
 
 	dsp_post_process_free(&(*tsdr)->dsp_postprocess);
+	dsp_resample_free(&(*tsdr)->dsp_resample);
 
 	frameratedetector_free(&(*tsdr)->frameratedetect);
 	superb_free(&(*tsdr)->super);
@@ -284,31 +286,15 @@ void process(float *buf, uint32_t items_count, void *ctx, int samples_dropped) {
 	} else {
 		superb_stop(&context->this->super, context->this);
 
-		if (samples_dropped > 0)
-			context->device_items_dropped += (samples_dropped << 1);
+		const int block = round(((context->this->width * context->this->height) << 1) * context->this->pixeltimeoversampletime);
+		dsp_dropped_compensation_shift_with(&context->dsp_device_dropped, block, samples_dropped);
 
-		if (context->device_items_dropped > 0) {
+		am_demod(buf, size2);
 
-			const unsigned int size2 = round(((context->this->width * context->this->height) << 1) * context->this->pixeltimeoversampletime);
-			const unsigned int moddropped = context->device_items_dropped % size2;
-			context->device_items_to_drop += size2-moddropped; // how much to drop so that it ends up on one frame
-			context->device_items_dropped = 0;
-		}
+		frameratedetector_run(&context->this->frameratedetect, buf, size2, context->this->samplerate, samples_dropped != 0);
 
-		const size_t device_items_to_drop = context->device_items_to_drop;
-		if (device_items_to_drop >= items_count)
-			context->device_items_to_drop -= items_count;
-		else {
+		dsp_dropped_compensation_add(&context->dsp_device_dropped, &context->circbuf_device_to_decimation, buf, size2, block);
 
-			am_demod(buf, size2);
-
-			frameratedetector_run(&context->this->frameratedetect, buf, size2, context->this->samplerate, samples_dropped != 0);
-
-			if (cb_add(&context->circbuf_device_to_decimation, &buf[device_items_to_drop >> 1], (items_count-device_items_to_drop) >> 1) == CB_OK)
-				context->device_items_to_drop = 0;
-			else// we lost samples due to buffer overflow
-				context->device_items_dropped += items_count;
-		}
 	}
 
 }
@@ -317,128 +303,28 @@ void decimatingthread(void * ctx) {
 	tsdr_context_t * context = (tsdr_context_t *) ctx;
 	semaphore_enter(&context->this->threadsync);
 
-	int bufsize = DEFAULT_DECIMATOR_TO_POLL;
-	float * buffer = (float *) malloc(sizeof(float) * bufsize);
-	int dropped_samples = 0;
-	unsigned int todrop = 0;
-
-	int outbufsize = context->this->width * context->this->height;
-	float * outbuf = (float *) malloc(sizeof(float) * outbufsize);
-
-	float contrib = 0;
-	double offset = 0;
+	extbuffer_t buff;
+	extbuffer_init(&buff);
 
 	while (context->this->running) {
 
 		const int size = FRAMES_TO_POLL * context->this->samplerate / context->this->refreshrate;
-		if (size > bufsize) {
-			bufsize = size;
-			buffer = (float *) realloc((void*) buffer, sizeof(float) * bufsize);
-		}
-		if (cb_rem_blocking(&context->circbuf_device_to_decimation, buffer, size) == CB_OK) {
+		extbuffer_preparetohandle(&buff, size);
 
-			const double post = context->this->pixeltimeoversampletime;
-			const int pids = (int) ((size - offset) / post);
+		if (cb_rem_blocking(&context->circbuf_device_to_decimation, buff.buffer, size) == CB_OK) {
 
-			// resize buffer so it fits
-			if (pids > outbufsize) {
-				outbufsize = pids;
-				outbuf = (float *) realloc(outbuf, sizeof(float) * outbufsize);
-			}
+			int pids;
+			float * outbuf = dsp_resample_process(&context->this->dsp_resample, size, buff.buffer, context->this->pixeltimeoversampletime, &pids);
 
-			double t = offset;
-
-			int pid = 0;
-			int id;
-
-			float * bref = buffer;
-			for (id = 0; id < size; id++) {
-
-				const float val = *(bref++);
-
-				// we are in case:
-				//    pid
-				//    t                                  (in terms of id)
-				//  . ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! !  pixels (pid)
-				// ____|__val__|_______|_______|_______| samples (id)
-				//    id     id+1    id+2
-
-				if (t < id && (t + post) < (id+1)) {
-					const float start = (id-t)/post;
-#if INTEG_TYPE == -1
-					outbuf[pid++] = val;
-#else
-					const float contrfract = 1.0 - start;
-					outbuf[pid++] = contrib + val*contrfract;
-#endif
-					contrib = 0;
-					t=offset+pid*post;
-				}
-
-				// we are in case:
-				//      pid
-				//      t t+post                        (in terms of id)
-				//  . ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! !  pixels (pid)
-				// ____|__val__|_______|_______|_______| samples (id)
-				//    id
-
-				while ((t+post) < (id+1)) {
-					// this only ever triggers if post < 1
-					outbuf[pid++] = val;
-					t=offset+pid*post;
-				}
-
-				// we are in case:
-				//            pid
-				//            t                          (in terms of id)
-				//  . ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! !  pixels (pid)
-				// ____|__val__|_______|_______|_______| samples (id)
-				//    id     id+1    id+2
-
-				if (t < (id + 1) && t > id) {
-					const float contrfract = (id+1-t)/post;
-					contrib += contrfract * val;
-				} else {
-					const float idt = id - t;
-					const float contrfract = (idt+1-idt)/post;
-					contrib += contrfract * val;
-				}
-			}
-
-			offset = t-size;
-
-			//assert (pid == pids);
-			//		printf("Pid %d; pids %d; t %.4f, size %d, offset %.4f\n", pid, pids, t, size, context->offset);
-
-			// section for syncing lost samples
-			if (dropped_samples > 0) {
-				const unsigned int size = context->this->width * context->this->height;
-				const unsigned int moddropped = dropped_samples % size;
-				todrop += size - moddropped; // how much to drop so that it ends up on one frame
-				dropped_samples = 0;
-			}
-
-			if (todrop >= pid)
-				todrop -= pid;
-			else if (cb_add(&context->circbuf_decimation_to_video, &outbuf[todrop], pid-todrop) == CB_OK)
-				todrop = 0;
-			else // we lost samples due to buffer overflow
-				dropped_samples += pid;
-
+			dsp_dropped_compensation_add(&context->dsp_dropped, &context->circbuf_decimation_to_video, outbuf, pids, context->this->width * context->this->height);
 
 			// section for manual syncing
-			const int syncoffset = -context->this->syncoffset;
-			if (syncoffset > 0)
-				dropped_samples += syncoffset;
-			else if (syncoffset < 0)
-				dropped_samples += context->this->width * context->this->height + syncoffset;
+			dsp_dropped_compensation_shift_with(&context->dsp_dropped,  context->this->width * context->this->height, -context->this->syncoffset);
 			context->this->syncoffset = 0;
 		}
 	}
 
-	if (buffer != NULL) free(buffer);
-	buffer = NULL;
-	free(outbuf);
+	extbuffer_free(&buff);
 
 	semaphore_leave(&context->this->threadsync);
 }
@@ -521,10 +407,10 @@ int tsdr_loadplugin(tsdr_lib_t * tsdr, const char * pluginfilepath, const char *
 	context->this = tsdr;
 	context->cb = cb;
 	context->ctx = ctx;
-	context->device_items_dropped = 0;
-	context->device_items_to_drop = 0;
 	cb_init(&context->circbuf_decimation_to_video, CB_SIZE_MAX_COEFF_LOW_LATENCY);
 	cb_init(&context->circbuf_device_to_decimation, CB_SIZE_MAX_COEFF_LOW_LATENCY);
+	dsp_dropped_compensation_init(&context->dsp_dropped);
+	dsp_dropped_compensation_init(&context->dsp_device_dropped);
 
 	frameratedetector_startthread(&tsdr->frameratedetect);
 	super_startthread(&tsdr->super);

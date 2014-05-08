@@ -118,3 +118,112 @@ void dsp_post_process_free(dsp_postprocess_t * pp) {
 	if (pp->widthcollapsebuffer != NULL) free(pp->widthcollapsebuffer);
 	if (pp->heightcollapsebuffer != NULL) free(pp->heightcollapsebuffer);
 }
+
+void dsp_resample_init(dsp_resample_t * res) {
+	extbuffer_init(&res->out);
+
+	res->contrib = 0;
+	res->offset = 0;
+}
+
+float * dsp_resample_process(dsp_resample_t * res, int size, float * buffer, const double pixeloversampletme, int * pids) {
+
+	*pids = (int) ((size - res->offset) / pixeloversampletme);
+
+	// resize buffer so it fits
+	extbuffer_preparetohandle(&res->out, *pids);
+
+	double t = res->offset;
+
+	int pid = 0;
+	int id;
+
+	float * bref = buffer;
+	for (id = 0; id < size; id++) {
+
+		const float val = *(bref++);
+
+		// we are in case:
+		//    pid
+		//    t                                  (in terms of id)
+		//  . ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! !  pixels (pid)
+		// ____|__val__|_______|_______|_______| samples (id)
+		//    id     id+1    id+2
+
+		if (t < id && (t + pixeloversampletme) < (id+1)) {
+			const float start = (id-t)/pixeloversampletme;
+			const float contrfract = 1.0 - start;
+			res->out.buffer[pid++] = res->contrib + val*contrfract;
+			res->contrib = 0;
+			t=res->offset+pid*pixeloversampletme;
+		}
+
+		// we are in case:
+		//      pid
+		//      t t+post                        (in terms of id)
+		//  . ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! !  pixels (pid)
+		// ____|__val__|_______|_______|_______| samples (id)
+		//    id
+
+		while ((t+pixeloversampletme) < (id+1)) {
+			// this only ever triggers if post < 1
+			res->out.buffer[pid++] = val;
+			t=res->offset+pid*pixeloversampletme;
+		}
+
+		// we are in case:
+		//            pid
+		//            t                          (in terms of id)
+		//  . ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! !  pixels (pid)
+		// ____|__val__|_______|_______|_______| samples (id)
+		//    id     id+1    id+2
+
+		if (t < (id + 1) && t > id) {
+			const float contrfract = (id+1-t)/pixeloversampletme;
+			res->contrib += contrfract * val;
+		} else {
+			const float idt = id - t;
+			const float contrfract = (idt+1-idt)/pixeloversampletme;
+			res->contrib += contrfract * val;
+		}
+	}
+
+	res->offset = t-size;
+
+	return res->out.buffer;
+}
+
+void dsp_resample_free(dsp_resample_t * res) {
+	extbuffer_free(&res->out);
+}
+
+void dsp_dropped_compensation_init(dsp_dropped_compensation_t * res) {
+	res->dropped_samples = 0;
+	res->todrop = 0;
+}
+
+void dsp_dropped_compensation_add(dsp_dropped_compensation_t * res, CircBuff_t * cb, float * buff, const size_t size, int block) {
+	if (res->dropped_samples > 0) {
+		const unsigned int moddropped = res->dropped_samples % block;
+		res->todrop += block - moddropped; // how much to drop so that it ends up on one frame
+		res->dropped_samples = 0;
+	}
+
+	if (res->todrop >= size)
+		res->todrop -= size;
+	else if (cb_add(cb, &buff[res->todrop], size-res->todrop) == CB_OK)
+		res->todrop = 0;
+	else // we lost samples due to buffer overflow
+		res->dropped_samples += size;
+}
+
+int dsp_dropped_compensation_will_drop_all(dsp_dropped_compensation_t * res, int size) {
+	return res->todrop >= size;
+}
+
+void dsp_dropped_compensation_shift_with(dsp_dropped_compensation_t * res, int block, int syncoffset) {
+	if (syncoffset >= 0)
+		res->dropped_samples += syncoffset;
+	else if (syncoffset < 0)
+		res->dropped_samples += block + syncoffset;
+}

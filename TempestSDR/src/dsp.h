@@ -16,6 +16,9 @@
 #ifndef DSP_H_
 #define DSP_H_
 
+#include "extbuffer.h"
+#include "circbuff.h"
+
 // time based lowpass
 
 /** Does a IIR simple lowpass onto output given input (past values are in output). Size is the size of the buffers. Coefficient could be 0 to 1 */
@@ -62,5 +65,31 @@ void dsp_post_process_init(dsp_postprocess_t * pp);
 float * dsp_post_process(tsdr_lib_t * tsdr, dsp_postprocess_t * pp, float * buffer, int nowwidth, int nowheight, float motionblur, float lowpasscoeff);
 
 void dsp_post_process_free(dsp_postprocess_t * pp);
+
+// resampling
+
+typedef struct {
+	extbuffer_t out;
+	float contrib;
+	double offset;
+} dsp_resample_t;
+
+void dsp_resample_init(dsp_resample_t * res);
+
+float * dsp_resample_process(dsp_resample_t * res, int size, float * buffer, const double pixeloversampletme, int * pids);
+
+void dsp_resample_free(dsp_resample_t * res);
+
+// compensating for dropped samples
+
+typedef struct {
+	int dropped_samples;
+	unsigned int todrop;
+} dsp_dropped_compensation_t;
+
+void dsp_dropped_compensation_init(dsp_dropped_compensation_t * res);
+void dsp_dropped_compensation_add(dsp_dropped_compensation_t * res, CircBuff_t * cb, float * buff, const size_t size, int block);
+void dsp_dropped_compensation_shift_with(dsp_dropped_compensation_t * res, int block, int syncoffset);
+int dsp_dropped_compensation_will_drop_all(dsp_dropped_compensation_t * res, int size);
 
 #endif

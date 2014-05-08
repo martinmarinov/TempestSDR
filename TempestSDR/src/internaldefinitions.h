@@ -66,6 +66,7 @@
 		sweetspot_data_t db_y;
 
 		dsp_postprocess_t dsp_postprocess;
+		dsp_resample_t dsp_resample;
 	};
 
 	void announce_callback_changed(tsdr_lib_t * tsdr, int value_id, double arg0, int arg1);

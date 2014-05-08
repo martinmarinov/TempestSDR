@@ -145,10 +145,6 @@ void frameratedetector_stopthread(frameratedetector_t * frameratedetector) {
 
 void frameratedetector_run(frameratedetector_t * frameratedetector, float * data, int size, uint32_t samplerate, int drop) {
 
-	// if we don't want to call this at all
-	if (frameratedetector->tsdr->params_int[PARAM_AUTOCORR_PLOTS_OFF])
-		return;
-
 	if (drop) {
 		cb_purge(&frameratedetector->circbuff);
 		return;
