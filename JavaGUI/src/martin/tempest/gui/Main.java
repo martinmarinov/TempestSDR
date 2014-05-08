@@ -140,6 +140,8 @@ public class Main implements TSDRLibrary.FrameReadyCallback, TSDRLibrary.Incomin
 	
 	private volatile boolean snapshot = false;
 	private volatile boolean height_change_from_auto = false;
+	private volatile boolean plot_change_from_auto = false;
+	private volatile boolean spinner_change_from_auto = false;
 	
 	private boolean video_mode_change_manually_triggered = false;
 	
@@ -362,6 +364,8 @@ public class Main implements TSDRLibrary.FrameReadyCallback, TSDRLibrary.Incomin
 		frmTempestSdr.getContentPane().add(spWidth);
 		spWidth.addChangeListener(new ChangeListener() {
 			public void stateChanged(ChangeEvent arg0) {
+				if (spinner_change_from_auto) return;
+				
 				onResolutionChange((Integer) spWidth.getValue(), (Integer) spHeight.getValue(), framerate);
 			}
 		});
@@ -373,6 +377,7 @@ public class Main implements TSDRLibrary.FrameReadyCallback, TSDRLibrary.Incomin
 		spHeight.addChangeListener(new ChangeListener() {
 			private Integer oldheight = null;
 			public void stateChanged(ChangeEvent arg0) {
+				if (spinner_change_from_auto) return;
 				
 				final Integer width = (Integer) spWidth.getValue();
 				final Integer newheight = (Integer) spHeight.getValue();
@@ -415,12 +420,14 @@ public class Main implements TSDRLibrary.FrameReadyCallback, TSDRLibrary.Incomin
 				txtFramerate.addFocusListener(new FocusAdapter() {
 					@Override
 					public void focusLost(FocusEvent e) {
+						if (spinner_change_from_auto) return;
 						onFrameRateTextChanged();
 					}
 				});
 				txtFramerate.addKeyListener(new KeyAdapter() {
 					@Override
 					public void keyReleased(KeyEvent evt) {
+						if (spinner_change_from_auto) return;
 						if(evt.getKeyCode() == KeyEvent.VK_ENTER)
 							onFrameRateTextChanged();
 					}
@@ -711,7 +718,7 @@ public class Main implements TSDRLibrary.FrameReadyCallback, TSDRLibrary.Incomin
 		onResolutionChange(mode.width, mode.height, mode.refreshrate, id);
 	}
 	
-	private void onResolutionChange(final float fps, final int height, final String msg) {
+	private void onResolutionChange(final double fps, final int height, final String msg) {
 		
 		final int modeid = VideoMode.findClosestVideoModeId(fps, height, videomodes);
 		if (modeid >= 0 && modeid < videomodes.length) {
@@ -727,13 +734,18 @@ public class Main implements TSDRLibrary.FrameReadyCallback, TSDRLibrary.Incomin
 	}
 	
 	private void onResolutionChange(int width, int height, double framerate, int closest_videomode_id) {
-		this.framerate = framerate;
+		
+		plot_change_from_auto = true;
 		frame_plotter.setSelectedValue((float) framerate);
 		line_plotter.setSelectedValue(height);
+		
+		spinner_change_from_auto = true;
+		
 		final String frameratetext = String.format(FRAMERATE_FORMAT, framerate);
 		txtFramerate.setText(frameratetext);
 		
 		try {
+			
 			mSdrlib.setResolution(width, height, framerate);
 			prefs.putDouble(PREF_FRAMERATE, framerate);
 			prefs.putInt(PREF_WIDTH, width);
@@ -749,7 +761,13 @@ public class Main implements TSDRLibrary.FrameReadyCallback, TSDRLibrary.Incomin
 			video_mode_change_manually_triggered = false;
 		} catch (TSDRException e) {
 			displayException(frmTempestSdr, e);
+		} finally {
+			plot_change_from_auto = false;
 		}
+		
+		spinner_change_from_auto = false;
+		
+		this.framerate = framerate;
 	}
 	
 	private void onCenterFreqChange() {
@@ -1168,6 +1186,7 @@ public class Main implements TSDRLibrary.FrameReadyCallback, TSDRLibrary.Incomin
 		}
 		
 		public void executeIdSelected(int sel_id, int offset, long samplerate) {
+			if (plot_change_from_auto) return;
 			height_transformer.setLength(offset + sel_id);
 			
 			final float fps = frame_plotter.getSelectedValue();
@@ -1209,9 +1228,9 @@ public class Main implements TSDRLibrary.FrameReadyCallback, TSDRLibrary.Incomin
 		}
 		
 		public void executeIdSelected(int sel_id, int offset, long samplerate) {
-			final float fps = frame_plotter.getSelectedValue();
+			if (plot_change_from_auto) return;
 			final int height = roundData(line_plotter.getSelectedValue());
-			onResolutionChange(fps, height, "Chosen %s");
+			onResolutionChange(framerate, height, "Chosen %s");
 		}
 
 		@Override
