@@ -26,6 +26,7 @@
 #include "superbandwidth.h"
 #include "syncdetector.h"
 
+#include "dsp.h"
 
 #define MAX_ARR_SIZE (4000*4000)
 #define MAX_SAMP_RATE (500e6)
@@ -57,6 +58,62 @@ struct tsdr_context {
 #define RETURN_EXCEPTION(tsdr, message, status) {announceexception(tsdr, message, status); return status;}
 #define RETURN_OK(tsdr) {tsdr->errormsg_code = TSDR_OK; return TSDR_OK;}
 #define RETURN_PLUGIN_RESULT(tsdr,plugin,result) {if ((result) == TSDR_OK) RETURN_OK(tsdr) else RETURN_EXCEPTION(tsdr,plugin.tsdrplugin_getlasterrortext(),result);}
+
+void tsdr_init(tsdr_lib_t ** tsdr, tsdr_value_changed_callback callback, tsdr_on_plot_ready_callback plotready_callback, void * ctx) {
+	int i;
+
+	*tsdr = (tsdr_lib_t *) malloc(sizeof(tsdr_lib_t));
+
+	(*tsdr)->nativerunning = 0;
+	(*tsdr)->running = 0;
+	(*tsdr)->plugin.initialized = 0;
+	(*tsdr)->plugin.tsdrplugin_cleanup = NULL;
+	(*tsdr)->centfreq = 0;
+	(*tsdr)->syncoffset = 0;
+	(*tsdr)->errormsg_size = 0;
+	(*tsdr)->errormsg_code = TSDR_OK;
+	(*tsdr)->callback = callback;
+	(*tsdr)->plotready_callback = plotready_callback;
+	(*tsdr)->callbackctx = ctx;
+	(*tsdr)->db_x.curr_stripsize = 0;
+	(*tsdr)->db_y.curr_stripsize = 0;
+
+	for (i = 0; i < COUNT_PARAM_INT; i++)
+		(*tsdr)->params_int[i] = 0;
+	for (i = 0; i < COUNT_PARAM_DOUBLE; i++)
+		(*tsdr)->params_double[i] = 0.0;
+
+	semaphore_init(&(*tsdr)->threadsync);
+	mutex_init(&(*tsdr)->stopsync);
+
+	dsp_post_process_init(&(*tsdr)->dsp_postprocess);
+
+	frameratedetector_init(&(*tsdr)->frameratedetect, *tsdr);
+	superb_init(&(*tsdr)->super);
+
+}
+
+void tsdr_free(tsdr_lib_t ** tsdr) {
+	(*tsdr)->callback = NULL;
+	(*tsdr)->plotready_callback = NULL;
+
+	unloadplugin(*tsdr);
+
+	free((*tsdr)->errormsg);
+	(*tsdr)->errormsg_size = 0;
+
+	semaphore_free(&(*tsdr)->threadsync);
+	mutex_free(&(*tsdr)->stopsync);
+
+	dsp_post_process_free(&(*tsdr)->dsp_postprocess);
+
+	frameratedetector_free(&(*tsdr)->frameratedetect);
+	superb_free(&(*tsdr)->super);
+
+	free (*tsdr);
+	*tsdr = NULL;
+}
+
 
 static inline void announceexception(tsdr_lib_t * tsdr, const char * message, int status) {
 	tsdr->errormsg_code = status;
@@ -98,38 +155,6 @@ static inline void announceexception(tsdr_lib_t * tsdr, const char * message, in
  void * tsdr_getctx(tsdr_lib_t * tsdr) {
 	 return tsdr->callbackctx;
  }
-
- void tsdr_init(tsdr_lib_t ** tsdr, tsdr_value_changed_callback callback, tsdr_on_plot_ready_callback plotready_callback, void * ctx) {
-	 int i;
-
-	*tsdr = (tsdr_lib_t *) malloc(sizeof(tsdr_lib_t));
-
-	(*tsdr)->nativerunning = 0;
-	(*tsdr)->running = 0;
-	(*tsdr)->plugin.initialized = 0;
-	(*tsdr)->plugin.tsdrplugin_cleanup = NULL;
-	(*tsdr)->centfreq = 0;
-	(*tsdr)->syncoffset = 0;
-	(*tsdr)->errormsg_size = 0;
-	(*tsdr)->errormsg_code = TSDR_OK;
-	(*tsdr)->callback = callback;
-	(*tsdr)->plotready_callback = plotready_callback;
-	(*tsdr)->callbackctx = ctx;
-	(*tsdr)->db_x.curr_stripsize = 0;
-	(*tsdr)->db_y.curr_stripsize = 0;
-
-	for (i = 0; i < COUNT_PARAM_INT; i++)
-		(*tsdr)->params_int[i] = 0;
-	for (i = 0; i < COUNT_PARAM_DOUBLE; i++)
-		(*tsdr)->params_double[i] = 0.0;
-
-	semaphore_init(&(*tsdr)->threadsync);
-	mutex_init(&(*tsdr)->stopsync);
-
-	frameratedetector_init(&(*tsdr)->frameratedetect, *tsdr);
-	superb_init(&(*tsdr)->super);
-
-}
 
  int tsdr_isrunning(tsdr_lib_t * tsdr) {
 	return tsdr->nativerunning;
@@ -205,98 +230,25 @@ void shiftfreq(tsdr_lib_t * tsdr, int32_t diff) {
 // shielded loop antenna (magnetic)
 void videodecodingthread(void * ctx) {
 
-	int i;
-
 	tsdr_context_t * context = (tsdr_context_t *) ctx;
 	semaphore_enter(&context->this->threadsync);
 
-	int height = context->this->height;
-	int width = context->this->width;
-
-	int bufsize = height * width;
-	int sizetopoll = height * width;
-	float * buffer = (float *) malloc(sizeof(float) * bufsize);
-	float * screenbuffer = (float *) malloc(sizeof(float) * bufsize);
-	float * sendbuffer = (float *) malloc(sizeof(float) * bufsize);
-	float * corrected_sendbuffer = (float *) malloc(sizeof(float) * bufsize);
-
-	float * widthcollapsebuffer =  (float *) malloc(sizeof(float) * width);
-	float * heightcollapsebuffer =  (float *) malloc(sizeof(float) * height);
-
-	for (i = 0; i < bufsize; i++) screenbuffer[i] = 0.0f;
-	float lastmax = 0;
-	float lastmin = 0;
-	const float oneminusnorm = 1.0f - NORMALISATION_LOWPASS_COEFF;
+	extbuffer_t buff;
+	extbuffer_init(&buff);
 
 	while (context->this->running) {
 
-		const double lowpassvalue = context->this->motionblur;
-		const double antilowpassvalue = 1.0 - lowpassvalue;
+		const int width = context->this->width;
+		const int height = context->this->height;
+		const int sizetopoll = height*width;
 
-		const int nowheight = context->this->height;
-		const int nowwidth = context->this->width;
+		extbuffer_preparetohandle(&buff, sizetopoll);
 
-		if (nowheight != height || nowwidth != width) {
-			const int oldheight = height;
-			const int oldwidth = width;
-
-			height = nowheight;
-			width = nowwidth;
-			sizetopoll = height * width;
-			assert(sizetopoll > 0);
-
-			if (sizetopoll > bufsize) {
-				bufsize = sizetopoll;
-				buffer = (float *) realloc(buffer, sizeof(float) * bufsize);
-				screenbuffer = (float *) realloc(screenbuffer, sizeof(float) * bufsize);
-				sendbuffer = (float *) realloc(sendbuffer, sizeof(float) * bufsize);
-				corrected_sendbuffer = (float *) realloc(corrected_sendbuffer, sizeof(float) * bufsize);
-				for (i = 0; i < bufsize; i++) screenbuffer[i] = 0.0f;
-			}
-
-			if (width != oldwidth) widthcollapsebuffer = (float *) realloc(widthcollapsebuffer, sizeof(float) * width);
-			if (height != oldheight) heightcollapsebuffer = (float *) realloc(heightcollapsebuffer, sizeof(float) * height);
-
-		}
-
-		if (cb_rem_blocking(&context->circbuf_decimation_to_video, buffer, sizetopoll) == CB_OK) {
-
-			for (i = 0; i < width; i++) widthcollapsebuffer[i] = 0.0f;
-			for (i = 0; i < height; i++) heightcollapsebuffer[i] = 0.0f;
-
-			float max = buffer[0];
-			float min = max;
-			for (i = 0; i < sizetopoll; i++) {
-				const float val = screenbuffer[i] * lowpassvalue + buffer[i] * antilowpassvalue; // TODO! SEGFAULT HERE
-				if (val > max) max = val; else if (val < min) min = val;
-				screenbuffer[i] = val;
-			}
-
-			lastmax = oneminusnorm*lastmax + NORMALISATION_LOWPASS_COEFF*max;
-			lastmin = oneminusnorm*lastmin + NORMALISATION_LOWPASS_COEFF*min;
-			const float span = (lastmax == lastmin) ? (1.0f) : (lastmax - lastmin);
-
-			for (i = 0; i < sizetopoll; i++) {
-				const float val = (screenbuffer[i] - lastmin) / span;
-				sendbuffer[i] = val;
-				widthcollapsebuffer[i % width] += val;
-				heightcollapsebuffer[i / width] += val;
-			}
-
-
-			float * buf_to_send = syncdetector_run(context->this, sendbuffer, corrected_sendbuffer, width, height, widthcollapsebuffer, heightcollapsebuffer);
-
-			assert(bufsize >= width * height);
-			context->cb(buf_to_send, width, height, context->ctx);
-		}
+		if (cb_rem_blocking(&context->circbuf_decimation_to_video, buff.buffer, sizetopoll) == CB_OK)
+			context->cb(dsp_post_process(context->this , &context->this->dsp_postprocess, buff.buffer, width, height, context->this->motionblur, NORMALISATION_LOWPASS_COEFF), width, height, context->ctx);
 	}
 
-	free (buffer);
-	free (sendbuffer);
-	free (screenbuffer);
-	free (corrected_sendbuffer);
-	free (widthcollapsebuffer);
-	free (heightcollapsebuffer);
+	extbuffer_free(&buff);
 
 	semaphore_leave(&context->this->threadsync);
 }
@@ -672,22 +624,3 @@ int tsdr_setparameter_double(tsdr_lib_t * tsdr, int parameter, double value) {
 
 	return 0; // to avoid getting warning from stupid Eclpse
 }
-
- void tsdr_free(tsdr_lib_t ** tsdr) {
-	 (*tsdr)->callback = NULL;
-	 (*tsdr)->plotready_callback = NULL;
-
-	 unloadplugin(*tsdr);
-
-	 free((*tsdr)->errormsg);
-	 (*tsdr)->errormsg_size = 0;
-
-	 semaphore_free(&(*tsdr)->threadsync);
-	 mutex_free(&(*tsdr)->stopsync);
-
-	frameratedetector_free(&(*tsdr)->frameratedetect);
-	superb_free(&(*tsdr)->super);
-
-	 free (*tsdr);
-	 *tsdr = NULL;
- }

@@ -19,8 +19,14 @@
 #include "syncdetector.h"
 
 #include "extbuffer.h"
+#include "dsp.h"
 
 #include "include/TSDRLibrary.h"
+
+#include <stdlib.h>
+#include <stddef.h>
+
+#define MALLOC_OR_REALLOC(buffer, size, type) ((buffer == NULL) ? ((type *) malloc(size*sizeof(type))) : ((type *) realloc((void *) buffer, size*sizeof(type))))
 
 	struct tsdr_lib {
 		pluginsource_t plugin;
@@ -59,6 +65,7 @@
 		sweetspot_data_t db_x;
 		sweetspot_data_t db_y;
 
+		dsp_postprocess_t dsp_postprocess;
 	};
 
 	void announce_callback_changed(tsdr_lib_t * tsdr, int value_id, double arg0, int arg1);
@@ -66,5 +73,7 @@
 
 	void shiftfreq(tsdr_lib_t * tsdr, int32_t diff);
 	void set_internal_samplerate(tsdr_lib_t * tsdr, uint32_t samplerate);
+
+	void unloadplugin(tsdr_lib_t * tsdr);
 
 #endif
