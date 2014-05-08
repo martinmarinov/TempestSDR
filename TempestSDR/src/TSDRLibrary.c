@@ -187,9 +187,10 @@ static inline void announceexception(tsdr_lib_t * tsdr, const char * message, in
  int tsdr_setbasefreq(tsdr_lib_t * tsdr, uint32_t freq) {
 	tsdr->centfreq = freq;
 
-	if (tsdr->plugin.initialized)
+	if (tsdr->plugin.initialized) {
+		frameratedetector_flushcachedestimation(&tsdr->frameratedetect);
 		RETURN_PLUGIN_RESULT(tsdr, tsdr->plugin, tsdr->plugin.tsdrplugin_setbasefreq(tsdr->centfreq))
-	else
+	} else
 		RETURN_OK(tsdr);
 
 	return 0; // to avoid getting warning from stupid Eclpse

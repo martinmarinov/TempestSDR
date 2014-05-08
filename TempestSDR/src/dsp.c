@@ -105,7 +105,7 @@ float * dsp_post_process(tsdr_lib_t * tsdr, dsp_postprocess_t * pp, float * buff
 
 	dsp_autogain_run(&pp->dsp_autogain, pp->sizetopoll, buffer, pp->sendbuffer, lowpasscoeff);
 	dsp_average_v_h(pp->width, pp->height, pp->sendbuffer, pp->widthcollapsebuffer, pp->heightcollapsebuffer);
-	float * syncresult = syncdetector_run(tsdr, pp->sendbuffer, pp->corrected_sendbuffer, pp->width, pp->height, pp->widthcollapsebuffer, pp->heightcollapsebuffer);
+	float * syncresult = syncdetector_run(tsdr, pp->sendbuffer, pp->corrected_sendbuffer, pp->width, pp->height, pp->widthcollapsebuffer, pp->heightcollapsebuffer, motionblur == 0.0f);
 	dsp_timelowpass_run(motionblur, pp->sizetopoll, syncresult, pp->screenbuffer);
 
 	return pp->screenbuffer;

@@ -133,7 +133,7 @@ void frameratepll(tsdr_lib_t * tsdr, int dx, int width, int height) {
 	}
 }
 
-float * syncdetector_run(tsdr_lib_t * tsdr, float * data, float * outputdata, int width, int height, float * widthbuffer, float * heightbuffer) {
+float * syncdetector_run(tsdr_lib_t * tsdr, float * data, float * outputdata, int width, int height, float * widthbuffer, float * heightbuffer, int greenlines) {
 
 	const int dx = findthesweetspot(&tsdr->db_x, widthbuffer, width, width * 0.05f );
 	const int dy = findthesweetspot(&tsdr->db_y, heightbuffer, height, height * 0.01f );
@@ -168,8 +168,10 @@ float * syncdetector_run(tsdr_lib_t * tsdr, float * data, float * outputdata, in
 		return outputdata;
 	} else {
 #if PIXEL_SPECIAL_COLOURS_ENABLED
-		verticalline(dx, data, width, height, PIXEL_SPECIAL_VALUE_G);
-		horizontalline(dy, data, width, height, PIXEL_SPECIAL_VALUE_G);
+		if (greenlines) {
+			verticalline(dx, data, width, height, PIXEL_SPECIAL_VALUE_G);
+			horizontalline(dy, data, width, height, PIXEL_SPECIAL_VALUE_G);
+		}
 #endif
 		return data;
 	}

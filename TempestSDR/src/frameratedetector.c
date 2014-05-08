@@ -21,7 +21,7 @@
 #define MIN_HEIGHT (590)
 #define MAX_FRAMERATE (87)
 #define MAX_HEIGHT (1500)
-#define FRAMES_TO_CAPTURE (2.1)
+#define FRAMES_TO_CAPTURE (3.1)
 
 void autocorrelate(extbuffer_t * buff, float * data, int size) {
 	extbuffer_preparetohandle(buff, 2*size);
@@ -60,9 +60,11 @@ void frameratedetector_runontodata(frameratedetector_t * frameratedetector, floa
 	const int height_minlength = frameratedetector->samplerate / (double) (MAX_HEIGHT * MAX_FRAMERATE);
 
 	if (frameratedetector->tsdr->params_int[PARAM_AUTOCORR_PLOTS_RESET]) {
+		const int origval = frameratedetector->tsdr->params_int[PARAM_AUTOCORR_PLOTS_RESET];
 		frameratedetector->tsdr->params_int[PARAM_AUTOCORR_PLOTS_RESET] = 0;
 		extbuffer_cleartozero(extbuff);
-		announce_callback_changed(frameratedetector->tsdr, VALUE_ID_AUTOCORRECT_RESET, 0, 0);
+		extbuffer_cleartozero(extbuff_small);
+		if (origval == 1) announce_callback_changed(frameratedetector->tsdr, VALUE_ID_AUTOCORRECT_RESET, 0, 0);
 	}
 
 	if (frameratedetector->tsdr->params_int[PARAM_AUTOCORR_PLOTS_OFF]) return;
@@ -128,6 +130,7 @@ void frameratedetector_init(frameratedetector_t * frameratedetector, tsdr_lib_t 
 
 void frameratedetector_flushcachedestimation(frameratedetector_t * frameratedetector) {
 	frameratedetector->purge_buffers = 1;
+	frameratedetector->tsdr->params_int[PARAM_AUTOCORR_PLOTS_RESET] = 2;
 	cb_purge(&frameratedetector->circbuff);
 }
 
