@@ -56,6 +56,8 @@ typedef struct {
 	int height;
 	int bufsize;
 
+	int runs;
+
 	dsp_autogain_t dsp_autogain;
 } dsp_postprocess_t;
 

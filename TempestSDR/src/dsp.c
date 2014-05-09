@@ -75,8 +75,11 @@ void dsp_post_process_init(dsp_postprocess_t * pp) {
 	pp->sizetopoll = 0;
 	pp->width = 0;
 	pp->height = 0;
+
+	pp->runs = 0;
 }
 
+#define AUTOGAIN_REPORT_EVERY_FRAMES (20)
 float * dsp_post_process(tsdr_lib_t * tsdr, dsp_postprocess_t * pp, float * buffer, int nowwidth, int nowheight, float motionblur, float lowpasscoeff) {
 
 	if (nowheight != pp->height || nowwidth != pp->width) {
@@ -104,6 +107,12 @@ float * dsp_post_process(tsdr_lib_t * tsdr, dsp_postprocess_t * pp, float * buff
 
 
 	dsp_autogain_run(&pp->dsp_autogain, pp->sizetopoll, buffer, pp->sendbuffer, lowpasscoeff);
+
+	if (pp->runs++ > AUTOGAIN_REPORT_EVERY_FRAMES) {
+		pp->runs = 0;
+		announce_callback_changed(tsdr, VALUE_ID_AUTOGAIN_VALUES, pp->dsp_autogain.lastmin, pp->dsp_autogain.lastmax);
+	}
+
 	dsp_average_v_h(pp->width, pp->height, pp->sendbuffer, pp->widthcollapsebuffer, pp->heightcollapsebuffer);
 	float * syncresult = syncdetector_run(tsdr, pp->sendbuffer, pp->corrected_sendbuffer, pp->width, pp->height, pp->widthcollapsebuffer, pp->heightcollapsebuffer, motionblur == 0.0f);
 	dsp_timelowpass_run(motionblur, pp->sizetopoll, syncresult, pp->screenbuffer);

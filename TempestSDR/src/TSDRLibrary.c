@@ -142,7 +142,7 @@ static inline void announceexception(tsdr_lib_t * tsdr, const char * message, in
 		return tsdr->errormsg;
 }
 
- void announce_callback_changed(tsdr_lib_t * tsdr, int value_id, double arg0, int arg1) {
+ void announce_callback_changed(tsdr_lib_t * tsdr, int value_id, double arg0, double arg1) {
 	 if (tsdr->callback != NULL)
 		 tsdr->callback(value_id, arg0, arg1, tsdr->callbackctx);
  }

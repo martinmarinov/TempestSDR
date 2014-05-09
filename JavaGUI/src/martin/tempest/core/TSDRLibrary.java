@@ -412,10 +412,10 @@ public class TSDRLibrary {
 	}
 	
 	public interface IncomingValueCallback {
-		public static enum VALUE_ID {PLL_FRAMERATE, AUTOCORRECT_RESET, FRAMES_COUNT};
+		public static enum VALUE_ID {PLL_FRAMERATE, AUTOCORRECT_RESET, FRAMES_COUNT, AUTOGAIN};
 		public static enum PLOT_ID {FRAME, LINE};
 		
-		public void onValueChanged(final VALUE_ID id, double arg0, int arg1);
+		public void onValueChanged(final VALUE_ID id, double arg0, double arg1);
 		public void onIncommingPlot(final PLOT_ID id, int offset, float[] data, int size, long samplerate);
 	}
 
@@ -482,7 +482,7 @@ public class TSDRLibrary {
 		}
 	}
 	
-	private void onValueChanged(final int value_id, final double arg0, final int arg1) {
+	private void onValueChanged(final int value_id, final double arg0, final double arg1) {
 		final IncomingValueCallback.VALUE_ID[] values = IncomingValueCallback.VALUE_ID.values();
 		
 		if (value_id < 0 || value_id >= values.length) {

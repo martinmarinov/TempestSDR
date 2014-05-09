@@ -140,7 +140,7 @@ void on_plot_ready(int plot_id, int offset, float * values, int size, uint32_t s
 	(*jvm)->DetachCurrentThread(jvm);
 }
 
-void on_value_changed(int value_id, double arg0, int arg1, void * ctx) {
+void on_value_changed(int value_id, double arg0, double arg1, void * ctx) {
 	if (tsdr_instance == NULL) return;
 
 	java_obj_context_t * context = (java_obj_context_t *) ctx;
@@ -158,7 +158,7 @@ void on_value_changed(int value_id, double arg0, int arg1, void * ctx) {
 
 
 	jclass cls = (*env)->GetObjectClass(env, context->obj);
-	jmethodID msghandler = (*env)->GetMethodID(env, cls, "onValueChanged", "(IDI)V");
+	jmethodID msghandler = (*env)->GetMethodID(env, cls, "onValueChanged", "(IDD)V");
 
 	(*env)->CallVoidMethod(env, context->obj, msghandler, value_id, arg0, arg1);
 

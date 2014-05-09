@@ -115,6 +115,7 @@ public class Main implements TSDRLibrary.FrameReadyCallback, TSDRLibrary.Incomin
 	private final TSDRLibrary mSdrlib;
 	private ImageVisualizer visualizer;
 	private PlotVisualizer line_plotter, frame_plotter;
+	private AutoScaleVisualizer autoScaleVisualizer;
 	private Rectangle visualizer_bounds;
 	private double framerate = 25;
 	private JTextField txtFramerate;
@@ -128,7 +129,6 @@ public class Main implements TSDRLibrary.FrameReadyCallback, TSDRLibrary.Incomin
 	private JSpinner spAreaAroundMouse;
 	private JOptionPane optpaneDevices;
 
-	
 	private final TSDRSource[] souces = TSDRSource.getAvailableSources();
 	private final JMenuItem[] souces_menues = new JMenuItem[souces.length];
 	private final VideoMode[] videomodes = VideoMode.getVideoModes();
@@ -196,7 +196,7 @@ public class Main implements TSDRLibrary.FrameReadyCallback, TSDRLibrary.Incomin
 		frmTempestSdr.addKeyListener(keyhook);
 		frmTempestSdr.setResizable(false);
 		frmTempestSdr.setTitle("TempestSDR");
-		frmTempestSdr.setBounds(100, 100, 792, 632);
+		frmTempestSdr.setBounds(100, 100, 810, 632);
 		frmTempestSdr.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 		frmTempestSdr.addMouseListener(new MouseAdapter() {
 			@Override
@@ -206,7 +206,7 @@ public class Main implements TSDRLibrary.FrameReadyCallback, TSDRLibrary.Incomin
 		});
 		
 		visualizer = new ImageVisualizer();
-		visualizer.setBounds(10, 33, 551, 346);
+		visualizer.setBounds(10, 33, 518, 346);
 		visualizer.addKeyListener(keyhook);
 		visualizer.setFocusable(true);
 		visualizer.addMouseListener(new MouseAdapter() {
@@ -235,12 +235,12 @@ public class Main implements TSDRLibrary.FrameReadyCallback, TSDRLibrary.Incomin
 		frmTempestSdr.getContentPane().add(visualizer);
 		
 		line_plotter = new PlotVisualizer(height_transformer);
-		line_plotter.setBounds(10, 498, 719, 95);
+		line_plotter.setBounds(10, 498, 727, 95);
 		frmTempestSdr.getContentPane().add(line_plotter);
 		line_plotter.setSelectedValue(height_initial);
 
 		btnStartStop = new JButton("Start");
-		btnStartStop.setBounds(573, 33, 209, 25);
+		btnStartStop.setBounds(581, 33, 209, 25);
 		btnStartStop.setEnabled(false);
 		btnStartStop.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
@@ -251,12 +251,12 @@ public class Main implements TSDRLibrary.FrameReadyCallback, TSDRLibrary.Incomin
 
 		
 		lblFrequency = new JLabel("Freq.:");
-		lblFrequency.setBounds(583, 358, 55, 16);
+		lblFrequency.setBounds(591, 358, 55, 16);
 		lblFrequency.setHorizontalAlignment(SwingConstants.RIGHT);
 		frmTempestSdr.getContentPane().add(lblFrequency);
 		
 		spFrequency = new JSpinner();
-		spFrequency.setBounds(643, 356, 139, 22);
+		spFrequency.setBounds(651, 356, 139, 22);
 		spFrequency.addChangeListener(new ChangeListener() {
 			public void stateChanged(ChangeEvent arg0) {
 				onCenterFreqChange();
@@ -267,7 +267,7 @@ public class Main implements TSDRLibrary.FrameReadyCallback, TSDRLibrary.Incomin
 		framerate = framerate_initial;
 		
 		frame_plotter = new PlotVisualizer(fps_transofmer);
-		frame_plotter.setBounds(10, 391, 719, 95);
+		frame_plotter.setBounds(10, 391, 727, 95);
 		frmTempestSdr.getContentPane().add(frame_plotter);
 		frame_plotter.setSelectedValue((float) framerate);
 		
@@ -335,32 +335,32 @@ public class Main implements TSDRLibrary.FrameReadyCallback, TSDRLibrary.Incomin
 		});
 		btnReset.setToolTipText("Reset the autocorrelation plots");
 		btnReset.setMargin(new Insets(0, 0, 0, 0));
-		btnReset.setBounds(741, 417, 41, 22);
+		btnReset.setBounds(749, 417, 41, 22);
 		frmTempestSdr.getContentPane().add(btnReset);
 		
 		cbVideoModes = new JComboBox();
-		cbVideoModes.setBounds(573, 70, 209, 22);
+		cbVideoModes.setBounds(581, 70, 209, 22);
 		frmTempestSdr.getContentPane().add(cbVideoModes);
 		cbVideoModes.setModel(new DefaultComboBoxModel(videomodes));
 		if (closest_videomode_id != -1 && closest_videomode_id < videomodes.length && closest_videomode_id >= 0) cbVideoModes.setSelectedIndex(closest_videomode_id);
 		
 		JLabel lblWidth = new JLabel("Width:");
-		lblWidth.setBounds(573, 100, 65, 16);
+		lblWidth.setBounds(581, 100, 65, 16);
 		frmTempestSdr.getContentPane().add(lblWidth);
 		lblWidth.setHorizontalAlignment(SwingConstants.RIGHT);
 		
 		JLabel lblHeight = new JLabel("Height:");
-		lblHeight.setBounds(573, 127, 65, 16);
+		lblHeight.setBounds(581, 127, 65, 16);
 		frmTempestSdr.getContentPane().add(lblHeight);
 		lblHeight.setHorizontalAlignment(SwingConstants.RIGHT);
 		
 		JLabel lblFramerate = new JLabel("FPS:");
-		lblFramerate.setBounds(573, 154, 65, 16);
+		lblFramerate.setBounds(581, 154, 65, 16);
 		frmTempestSdr.getContentPane().add(lblFramerate);
 		lblFramerate.setHorizontalAlignment(SwingConstants.RIGHT);
 		
 		spWidth = new JSpinner();
-		spWidth.setBounds(643, 97, 102, 22);
+		spWidth.setBounds(651, 97, 102, 22);
 		frmTempestSdr.getContentPane().add(spWidth);
 		spWidth.addChangeListener(new ChangeListener() {
 			public void stateChanged(ChangeEvent arg0) {
@@ -372,7 +372,7 @@ public class Main implements TSDRLibrary.FrameReadyCallback, TSDRLibrary.Incomin
 		spWidth.setModel(new SpinnerNumberModel(width_initial, 1, 10000, 1));
 		
 		spHeight = new JSpinner();
-		spHeight.setBounds(643, 124, 102, 22);
+		spHeight.setBounds(651, 124, 102, 22);
 		frmTempestSdr.getContentPane().add(spHeight);
 		spHeight.addChangeListener(new ChangeListener() {
 			private Integer oldheight = null;
@@ -393,28 +393,28 @@ public class Main implements TSDRLibrary.FrameReadyCallback, TSDRLibrary.Incomin
 		spHeight.setModel(new SpinnerNumberModel(height_initial, 1, 10000, 1));
 				
 				tglbtnLockHeightAndFramerate = new JToggleButton("L");
-				tglbtnLockHeightAndFramerate.setBounds(757, 123, 25, 22);
+				tglbtnLockHeightAndFramerate.setBounds(765, 123, 25, 22);
 				frmTempestSdr.getContentPane().add(tglbtnLockHeightAndFramerate);
 				tglbtnLockHeightAndFramerate.setToolTipText("Link the framerate with the height");
 				tglbtnLockHeightAndFramerate.setSelected(heightlock_enabled);
 				tglbtnLockHeightAndFramerate.setMargin(new Insets(0, 0, 0, 0));
 				
 				tglbtnPllFramerate = new ParametersToggleButton(PARAM.PLLFRAMERATE, "A", prefs, true);
-				tglbtnPllFramerate.setBounds(757, 151, 25, 22);
+				tglbtnPllFramerate.setBounds(765, 151, 25, 22);
 				frmTempestSdr.getContentPane().add(tglbtnPllFramerate);
 				tglbtnPllFramerate.setToolTipText("Automatically adjust the FPS to keep the video stable");
 				tglbtnPllFramerate.setParaChangeCallback(this);
 				tglbtnPllFramerate.setMargin(new Insets(0, 0, 0, 0));
 				
 				tglbtnAutocorrPlots = new ParametersToggleButton(PARAM.AUTOCORR_PLOTS_OFF, "OFF", prefs, false);
-				tglbtnAutocorrPlots.setBounds(741, 442, 41, 22);
+				tglbtnAutocorrPlots.setBounds(749, 442, 41, 22);
 				frmTempestSdr.getContentPane().add(tglbtnAutocorrPlots);
 				tglbtnAutocorrPlots.setToolTipText("Turn off autocorrelation plots");
 				tglbtnAutocorrPlots.setParaChangeCallback(this);
 				tglbtnAutocorrPlots.setMargin(new Insets(0, 0, 0, 0));
 				
 				txtFramerate = new JTextField();
-				txtFramerate.setBounds(643, 151, 102, 22);
+				txtFramerate.setBounds(651, 151, 102, 22);
 				frmTempestSdr.getContentPane().add(txtFramerate);
 				txtFramerate.setText(String.format(FRAMERATE_FORMAT, framerate_initial));
 				txtFramerate.addFocusListener(new FocusAdapter() {
@@ -435,66 +435,66 @@ public class Main implements TSDRLibrary.FrameReadyCallback, TSDRLibrary.Incomin
 				txtFramerate.setColumns(10);
 				
 				btnHigherFramerate = new HoldButton(">");
-				btnHigherFramerate.setBounds(704, 174, 41, 25);
+				btnHigherFramerate.setBounds(712, 174, 41, 25);
 				frmTempestSdr.getContentPane().add(btnHigherFramerate);
 				btnHigherFramerate.setMargin(new Insets(0, 0, 0, 0));
 				
 				btnLowerFramerate = new HoldButton("<");
-				btnLowerFramerate.setBounds(643, 173, 41, 25);
+				btnLowerFramerate.setBounds(651, 173, 41, 25);
 				frmTempestSdr.getContentPane().add(btnLowerFramerate);
 				btnLowerFramerate.setMargin(new Insets(0, 0, 0, 0));
 				
 				btnUp = new HoldButton("Up");
-				btnUp.setBounds(644, 210, 70, 25);
+				btnUp.setBounds(652, 210, 70, 25);
 				frmTempestSdr.getContentPane().add(btnUp);
 				btnUp.setMargin(new Insets(0, 0, 0, 0));
 				
 				btnLeft = new HoldButton("Left");
-				btnLeft.setBounds(573, 241, 65, 25);
+				btnLeft.setBounds(581, 241, 65, 25);
 				frmTempestSdr.getContentPane().add(btnLeft);
 				btnLeft.setMargin(new Insets(0, 0, 0, 0));
 				
 				tglbtnAutoPosition = new ParametersToggleButton(PARAM.AUTOSHIFT, "Auto", prefs, true);
-				tglbtnAutoPosition.setBounds(643, 240, 70, 26);
+				tglbtnAutoPosition.setBounds(651, 240, 70, 26);
 				frmTempestSdr.getContentPane().add(tglbtnAutoPosition);
 				tglbtnAutoPosition.setToolTipText("Automatically try to center on the image");
 				tglbtnAutoPosition.setParaChangeCallback(this);
 				tglbtnAutoPosition.setMargin(new Insets(0, 0, 0, 0));
 				
 				btnRight = new HoldButton("Right");
-				btnRight.setBounds(717, 241, 65, 25);
+				btnRight.setBounds(725, 241, 65, 25);
 				frmTempestSdr.getContentPane().add(btnRight);
 				btnRight.setMargin(new Insets(0, 0, 0, 0));
 				
 				btnDown = new HoldButton("Down");
-				btnDown.setBounds(643, 271, 70, 25);
+				btnDown.setBounds(651, 271, 70, 25);
 				frmTempestSdr.getContentPane().add(btnDown);
 				btnDown.setMargin(new Insets(0, 0, 0, 0));
 				
 				JLabel lblMotionBlur = new JLabel("Lpass:");
-				lblMotionBlur.setBounds(573, 308, 65, 16);
+				lblMotionBlur.setBounds(581, 308, 65, 16);
 				frmTempestSdr.getContentPane().add(lblMotionBlur);
 				lblMotionBlur.setHorizontalAlignment(SwingConstants.RIGHT);
 				
 				lblGain = new JLabel("Gain:");
-				lblGain.setBounds(573, 328, 65, 16);
+				lblGain.setBounds(581, 328, 65, 16);
 				frmTempestSdr.getContentPane().add(lblGain);
 				lblGain.setHorizontalAlignment(SwingConstants.RIGHT);
 				
 				slGain = new JSlider();
-				slGain.setBounds(644, 328, 138, 26);
+				slGain.setBounds(652, 328, 138, 26);
 				frmTempestSdr.getContentPane().add(slGain);
 				slGain.setValue((int) (prefs.getFloat(PREF_GAIN, 0.5f) * (slGain.getMaximum() - slGain.getMinimum()) + slGain.getMinimum()));
 				
 				slMotionBlur = new JSlider();
-				slMotionBlur.setBounds(644, 308, 139, 22);
+				slMotionBlur.setBounds(652, 308, 139, 22);
 				frmTempestSdr.getContentPane().add(slMotionBlur);
 				slMotionBlur.setValue((int) (prefs.getFloat(PREF_MOTIONBLUR, 0.0f) * (slMotionBlur.getMaximum() - slMotionBlur.getMinimum()) + slMotionBlur.getMinimum()));
 				
 				lblFrames = new JLabel("00");
 				lblFrames.setToolTipText("The number of  runs of the autocorrelation averaging");
 				lblFrames.setHorizontalAlignment(SwingConstants.RIGHT);
-				lblFrames.setBounds(734, 390, 48, 15);
+				lblFrames.setBounds(742, 390, 48, 15);
 				frmTempestSdr.getContentPane().add(lblFrames);
 				
 				spAreaAroundMouse = new JSpinner();
@@ -505,7 +505,7 @@ public class Main implements TSDRLibrary.FrameReadyCallback, TSDRLibrary.Incomin
 				});
 				spAreaAroundMouse.setToolTipText("The area around the mouse in pixels used to picking the best value");
 				spAreaAroundMouse.setModel(new SpinnerNumberModel(new Integer(prefs.getInt(PREF_AREA_AROUND_MOUSE, 15)), new Integer(0), null, new Integer(1)));
-				spAreaAroundMouse.setBounds(741, 466, 41, 20);
+				spAreaAroundMouse.setBounds(749, 466, 41, 20);
 				frmTempestSdr.getContentPane().add(spAreaAroundMouse);
 				
 				btnAutoResolution = new JToggleButton("AUT");
@@ -522,15 +522,19 @@ public class Main implements TSDRLibrary.FrameReadyCallback, TSDRLibrary.Incomin
 				});
 				btnAutoResolution.setToolTipText("Automatically choose the best resolution and framerate from the available data");
 				btnAutoResolution.setMargin(new Insets(0, 0, 0, 0));
-				btnAutoResolution.setBounds(741, 571, 41, 22);
+				btnAutoResolution.setBounds(749, 571, 41, 22);
 				frmTempestSdr.getContentPane().add(btnAutoResolution);
 				
 				tglbtnSuperBandwidth = new ParametersToggleButton(PARAM.SUPERRESOLUTION, "T", prefs, true);
 				tglbtnSuperBandwidth.setToolTipText("Simulate bandwidth several times bigger than what the device can offer");
 				tglbtnSuperBandwidth.setMargin(new Insets(0, 0, 0, 0));
-				tglbtnSuperBandwidth.setBounds(569, 195, 25, 22);
+				tglbtnSuperBandwidth.setBounds(577, 195, 25, 22);
 				tglbtnSuperBandwidth.setParaChangeCallback(this);
 				frmTempestSdr.getContentPane().add(tglbtnSuperBandwidth);
+				
+				autoScaleVisualizer = new AutoScaleVisualizer();
+				autoScaleVisualizer.setBounds(540, 33, 25, 346);
+				frmTempestSdr.getContentPane().add(autoScaleVisualizer);
 				slMotionBlur.addChangeListener(new ChangeListener() {
 					public void stateChanged(ChangeEvent e) {
 						onMotionBlurLevelChanged();
@@ -1080,7 +1084,7 @@ public class Main implements TSDRLibrary.FrameReadyCallback, TSDRLibrary.Incomin
 	}
 
 	@Override
-	public void onValueChanged(VALUE_ID id, double arg0, int arg1) {
+	public void onValueChanged(VALUE_ID id, double arg0, double arg1) {
 		switch (id) {
 		case PLL_FRAMERATE:
 			setFramerateValButDoNotSyncWithLibrary(arg0);
@@ -1089,7 +1093,10 @@ public class Main implements TSDRLibrary.FrameReadyCallback, TSDRLibrary.Incomin
 			btnReset.setSelected(false);
 			break;
 		case FRAMES_COUNT:
-			lblFrames.setText(Integer.toString(arg1));
+			lblFrames.setText(Integer.toString((int) arg1));
+			break;
+		case AUTOGAIN:
+			autoScaleVisualizer.setValue(arg0, arg1);
 			break;
 		default:
 			System.out.println("Java Main received notification that value "+id+" has changed to arg0="+arg0+" and arg1="+arg1);
