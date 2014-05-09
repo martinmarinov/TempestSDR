@@ -16,6 +16,8 @@
 #include <assert.h>
 #include "syncdetector.h"
 
+#define AUTOGAIN_REPORT_EVERY_FRAMES (5)
+
 void dsp_timelowpass_run(const float lowpassvalue, int sizetopoll, float * buffer, float * screenbuffer) {
 
 	const double antilowpassvalue = 1.0 - lowpassvalue;
@@ -79,7 +81,6 @@ void dsp_post_process_init(dsp_postprocess_t * pp) {
 	pp->runs = 0;
 }
 
-#define AUTOGAIN_REPORT_EVERY_FRAMES (20)
 float * dsp_post_process(tsdr_lib_t * tsdr, dsp_postprocess_t * pp, float * buffer, int nowwidth, int nowheight, float motionblur, float lowpasscoeff) {
 
 	if (nowheight != pp->height || nowwidth != pp->width) {
