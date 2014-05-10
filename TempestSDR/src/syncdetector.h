@@ -17,6 +17,14 @@ typedef struct sweetspot_data {
 	int curr_stripsize;
 } sweetspot_data_t;
 
-float * syncdetector_run(tsdr_lib_t * tsdr, float * data, float * outputdata, int width, int height, float * widthbuffer, float * heightbuffer, int greenlines);
+typedef struct syncdetector {
+	int lastx;
+
+	sweetspot_data_t db_x;
+	sweetspot_data_t db_y;
+} syncdetector_t;
+
+void syncdetector_init(syncdetector_t * sy);
+float * syncdetector_run(syncdetector_t * sy, tsdr_lib_t * tsdr, float * data, float * outputdata, int width, int height, float * widthbuffer, float * heightbuffer, int greenlines);
 
 #endif

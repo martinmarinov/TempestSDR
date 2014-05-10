@@ -12,7 +12,6 @@
 #include <math.h>
 #include "gaussian.h"
 
-#define FRAMERATE_PLL_FINE_SPEED (0.0000003)
 #define FRAMERATE_PLL_SPEED (0.00001)
 #define FRAMERATE_MAX_PLL_SPEED (0.0001)
 
@@ -115,17 +114,17 @@ void setframerate(tsdr_lib_t * tsdr, double refreshrate, int width, int height) 
 	announce_callback_changed(tsdr, VALUE_ID_PLL_FRAMERATE, refreshrate, 0);
 }
 
-void frameratepll(tsdr_lib_t * tsdr, int dx, int width, int height) {
-	static int lastx = 0;
-	const int rawvx = dx - lastx;
-	const int h2 = height / 2;
+void frameratepll(syncdetector_t * sy, tsdr_lib_t * tsdr, int dx, int width, int height) {
+
+	const int rawvx = dx - sy->lastx;
+	const int h2 = width / 2;
 	const int vx = (rawvx > h2) ? (rawvx - h2) : ((rawvx < -h2) ? (rawvx + h2) : (rawvx));
 	const int absvx = (vx < 0) ? (-vx) : vx;
 	const int vxsign = (vx < 0) ? (-1) : (1);
-	lastx = dx;
+	sy->lastx = dx;
 
-	if (tsdr->params_int[PARAM_INT_FRAMERATE_PLL] && vx != 0 && absvx < height / 5) {
-		double frameratediff = (absvx > (height / 30)) ? (FRAMERATE_PLL_SPEED*vx) : (vxsign*FRAMERATE_PLL_FINE_SPEED);
+	if (tsdr->params_int[PARAM_INT_FRAMERATE_PLL] && vx != 0) {
+		double frameratediff = FRAMERATE_PLL_SPEED*vx;
 		if (frameratediff > FRAMERATE_MAX_PLL_SPEED) frameratediff = FRAMERATE_MAX_PLL_SPEED;
 		else if (frameratediff < -FRAMERATE_MAX_PLL_SPEED) frameratediff = - FRAMERATE_MAX_PLL_SPEED;
 
@@ -133,16 +132,22 @@ void frameratepll(tsdr_lib_t * tsdr, int dx, int width, int height) {
 	}
 }
 
-float * syncdetector_run(tsdr_lib_t * tsdr, float * data, float * outputdata, int width, int height, float * widthbuffer, float * heightbuffer, int greenlines) {
+void syncdetector_init(syncdetector_t * sy) {
+	sy->db_x.curr_stripsize = 0;
+	sy->db_y.curr_stripsize = 0;
+	sy->lastx = 0;
+}
 
-	const int dx = findthesweetspot(&tsdr->db_x, widthbuffer, width, width * 0.05f );
-	const int dy = findthesweetspot(&tsdr->db_y, heightbuffer, height, height * 0.01f );
+float * syncdetector_run(syncdetector_t * sy, tsdr_lib_t * tsdr, float * data, float * outputdata, int width, int height, float * widthbuffer, float * heightbuffer, int greenlines) {
+
+	const int dx = findthesweetspot(&sy->db_x, widthbuffer, width, width * 0.05f );
+	const int dy = findthesweetspot(&sy->db_y, heightbuffer, height, height * 0.01f );
 
 	const int size = width * height;
 
 
 	// do the framerate pll
-	frameratepll(tsdr, dx, width, height);
+	frameratepll(sy, tsdr, dx, width, height);
 
 	// do the shift itself
 	if (tsdr->params_int[PARAM_INT_AUTOSHIFT]) {

@@ -79,6 +79,8 @@ void dsp_post_process_init(dsp_postprocess_t * pp) {
 	pp->height = 0;
 
 	pp->runs = 0;
+
+	syncdetector_init(&pp->sync);
 }
 
 float * dsp_post_process(tsdr_lib_t * tsdr, dsp_postprocess_t * pp, float * buffer, int nowwidth, int nowheight, float motionblur, float lowpasscoeff) {
@@ -116,7 +118,7 @@ float * dsp_post_process(tsdr_lib_t * tsdr, dsp_postprocess_t * pp, float * buff
 
 	dsp_average_v_h(pp->width, pp->height, pp->sendbuffer, pp->widthcollapsebuffer, pp->heightcollapsebuffer);
 
-	float * syncresult = syncdetector_run(tsdr, pp->sendbuffer, pp->corrected_sendbuffer, pp->width, pp->height, pp->widthcollapsebuffer, pp->heightcollapsebuffer, motionblur == 0.0f);
+	float * syncresult = syncdetector_run(&pp->sync, tsdr, pp->sendbuffer, pp->corrected_sendbuffer, pp->width, pp->height, pp->widthcollapsebuffer, pp->heightcollapsebuffer, motionblur == 0.0f);
 	dsp_timelowpass_run(motionblur, pp->sizetopoll, syncresult, pp->screenbuffer);
 
 	return pp->screenbuffer;

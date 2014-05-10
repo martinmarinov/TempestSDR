@@ -75,8 +75,7 @@ void tsdr_init(tsdr_lib_t ** tsdr, tsdr_value_changed_callback callback, tsdr_on
 	(*tsdr)->callback = callback;
 	(*tsdr)->plotready_callback = plotready_callback;
 	(*tsdr)->callbackctx = ctx;
-	(*tsdr)->db_x.curr_stripsize = 0;
-	(*tsdr)->db_y.curr_stripsize = 0;
+
 
 	for (i = 0; i < COUNT_PARAM_INT; i++)
 		(*tsdr)->params_int[i] = 0;

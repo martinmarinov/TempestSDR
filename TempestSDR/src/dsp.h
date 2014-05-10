@@ -18,6 +18,7 @@
 
 #include "extbuffer.h"
 #include "circbuff.h"
+#include "syncdetector.h"
 
 // time based lowpass
 
@@ -59,6 +60,8 @@ typedef struct {
 	int runs;
 
 	dsp_autogain_t dsp_autogain;
+
+	syncdetector_t sync;
 } dsp_postprocess_t;
 
 void dsp_post_process_init(dsp_postprocess_t * pp);
