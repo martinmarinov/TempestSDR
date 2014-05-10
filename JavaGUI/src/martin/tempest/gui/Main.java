@@ -97,6 +97,7 @@ public class Main implements TSDRLibrary.FrameReadyCallback, TSDRLibrary.Incomin
 	private final static String PREF_HEIGHT_LOCK = "height_lock";
 	private final static String PREF_AREA_AROUND_MOUSE = "area_around_mouse";
 	private final static String PREF_HQ_REDNERING = "hq_rendering";
+	private final static String PREF_NEAREST_NEIGHBOUR = "near_neigh_rend";
 
 	private final SpinnerModel frequency_spinner_model = new SpinnerNumberModel(new Long(prefs.getLong(PREF_FREQ, 400000000)), new Long(0), new Long(2147483647), new Long(FREQUENCY_STEP));
 	
@@ -334,6 +335,21 @@ public class Main implements TSDRLibrary.FrameReadyCallback, TSDRLibrary.Incomin
 			}
 		});
 		mnTweaks.add(chckbxmntmHighQualityRendering);
+		
+		final JCheckBoxMenuItem chckbxmntmNearestNeighbourResampling = new JCheckBoxMenuItem("Nearest neighbour resampling", prefs.getBoolean(PREF_NEAREST_NEIGHBOUR, false));
+		chckbxmntmNearestNeighbourResampling.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				
+				try {
+					final boolean enabled = chckbxmntmNearestNeighbourResampling.isSelected();
+					mSdrlib.setParam(PARAM.NEAREST_NEIGHBOUR_RESAMPLING, enabled ? 1 : 0);
+					prefs.putBoolean(PREF_NEAREST_NEIGHBOUR, enabled);
+				} catch (TSDRException e1) {
+					onException(mSdrlib, e1);
+				}
+			}
+		});
+		mnTweaks.add(chckbxmntmNearestNeighbourResampling);
 		
 		btnReset = new JToggleButton("RST");
 		btnReset.addActionListener(new ActionListener() {
@@ -656,6 +672,10 @@ public class Main implements TSDRLibrary.FrameReadyCallback, TSDRLibrary.Incomin
 		setAreaAroundMouse();
 		
 		visualizer.setRenderingQualityHigh(chckbxmntmHighQualityRendering.isSelected());
+		
+		try {
+			mSdrlib.setParam(PARAM.NEAREST_NEIGHBOUR_RESAMPLING, chckbxmntmNearestNeighbourResampling.isSelected() ? 1 : 0);
+		} catch (TSDRException e1) {}
 	}
 	
 	private void onVideoModeSelected(final int modeid) {

@@ -310,7 +310,7 @@ void decimatingthread(void * ctx) {
 		if (cb_rem_blocking(&context->circbuf_device_to_decimation, buff.buffer, size) == CB_OK) {
 
 			int pids;
-			float * outbuf = dsp_resample_process(&context->this->dsp_resample, size, buff.buffer, context->this->pixeltimeoversampletime, &pids);
+			float * outbuf = dsp_resample_process(&context->this->dsp_resample, size, buff.buffer, context->this->pixeltimeoversampletime, &pids, context->this->params_int[PARAM_AUTOCORR_NEAREST_NEIGHBOUR_RESAMPLING]);
 
 			dsp_dropped_compensation_add(&context->dsp_dropped, &context->circbuf_decimation_to_video, outbuf, pids, context->this->width * context->this->height);
 

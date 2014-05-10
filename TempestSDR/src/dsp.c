@@ -115,6 +115,7 @@ float * dsp_post_process(tsdr_lib_t * tsdr, dsp_postprocess_t * pp, float * buff
 	}
 
 	dsp_average_v_h(pp->width, pp->height, pp->sendbuffer, pp->widthcollapsebuffer, pp->heightcollapsebuffer);
+
 	float * syncresult = syncdetector_run(tsdr, pp->sendbuffer, pp->corrected_sendbuffer, pp->width, pp->height, pp->widthcollapsebuffer, pp->heightcollapsebuffer, motionblur == 0.0f);
 	dsp_timelowpass_run(motionblur, pp->sizetopoll, syncresult, pp->screenbuffer);
 
@@ -138,68 +139,74 @@ void dsp_resample_init(dsp_resample_t * res) {
 	res->offset = 0;
 }
 
-float * dsp_resample_process(dsp_resample_t * res, int size, float * buffer, const double pixeloversampletme, int * pids) {
+float * dsp_resample_process(dsp_resample_t * res, int size, float * buffer, const double pixeloversampletme, int * pids, int nearest_neighbour_sampling) {
 
-	*pids = (int) ((size - res->offset) / pixeloversampletme);
+	const uint32_t output_samples = (int) ((size - res->offset) / pixeloversampletme);
 
 	// resize buffer so it fits
-	extbuffer_preparetohandle(&res->out, *pids);
+	extbuffer_preparetohandle(&res->out, output_samples);
 
-	double t = res->offset;
-
-	int id;
+	uint32_t id;
 
 	float * resbuff = res->out.buffer;
-	for (id = 0; id < size; id++) {
-		const float val = *(buffer++);
 
-		// we are in case:
-		//    pid
-		//    t                                  (in terms of id)
-		//  . ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! !  pixels (pid)
-		// ____|__val__|_______|_______|_______| samples (id)
-		//    id     id+1    id+2
+	if (nearest_neighbour_sampling) {
+		for (id = 0; id < output_samples; id++)
+			*(resbuff++) = buffer[((uint64_t) size * id) / output_samples];
+	} else {
+		double t = res->offset;
+		for (id = 0; id < size; id++) {
+			const float val = *(buffer++);
 
-		if (t < id && (t + pixeloversampletme) < (id+1)) {
-			const float start = (id-t)/pixeloversampletme;
-			const float contrfract = 1.0 - start;
-			*(resbuff++) = res->contrib + val*contrfract;
-			res->contrib = 0;
-			t+=pixeloversampletme;
-		}
+			// we are in case:
+			//    pid
+			//    t                                  (in terms of id)
+			//  . ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! !  pixels (pid)
+			// ____|__val__|_______|_______|_______| samples (id)
+			//    id     id+1    id+2
 
-		// we are in case:
-		//      pid
-		//      t t+post                        (in terms of id)
-		//  . ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! !  pixels (pid)
-		// ____|__val__|_______|_______|_______| samples (id)
-		//    id
+			if (t < id && (t + pixeloversampletme) < (id+1)) {
+				const float start = (id-t)/pixeloversampletme;
+				const float contrfract = 1.0 - start;
+				*(resbuff++) = res->contrib + val*contrfract;
+				res->contrib = 0;
+				t+=pixeloversampletme;
+			}
 
-		while ((t+pixeloversampletme) < (id+1)) {
-			// this only ever triggers if post < 1
-			*(resbuff++) = val;
-			t+=pixeloversampletme;
-		}
+			// we are in case:
+			//      pid
+			//      t t+post                        (in terms of id)
+			//  . ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! !  pixels (pid)
+			// ____|__val__|_______|_______|_______| samples (id)
+			//    id
 
-		// we are in case:
-		//            pid
-		//            t                          (in terms of id)
-		//  . ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! !  pixels (pid)
-		// ____|__val__|_______|_______|_______| samples (id)
-		//    id     id+1    id+2
+			while ((t+pixeloversampletme) < (id+1)) {
+				// this only ever triggers if post < 1
+				*(resbuff++) = val;
+				t+=pixeloversampletme;
+			}
 
-		if (t < (id + 1) && t > id) {
-			const float contrfract = (id+1-t)/pixeloversampletme;
-			res->contrib += contrfract * val;
-		} else {
-			const float idt = id - t;
-			const float contrfract = (idt+1-idt)/pixeloversampletme;
-			res->contrib += contrfract * val;
+			// we are in case:
+			//            pid
+			//            t                          (in terms of id)
+			//  . ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! !  pixels (pid)
+			// ____|__val__|_______|_______|_______| samples (id)
+			//    id     id+1    id+2
+
+			if (t < (id + 1) && t > id) {
+				const float contrfract = (id+1-t)/pixeloversampletme;
+				res->contrib += contrfract * val;
+			} else {
+				const float idt = id - t;
+				const float contrfract = (idt+1-idt)/pixeloversampletme;
+				res->contrib += contrfract * val;
+			}
 		}
 	}
 
-	res->offset = t-size;
+	res->offset += output_samples*pixeloversampletme-size;
 
+	*pids = output_samples;
 	return res->out.buffer;
 }
 
