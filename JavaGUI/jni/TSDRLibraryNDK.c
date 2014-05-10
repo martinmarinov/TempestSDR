@@ -340,9 +340,9 @@ JNIEXPORT void JNICALL Java_martin_tempest_core_TSDRLibrary_setMotionBlur(JNIEnv
 	THROW(tsdr_motionblur(tsdr_instance, (float) coeff));
 }
 
-JNIEXPORT void JNICALL Java_martin_tempest_core_TSDRLibrary_setResolution (JNIEnv * env, jobject obj, jint width, jint height, jdouble refreshrate) {
+JNIEXPORT void JNICALL Java_martin_tempest_core_TSDRLibrary_setResolution (JNIEnv * env, jobject obj, jint height, jdouble refreshrate) {
 	if (tsdr_instance == NULL) return;
-	THROW(tsdr_setresolution(tsdr_instance, (int) width, (int) height, (double) refreshrate));
+	THROW(tsdr_setresolution(tsdr_instance, (int) height, (double) refreshrate));
 }
 
 JNIEXPORT jboolean JNICALL Java_martin_tempest_core_TSDRLibrary_isRunning  (JNIEnv * env, jobject obj) {

@@ -12,7 +12,9 @@ package martin.tempest.gui;
 import java.awt.Color;
 import java.awt.Font;
 import java.awt.Graphics;
+import java.awt.Graphics2D;
 import java.awt.Rectangle;
+import java.awt.RenderingHints;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
@@ -42,10 +44,15 @@ public class ImageVisualizer extends JPanel {
 	private String OSD;
 	
 	private int width = -1, height = -1, nwidth = 1, nheight = 1, im_width = -1, im_height = -1, todraw_width = 1, todraw_height = 1, todraw_x = 0, todraw_y = 0;
+	private int desired_image_width = -1;
 	
-	public void drawImage(final BufferedImage image) {
+	private Graphics theonewith_hints = null;
+	private volatile boolean rendering_quality_high = false;
+	
+	public void drawImage(final BufferedImage image, int width) {
 		
 		synchronized (locker) {
+			desired_image_width = width;
 			todraw = image;
 		}
 		
@@ -70,15 +77,38 @@ public class ImageVisualizer extends JPanel {
 		super.setBounds(r);
 	}
 	
+	public void setRenderingQualityHigh(boolean high) {
+		this.rendering_quality_high = high;
+		theonewith_hints = null;
+	}
+	
 	@Override
 	public void paint(Graphics g) {
+		
+		if (theonewith_hints != g) {
+			try {
+				final Graphics2D g2D = (Graphics2D) g;
+				
+				if (rendering_quality_high) {
+					g2D.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BICUBIC);
+					g2D.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_QUALITY);
+					g2D.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+				} else {
+					g2D.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_NEAREST_NEIGHBOR);
+					g2D.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_SPEED);
+					g2D.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_OFF);
+				}
+
+				theonewith_hints = g;
+			} catch( Throwable t) {};
+		}
 
 		if (todraw != null) {
-			if (todraw.getWidth() != im_width || todraw.getHeight() != im_height || nwidth != width || nheight != height) {
+			if (desired_image_width != im_width || todraw.getHeight() != im_height || nwidth != width || nheight != height) {
 				width = nwidth;
 				height = nheight;
 				
-				im_width = todraw.getWidth();
+				im_width = desired_image_width;
 				im_height = todraw.getHeight();
 				
 				todraw_width = width;

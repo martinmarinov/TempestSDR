@@ -106,10 +106,10 @@ JNIEXPORT void JNICALL Java_martin_tempest_core_TSDRLibrary_setParamDouble
 /*
  * Class:     martin_tempest_core_TSDRLibrary
  * Method:    setResolution
- * Signature: (IID)V
+ * Signature: (ID)V
  */
 JNIEXPORT void JNICALL Java_martin_tempest_core_TSDRLibrary_setResolution
-  (JNIEnv *, jobject, jint, jint, jdouble);
+  (JNIEnv *, jobject, jint, jdouble);
 
 /*
  * Class:     martin_tempest_core_TSDRLibrary

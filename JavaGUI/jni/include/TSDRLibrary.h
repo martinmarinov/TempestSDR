@@ -60,7 +60,7 @@
 	int tsdr_readasync(tsdr_lib_t * tsdr, tsdr_readasync_function cb, void * ctx);
 	int tsdr_loadplugin(tsdr_lib_t * tsdr, const char * pluginfilepath, const char * params);
 	int tsdr_unloadplugin(tsdr_lib_t * tsdr);
-	int tsdr_setresolution(tsdr_lib_t * tsdr, int width, int height, double refreshrate);
+	int tsdr_setresolution(tsdr_lib_t * tsdr, int height, double refreshrate);
 	int tsdr_isrunning(tsdr_lib_t * tsdr);
 	int tsdr_sync(tsdr_lib_t * tsdr, int pixels, int direction);
 	int tsdr_motionblur(tsdr_lib_t * tsdr, float coeff);

@@ -257,7 +257,7 @@ public class TSDRLibrary {
 	public native void sync(int pixels, SYNC_DIRECTION dir);
 	public native void setParam(PARAM param, long value) throws TSDRException;
 	public native void setParamDouble(PARAM_DOUBLE param, double value) throws TSDRException;
-	public native void setResolution(int width, int height, double refreshrate) throws TSDRException;
+	public native void setResolution(int height, double refreshrate) throws TSDRException;
 	public native void setMotionBlur(float gain) throws TSDRException;
 	
 	/** Releases any resources taken by the native library. Unless {@link #init()} is called again, any call to {@link TSDRLibrary} can have unexpected
@@ -285,10 +285,10 @@ public class TSDRLibrary {
 	 * @param refreshrate the desired refreshrate
 	 * @throws TSDRException
 	 */
-	public void startAsync(int width, int height, double refreshrate) throws TSDRException {
+	public void startAsync(int height, double refreshrate) throws TSDRException {
 		if (nativerunning) throw new TSDRAlreadyRunningException("");
 		
-		setResolution(width, height, refreshrate);
+		setResolution(height, refreshrate);
 		
 		new Thread() {
 			public void run() {

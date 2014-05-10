@@ -162,14 +162,6 @@ static inline void announceexception(tsdr_lib_t * tsdr, const char * message, in
 	return tsdr->nativerunning;
 }
 
- void set_internal_samplerate(tsdr_lib_t * tsdr, uint32_t samplerate) {
-		tsdr->samplerate = samplerate;
-
-		tsdr->sampletime = 1.0 / (double) tsdr->samplerate;
-		if (tsdr->sampletime != 0)
-			tsdr->pixeltimeoversampletime = tsdr->pixeltime /  tsdr->sampletime;
- }
-
  int tsdr_getsamplerate(tsdr_lib_t * tsdr) {
 	if (!tsdr->plugin.initialized) RETURN_EXCEPTION(tsdr, "Cannot change sample rate. Plugin not loaded yet.", TSDR_ERR_PLUGIN);
 
@@ -393,15 +385,19 @@ int tsdr_loadplugin(tsdr_lib_t * tsdr, const char * pluginfilepath, const char *
 
 	tsdr->running = 1;
 
+	int status;
+	if ((status = tsdr_getsamplerate(tsdr)) != TSDR_OK) goto end;
+
 	const int width = tsdr->width;
 	const int height = tsdr->height;
 	const int size = width * height;
 
-	if (width <= 0 || height <= 0 || size > MAX_ARR_SIZE)
-		RETURN_EXCEPTION(tsdr, "The supplied height and the width are invalid!", TSDR_WRONG_VIDEOPARAMS);
+	if (width <= 0 || height <= 0 || size > MAX_ARR_SIZE) {
+		status = TSDR_WRONG_VIDEOPARAMS;
+		announceexception(tsdr, "The supplied height and the width are invalid!", TSDR_WRONG_VIDEOPARAMS);
+		goto end;
+	}
 
-	int status;
-	if ((status = tsdr_getsamplerate(tsdr)) != TSDR_OK) goto end;
 	if ((status = tsdr_setbasefreq(tsdr, tsdr->centfreq)) != TSDR_OK) goto end;
 	if ((status = tsdr_setgain(tsdr, tsdr->gain)) != TSDR_OK) goto end;
 
@@ -444,22 +440,37 @@ end:
 	return status;
 }
 
- int tsdr_setresolution(tsdr_lib_t * tsdr, int width, int height, double refreshrate) {
-	if (width <= 0 || height <= 0 || width*height > MAX_ARR_SIZE || refreshrate <= 0)
-		RETURN_EXCEPTION(tsdr, "The supplied height and the width are invalid or refreshrate is negative!", TSDR_WRONG_VIDEOPARAMS);
 
-	tsdr->width = width;
+
+ void set_internal_samplerate(tsdr_lib_t * tsdr, uint32_t samplerate) {
+		tsdr->samplerate = samplerate;
+
+		const double real_width = samplerate / (tsdr->refreshrate * tsdr->height);
+
+		tsdr->width = (int) real_width;
+		tsdr->pixelrate = tsdr->width * tsdr->height * tsdr->refreshrate;
+
+		tsdr->pixeltime = 1.0/tsdr->pixelrate;
+		tsdr->sampletime = 1.0 / (double) tsdr->samplerate;
+		if (tsdr->sampletime != 0)
+			tsdr->pixeltimeoversampletime = tsdr->pixeltime /  tsdr->sampletime;
+ }
+
+ int tsdr_setresolution(tsdr_lib_t * tsdr, int height, double refreshrate) {
+	if (height <= 0 || refreshrate <= 0)
+		RETURN_EXCEPTION(tsdr, "The supplied height is invalid or refreshrate is negative!", TSDR_WRONG_VIDEOPARAMS);
+
 	tsdr->height = height;
-	tsdr->pixelrate = width * height * refreshrate;
 	tsdr->refreshrate = refreshrate;
-	tsdr->pixeltime = 1.0/tsdr->pixelrate;
-	if (tsdr->sampletime != 0)
-		tsdr->pixeltimeoversampletime = tsdr->pixeltime /  tsdr->sampletime;
+
+	if (tsdr->plugin.initialized)
+		set_internal_samplerate(tsdr, tsdr->samplerate);
 
 	RETURN_OK(tsdr);
 
 	return 0; // to avoid getting warning from stupid Eclpse
 }
+
 
  int tsdr_motionblur(tsdr_lib_t * tsdr, float coeff) {
 	if (coeff < 0.0f || coeff > 1.0f) return TSDR_WRONG_VIDEOPARAMS;

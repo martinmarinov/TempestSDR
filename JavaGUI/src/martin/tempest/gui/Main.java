@@ -96,6 +96,7 @@ public class Main implements TSDRLibrary.FrameReadyCallback, TSDRLibrary.Incomin
 	private final static String PREF_MOTIONBLUR = "motionblur";
 	private final static String PREF_HEIGHT_LOCK = "height_lock";
 	private final static String PREF_AREA_AROUND_MOUSE = "area_around_mouse";
+	private final static String PREF_HQ_REDNERING = "hq_rendering";
 
 	private final SpinnerModel frequency_spinner_model = new SpinnerNumberModel(new Long(prefs.getLong(PREF_FREQ, 400000000)), new Long(0), new Long(2147483647), new Long(FREQUENCY_STEP));
 	
@@ -144,6 +145,8 @@ public class Main implements TSDRLibrary.FrameReadyCallback, TSDRLibrary.Incomin
 	private volatile boolean spinner_change_from_auto = false;
 	
 	private boolean video_mode_change_manually_triggered = false;
+	
+	private int image_width = 1;
 	
 	/**
 	 * Launch the application.
@@ -321,6 +324,16 @@ public class Main implements TSDRLibrary.FrameReadyCallback, TSDRLibrary.Incomin
 			}
 		});
 		mnTweaks.add(chckbxmntmNewCheckItem);
+		
+		chckbxmntmHighQualityRendering = new JCheckBoxMenuItem("High quality rendering", prefs.getBoolean(PREF_HQ_REDNERING, false));
+		chckbxmntmHighQualityRendering.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent arg0) {
+				final boolean enabled = chckbxmntmHighQualityRendering.isSelected();
+				visualizer.setRenderingQualityHigh(enabled);
+				prefs.putBoolean(PREF_HQ_REDNERING, enabled);
+			}
+		});
+		mnTweaks.add(chckbxmntmHighQualityRendering);
 		
 		btnReset = new JToggleButton("RST");
 		btnReset.addActionListener(new ActionListener() {
@@ -641,6 +654,8 @@ public class Main implements TSDRLibrary.FrameReadyCallback, TSDRLibrary.Incomin
 		onAutoPostionChanged();
 		
 		setAreaAroundMouse();
+		
+		visualizer.setRenderingQualityHigh(chckbxmntmHighQualityRendering.isSelected());
 	}
 	
 	private void onVideoModeSelected(final int modeid) {
@@ -691,7 +706,8 @@ public class Main implements TSDRLibrary.FrameReadyCallback, TSDRLibrary.Incomin
 			}
 
 			try {
-				mSdrlib.startAsync((Integer) spWidth.getValue(), (Integer) spHeight.getValue(), framerate);
+				image_width = (Integer) spWidth.getValue();
+				mSdrlib.startAsync((Integer) spHeight.getValue(), framerate);
 			} catch (TSDRException e1) {
 				displayException(frmTempestSdr, e1);
 				btnStartStop.setText("Start");
@@ -750,7 +766,8 @@ public class Main implements TSDRLibrary.FrameReadyCallback, TSDRLibrary.Incomin
 		
 		try {
 			
-			mSdrlib.setResolution(width, height, framerate);
+			image_width = width;
+			mSdrlib.setResolution(height, framerate);
 			prefs.putDouble(PREF_FRAMERATE, framerate);
 			prefs.putInt(PREF_WIDTH, width);
 			spWidth.setValue(width);
@@ -999,7 +1016,7 @@ public class Main implements TSDRLibrary.FrameReadyCallback, TSDRLibrary.Incomin
 			}
 			
 		}
-		visualizer.drawImage(frame);
+		visualizer.drawImage(frame, image_width);
 	
 	}
 
@@ -1249,4 +1266,5 @@ public class Main implements TSDRLibrary.FrameReadyCallback, TSDRLibrary.Incomin
 	}
 	
 	private final TransformerAndCallbackHeight height_transformer = new TransformerAndCallbackHeight();
+	private JCheckBoxMenuItem chckbxmntmHighQualityRendering;
 }
