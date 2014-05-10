@@ -149,8 +149,6 @@ float * dsp_resample_process(dsp_resample_t * res, int size, float * buffer, con
 
 	int id;
 
-	int pid = 0;
-
 	float * resbuff = res->out.buffer;
 	for (id = 0; id < size; id++) {
 		const float val = *(buffer++);
@@ -168,7 +166,6 @@ float * dsp_resample_process(dsp_resample_t * res, int size, float * buffer, con
 			*(resbuff++) = res->contrib + val*contrfract;
 			res->contrib = 0;
 			t+=pixeloversampletme;
-			pid++;
 		}
 
 		// we are in case:
@@ -182,7 +179,6 @@ float * dsp_resample_process(dsp_resample_t * res, int size, float * buffer, con
 			// this only ever triggers if post < 1
 			*(resbuff++) = val;
 			t+=pixeloversampletme;
-			pid++;
 		}
 
 		// we are in case:
@@ -201,8 +197,6 @@ float * dsp_resample_process(dsp_resample_t * res, int size, float * buffer, con
 			res->contrib += contrfract * val;
 		}
 	}
-
-	assert(pid == *pids);
 
 	res->offset = t-size;
 
