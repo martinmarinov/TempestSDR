@@ -134,6 +134,7 @@ void dsp_post_process_free(dsp_postprocess_t * pp) {
 void dsp_resample_init(dsp_resample_t * res) {
 	extbuffer_init(&res->out);
 
+	res->contrib = 0;
 	res->offset = 0;
 }
 
@@ -146,25 +147,62 @@ float * dsp_resample_process(dsp_resample_t * res, int size, float * buffer, con
 
 	double t = res->offset;
 
-	int pid = 0;
 	int id;
 
-	float * bref = buffer;
-	for (id = 0; id < size; id++) {
+	int pid = 0;
 
-		const float val = *(bref++);
+	float * resbuff = res->out.buffer;
+	for (id = 0; id < size; id++) {
+		const float val = *(buffer++);
+
+		// we are in case:
+		//    pid
+		//    t                                  (in terms of id)
+		//  . ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! !  pixels (pid)
+		// ____|__val__|_______|_______|_______| samples (id)
+		//    id     id+1    id+2
 
 		if (t < id && (t + pixeloversampletme) < (id+1)) {
-			res->out.buffer[pid++] = val;
-			t=res->offset+pid*pixeloversampletme;
+			const float start = (id-t)/pixeloversampletme;
+			const float contrfract = 1.0 - start;
+			*(resbuff++) = res->contrib + val*contrfract;
+			res->contrib = 0;
+			t+=pixeloversampletme;
+			pid++;
 		}
+
+		// we are in case:
+		//      pid
+		//      t t+post                        (in terms of id)
+		//  . ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! !  pixels (pid)
+		// ____|__val__|_______|_______|_______| samples (id)
+		//    id
 
 		while ((t+pixeloversampletme) < (id+1)) {
 			// this only ever triggers if post < 1
-			res->out.buffer[pid++] = val;
-			t=res->offset+pid*pixeloversampletme;
+			*(resbuff++) = val;
+			t+=pixeloversampletme;
+			pid++;
+		}
+
+		// we are in case:
+		//            pid
+		//            t                          (in terms of id)
+		//  . ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! !  pixels (pid)
+		// ____|__val__|_______|_______|_______| samples (id)
+		//    id     id+1    id+2
+
+		if (t < (id + 1) && t > id) {
+			const float contrfract = (id+1-t)/pixeloversampletme;
+			res->contrib += contrfract * val;
+		} else {
+			const float idt = id - t;
+			const float contrfract = (idt+1-idt)/pixeloversampletme;
+			res->contrib += contrfract * val;
 		}
 	}
+
+	assert(pid == *pids);
 
 	res->offset = t-size;
 
