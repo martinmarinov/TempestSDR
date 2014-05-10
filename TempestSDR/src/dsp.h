@@ -72,7 +72,6 @@ void dsp_post_process_free(dsp_postprocess_t * pp);
 
 typedef struct {
 	extbuffer_t out;
-	float contrib;
 	double offset;
 } dsp_resample_t;
 
