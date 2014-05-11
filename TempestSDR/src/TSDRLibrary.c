@@ -327,7 +327,7 @@ void decimatingthread(void * ctx) {
 
 			extbuffer_preparetohandle(&outbuff_final, totalpixels);
 			while (cb_rem_nonblocking(&internalbuff, outbuff_final.buffer, totalpixels) == CB_OK)
-				cb_add(&context->circbuf_decimation_to_video, dsp_post_process(context->this , &context->this->dsp_postprocess, outbuff_final.buffer, width, height, context->this->motionblur, NORMALISATION_LOWPASS_COEFF), totalpixels);
+				cb_add(&context->circbuf_decimation_to_video, dsp_post_process(context->this , &context->this->dsp_postprocess, outbuff_final.buffer, width, height, context->this->motionblur, NORMALISATION_LOWPASS_COEFF, context->this->params_int[PARAM_AUTOCORR_LOW_PASS_BEFORE_SYNC]), totalpixels);
 		}
 	}
 

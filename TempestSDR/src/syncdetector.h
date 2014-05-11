@@ -29,6 +29,6 @@ typedef struct syncdetector {
 } syncdetector_t;
 
 void syncdetector_init(syncdetector_t * sy);
-float * syncdetector_run(syncdetector_t * sy, tsdr_lib_t * tsdr, float * data, float * outputdata, int width, int height, float * widthbuffer, float * heightbuffer, int greenlines);
+float * syncdetector_run(syncdetector_t * sy, tsdr_lib_t * tsdr, float * data, float * outputdata, int width, int height, float * widthbuffer, float * heightbuffer, int greenlines, int modify_data_allowed);
 
 #endif

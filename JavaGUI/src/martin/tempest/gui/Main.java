@@ -79,7 +79,7 @@ public class Main implements TSDRLibrary.FrameReadyCallback, TSDRLibrary.Incomin
 	
 	private final static int AUTO_FRAMERATE_CONVERGANCE_ITERATIONS = 3;
 	
-	private final static int FRAMERATE_SIGNIFICANT_FIGURES = 6;
+	private final static int FRAMERATE_SIGNIFICANT_FIGURES = 8;
 	private final static long FREQUENCY_STEP = 5000000;
 	
 	private final static double FRAMERATE_MIN_CHANGE = 1.0/Math.pow(10, FRAMERATE_SIGNIFICANT_FIGURES);
@@ -98,6 +98,7 @@ public class Main implements TSDRLibrary.FrameReadyCallback, TSDRLibrary.Incomin
 	private final static String PREF_AREA_AROUND_MOUSE = "area_around_mouse";
 	private final static String PREF_HQ_REDNERING = "hq_rendering";
 	private final static String PREF_NEAREST_NEIGHBOUR = "near_neigh_rend";
+	private final static String PREF_LOW_PASS_BEFORE_SYNC = "lp_before_sync";
 
 	private final SpinnerModel frequency_spinner_model = new SpinnerNumberModel(new Long(prefs.getLong(PREF_FREQ, 400000000)), new Long(0), new Long(2147483647), new Long(FREQUENCY_STEP));
 	
@@ -350,6 +351,20 @@ public class Main implements TSDRLibrary.FrameReadyCallback, TSDRLibrary.Incomin
 			}
 		});
 		mnTweaks.add(chckbxmntmNearestNeighbourResampling);
+		
+		chckbxmntmLowpassBeforeSync = new JCheckBoxMenuItem("Lowpass before sync detection", prefs.getBoolean(PREF_LOW_PASS_BEFORE_SYNC, true));
+		chckbxmntmLowpassBeforeSync.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent arg0) {
+				try{
+					final boolean enabled = chckbxmntmLowpassBeforeSync.isSelected();
+					mSdrlib.setParam(PARAM.LOW_PASS_BEFORE_SYNC, enabled ? 1 : 0);
+					prefs.putBoolean(PREF_LOW_PASS_BEFORE_SYNC, enabled);
+				} catch (TSDRException e1) {
+					onException(mSdrlib, e1);
+				}
+			}
+		});
+		mnTweaks.add(chckbxmntmLowpassBeforeSync);
 		
 		btnReset = new JToggleButton("RST");
 		btnReset.addActionListener(new ActionListener() {
@@ -675,6 +690,7 @@ public class Main implements TSDRLibrary.FrameReadyCallback, TSDRLibrary.Incomin
 		
 		try {
 			mSdrlib.setParam(PARAM.NEAREST_NEIGHBOUR_RESAMPLING, chckbxmntmNearestNeighbourResampling.isSelected() ? 1 : 0);
+			mSdrlib.setParam(PARAM.LOW_PASS_BEFORE_SYNC, chckbxmntmLowpassBeforeSync.isSelected() ? 1 : 0);
 		} catch (TSDRException e1) {}
 	}
 	
@@ -1287,4 +1303,5 @@ public class Main implements TSDRLibrary.FrameReadyCallback, TSDRLibrary.Incomin
 	
 	private final TransformerAndCallbackHeight height_transformer = new TransformerAndCallbackHeight();
 	private JCheckBoxMenuItem chckbxmntmHighQualityRendering;
+	private JCheckBoxMenuItem chckbxmntmLowpassBeforeSync;
 }

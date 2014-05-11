@@ -158,7 +158,7 @@ void syncdetector_init(syncdetector_t * sy) {
 	sy->last_frame_diff = 0.0;
 }
 
-float * syncdetector_run(syncdetector_t * sy, tsdr_lib_t * tsdr, float * data, float * outputdata, int width, int height, float * widthbuffer, float * heightbuffer, int greenlines) {
+float * syncdetector_run(syncdetector_t * sy, tsdr_lib_t * tsdr, float * data, float * outputdata, int width, int height, float * widthbuffer, float * heightbuffer, int greenlines, int modify_data_allowed) {
 
 	findthesweetspot(&sy->db_x, widthbuffer, width, width * 0.05f, FRAMERATE_DX_LOWPASS_COEFF_WIDTH);
 	findthesweetspot(&sy->db_y, heightbuffer, height, height * 0.01f, FRAMERATE_DX_LOWPASS_COEFF_HEIGHT );
@@ -192,12 +192,20 @@ float * syncdetector_run(syncdetector_t * sy, tsdr_lib_t * tsdr, float * data, f
 		return outputdata;
 	} else {
 #if PIXEL_SPECIAL_COLOURS_ENABLED
-		if (greenlines) {
+		if (greenlines && modify_data_allowed) {
 			verticalline(sy->db_x.dx, data, width, height, PIXEL_SPECIAL_VALUE_G);
 			horizontalline(sy->db_y.dx, data, width, height, PIXEL_SPECIAL_VALUE_G);
-		}
-#endif
+			return data;
+		} else if (greenlines && !modify_data_allowed) {
+			memcpy(outputdata, data, width * height * sizeof(float));
+			verticalline(sy->db_x.dx, outputdata, width, height, PIXEL_SPECIAL_VALUE_G);
+			horizontalline(sy->db_y.dx, outputdata, width, height, PIXEL_SPECIAL_VALUE_G);
+			return outputdata;
+		} else
+			return data;
+#else
 		return data;
+#endif
 	}
 
 }
