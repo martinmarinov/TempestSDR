@@ -38,7 +38,7 @@
 
 #define DEFAULT_DECIMATOR_TO_POLL (128)
 
-#define FRAMES_TO_POLL (1.1)
+#define FRAMES_TO_POLL (0.2)
 
 struct tsdr_context {
 		tsdr_readasync_function cb;
@@ -49,7 +49,6 @@ struct tsdr_context {
 		CircBuff_t circbuf_decimation_to_video;
 		CircBuff_t circbuf_device_to_decimation;
 
-		dsp_dropped_compensation_t dsp_dropped;
 		dsp_dropped_compensation_t dsp_device_dropped;
 
 	} typedef tsdr_context_t;
@@ -113,6 +112,23 @@ void tsdr_free(tsdr_lib_t ** tsdr) {
 
 	free (*tsdr);
 	*tsdr = NULL;
+}
+
+void tsdr_reset(tsdr_lib_t * tsdr) {
+
+	tsdr->syncoffset = 0;
+
+	dsp_post_process_free(&tsdr->dsp_postprocess);
+	dsp_resample_free(&tsdr->dsp_resample);
+
+	frameratedetector_free(&tsdr->frameratedetect);
+	superb_free(&tsdr->super);
+
+	dsp_post_process_init(&tsdr->dsp_postprocess);
+	dsp_resample_init(&tsdr->dsp_resample);
+
+	frameratedetector_init(&tsdr->frameratedetect, tsdr);
+	superb_init(&tsdr->super);
 }
 
 
@@ -287,6 +303,10 @@ void decimatingthread(void * ctx) {
 	CircBuff_t internalbuff;
 	cb_init(&internalbuff, CB_SIZE_MAX_COEFF_HIGH_LATENCY);
 
+	dsp_dropped_compensation_t dsp_dropped;
+
+	dsp_dropped_compensation_init(&dsp_dropped);
+
 	while (context->this->running) {
 
 		const int width = context->this->width;
@@ -299,14 +319,14 @@ void decimatingthread(void * ctx) {
 
 			dsp_resample_process(&context->this->dsp_resample, &buff, &outbuff, context->this->pixeltimeoversampletime, context->this->params_int[PARAM_AUTOCORR_NEAREST_NEIGHBOUR_RESAMPLING]);
 
-			dsp_dropped_compensation_add(&context->dsp_dropped, &internalbuff, outbuff.buffer, outbuff.size_valid_elements, width * height);
+			dsp_dropped_compensation_add(&dsp_dropped, &internalbuff, outbuff.buffer, outbuff.size_valid_elements, totalpixels);
 
 			// section for manual syncing
-			dsp_dropped_compensation_shift_with(&context->dsp_dropped,  totalpixels, -context->this->syncoffset);
+			dsp_dropped_compensation_shift_with(&dsp_dropped,  totalpixels, -context->this->syncoffset);
 			context->this->syncoffset = 0;
 
 			extbuffer_preparetohandle(&outbuff_final, totalpixels);
-			if (cb_rem_nonblocking(&internalbuff, outbuff_final.buffer, totalpixels) == CB_OK)
+			while (cb_rem_nonblocking(&internalbuff, outbuff_final.buffer, totalpixels) == CB_OK)
 				cb_add(&context->circbuf_decimation_to_video, dsp_post_process(context->this , &context->this->dsp_postprocess, outbuff_final.buffer, width, height, context->this->motionblur, NORMALISATION_LOWPASS_COEFF), totalpixels);
 		}
 	}
@@ -400,6 +420,8 @@ int tsdr_loadplugin(tsdr_lib_t * tsdr, const char * pluginfilepath, const char *
 	if (!tsdr->plugin.initialized)
 		RETURN_EXCEPTION(tsdr, "Please load a working plugin first!", TSDR_ERR_PLUGIN);
 
+	tsdr_reset(tsdr);
+
 	tsdr->nativerunning = 1;
 
 	tsdr->running = 1;
@@ -428,7 +450,6 @@ int tsdr_loadplugin(tsdr_lib_t * tsdr, const char * pluginfilepath, const char *
 	context->ctx = ctx;
 	cb_init(&context->circbuf_decimation_to_video, CB_SIZE_MAX_COEFF_LOW_LATENCY);
 	cb_init(&context->circbuf_device_to_decimation, CB_SIZE_MAX_COEFF_LOW_LATENCY);
-	dsp_dropped_compensation_init(&context->dsp_dropped);
 	dsp_dropped_compensation_init(&context->dsp_device_dropped);
 
 	frameratedetector_startthread(&tsdr->frameratedetect);

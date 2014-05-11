@@ -36,7 +36,7 @@ struct CircBuff
 	volatile size_t desired_buf_size; // the size of the buffer that we want it to become
 
     volatile size_t remaining_capacity; // the available capacity. I.e. how many free elements are there in the buffer
-    size_t pos; // the position where the next element will be inserted
+    volatile size_t pos; // the position where the next element will be inserted
     volatile size_t rempos; // the position where the next element will be taken from
 
     volatile int is_waiting;

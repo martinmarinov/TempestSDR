@@ -12,7 +12,10 @@
 */
 #include "circbuff.h"
 #include <errno.h>
+
+#if ASSERT_ENABLED
 #include <assert.h>
+#endif
 
 #define CB_SIZE_COEFF_DEFAULT (2)
 
@@ -30,7 +33,9 @@ void cb_purge(CircBuff_t * cb) {
 }
 
 void cb_init(CircBuff_t * cb, int max_size_coeff) {
+#if ASSERT_ENABLED
 	assert(max_size_coeff >= CB_SIZE_COEFF_DEFAULT);
+#endif
 
 	cb->max_size_coeff = max_size_coeff;
 	cb->size_coeff = CB_SIZE_COEFF_DEFAULT;
@@ -59,23 +64,32 @@ int cb_add(CircBuff_t * cb, float * in, const size_t len) {
 
     critical_enter(&cb->mutex);
 
+#if ASSERT_ENABLED
+    assert(((cb->pos + cb->remaining_capacity) % cb->buffer_size) == cb->rempos);
+#endif
+
     // if the size of the buffer is not large enough, request the buffer to be resized
     if (len*cb->size_coeff > cb->buffer_size) cb->desired_buf_size = len*cb->size_coeff;
 
     if (cb->buffer_size < cb->desired_buf_size) {
+    	const size_t items_inside = cb->buffer_size - cb->remaining_capacity;
     	const size_t inflation = cb->desired_buf_size - cb->buffer_size;
 
         // if we need to resize the buffer, reset it
         cb->buffer = (float *) realloc((void *) cb->buffer, sizeof(float) * cb->desired_buf_size); // reallocate
 
-        cb->remaining_capacity += inflation;
-
-        if (cb->rempos > cb->pos) {
+        if (cb->rempos >= cb->pos) {
         	memmove((void *) &cb->buffer[cb->rempos+inflation], (void *) &cb->buffer[cb->rempos], sizeof(float) * (cb->buffer_size-cb->rempos));
-        	cb->rempos = cb->rempos+inflation;
+        	if (items_inside != 0) cb->rempos += inflation;
         }
 
+        cb->remaining_capacity += inflation;
+
         cb->buffer_size = cb->desired_buf_size; // set the size
+
+#if ASSERT_ENABLED
+        assert(cb->buffer_size - cb->remaining_capacity == items_inside);
+#endif
     }
 
     if (cb->buffering && cb->remaining_capacity < 2*len) {
@@ -119,6 +133,10 @@ int cb_rem_nonblocking(CircBuff_t * cb, float * in, const size_t len) {
 
     if (cb->invalid) return CB_ERROR;
     critical_enter(&cb->mutex);
+
+#if ASSERT_ENABLED
+    assert(((cb->pos + cb->remaining_capacity) % cb->buffer_size) == cb->rempos);
+#endif
 
     if (cb->buffer_size - cb->remaining_capacity < len) {
         critical_leave(&cb->mutex);
@@ -169,6 +187,10 @@ int cb_rem_blocking(CircBuff_t * cb, float * in, const size_t len) {
 
     if (cb->invalid) return CB_ERROR;
     critical_enter(&cb->mutex);
+
+#if ASSERT_ENABLED
+    assert(((cb->pos + cb->remaining_capacity) % cb->buffer_size) == cb->rempos);
+#endif
 
     if (cb->buffer_size - cb->remaining_capacity < len) {
         critical_leave(&cb->mutex);

@@ -12,8 +12,12 @@
 #include <math.h>
 #include "gaussian.h"
 
-#define FRAMERATE_PLL_SPEED (0.00001)
-#define FRAMERATE_MAX_PLL_SPEED (0.0001)
+#define FRAMERATE_DX_LOWPASS_COEFF_WIDTH_MAX (1)
+#define FRAMERATE_DX_LOWPASS_COEFF_WIDTH_MIN (0.3)
+#define FRAMERATE_DX_LOWPASS_COEFF_HEIGHT (0.1)
+
+#define FRAMERATE_PLL_GENTLE_SPEED (0.000001)
+#define FRAMERATE_PLL_SPEED (0.0001)
 
 
 static inline void findbestfit(float * data, const int size, const float totalsum, const int stripsize, double * bestfit, int * bestfitid) {
@@ -61,8 +65,9 @@ static inline void findbestfit(float * data, const int size, const float totalsu
 		}; \
 	}
 
-int findthesweetspot(sweetspot_data_t * db, float * data, int size, int minsize) {
+void findthesweetspot(sweetspot_data_t * db, float * data, int size, int minsize, double lowpasscoeff) {
 	int i;
+	if (minsize < 1) minsize = 1;
 	const int size2 = size >> 1;
 
 	if (db->curr_stripsize < minsize) db->curr_stripsize = minsize;
@@ -90,7 +95,25 @@ int findthesweetspot(sweetspot_data_t * db, float * data, int size, int minsize)
 	data[beststripstart] = PIXEL_SPECIAL_VALUE_B;
 	data[(beststripstart+beststripsize) % size] = PIXEL_SPECIAL_VALUE_B;
 
-	return (beststripstart + beststripsize/2) % size;
+	const int h2 = size / 2;
+
+	db->lastx = db->dx;
+
+	int dxwithnolowpass = (beststripstart + beststripsize/2) % size;
+	const int rawdiff = dxwithnolowpass - db->dx;
+	if (rawdiff > h2)
+		db->dx += size;
+	else if (rawdiff < -h2)
+		dxwithnolowpass += size;
+
+	db->dx = ((int) round(dxwithnolowpass * lowpasscoeff + (1.0 - lowpasscoeff) * db->dx)) % size;
+
+	const int rawvx = db->dx - db->lastx;
+	db->lastvx = db->vx;
+	db->vx = (rawvx > h2) ? (size - rawvx) : ((rawvx < -h2) ? (-size - rawvx) : (rawvx));
+	db->absvx = (db->vx >= 0) ? (db->vx) : (-db->vx);
+
+
 }
 
 void verticalline(int x, float * data, int width, int height, float val) {
@@ -114,66 +137,72 @@ void setframerate(tsdr_lib_t * tsdr, double refreshrate, int width, int height) 
 	announce_callback_changed(tsdr, VALUE_ID_PLL_FRAMERATE, refreshrate, 0);
 }
 
-void frameratepll(syncdetector_t * sy, tsdr_lib_t * tsdr, int dx, int width, int height) {
+void frameratepll(syncdetector_t * sy, tsdr_lib_t * tsdr, sweetspot_data_t * db_x, int width, int height) {
 
-	const int rawvx = dx - sy->lastx;
-	const int h2 = width / 2;
-	const int vx = (rawvx > h2) ? (rawvx - h2) : ((rawvx < -h2) ? (rawvx + h2) : (rawvx));
-	sy->lastx = dx;
+	if ( tsdr->params_int[PARAM_INT_FRAMERATE_PLL] && db_x->vx != 0 ) {
+		int ho10 = height / 10;
+		if (ho10 == 0) ho10 = 1;
 
-	if (tsdr->params_int[PARAM_INT_FRAMERATE_PLL] && vx != 0) {
-		double frameratediff = FRAMERATE_PLL_SPEED*vx;
-		if (frameratediff > FRAMERATE_MAX_PLL_SPEED) frameratediff = FRAMERATE_MAX_PLL_SPEED;
-		else if (frameratediff < -FRAMERATE_MAX_PLL_SPEED) frameratediff = - FRAMERATE_MAX_PLL_SPEED;
+		const double frameratediff = ((db_x->absvx <= ho10) ? (FRAMERATE_PLL_GENTLE_SPEED) : (FRAMERATE_PLL_SPEED)) * ((db_x->vx < 0) ? (-1) : (1));
 
-		setframerate(tsdr, tsdr->refreshrate-frameratediff, width, height);
+		if (frameratediff != 0)
+			setframerate(tsdr, tsdr->refreshrate-frameratediff, width, height);
 	}
 }
 
 void syncdetector_init(syncdetector_t * sy) {
 	sy->db_x.curr_stripsize = 0;
+	sy->db_x.lastx = 0;
+	sy->db_x.dx = 0;
+	sy->db_x.vx= 0;
+	sy->db_x.absvx = 0;
+	sy->db_x.lastvx = 0;
+
 	sy->db_y.curr_stripsize = 0;
-	sy->lastx = 0;
+	sy->db_y.lastx = 0;
+	sy->db_y.dx = 0;
+	sy->db_y.vx= 0;
+	sy->db_y.absvx = 0;
+	sy->db_y.lastvx = 0;
 }
 
 float * syncdetector_run(syncdetector_t * sy, tsdr_lib_t * tsdr, float * data, float * outputdata, int width, int height, float * widthbuffer, float * heightbuffer, int greenlines) {
 
-	const int dx = findthesweetspot(&sy->db_x, widthbuffer, width, width * 0.05f );
-	const int dy = findthesweetspot(&sy->db_y, heightbuffer, height, height * 0.01f );
+	findthesweetspot(&sy->db_x, widthbuffer, width, width * 0.05f, (sy->db_x.lastvx == 0) ? (FRAMERATE_DX_LOWPASS_COEFF_WIDTH_MIN) : (FRAMERATE_DX_LOWPASS_COEFF_WIDTH_MAX));
+	findthesweetspot(&sy->db_y, heightbuffer, height, height * 0.01f, FRAMERATE_DX_LOWPASS_COEFF_HEIGHT );
 
 	const int size = width * height;
 
-
 	// do the framerate pll
-	frameratepll(sy, tsdr, dx, width, height);
+	frameratepll(sy, tsdr, &sy->db_x, width, height);
 
 	// do the shift itself
 	if (tsdr->params_int[PARAM_INT_AUTOSHIFT]) {
 		// fix the y offset
-		const int ypixels = dy*width;
+		const int ypixels = sy->db_y.dx*width;
 		const int ypixelsrem = size-ypixels;
-		const int xrem = width - dx;
+		const int xrem = width - sy->db_x.dx;
 		const int xremfloatsize = xrem * sizeof(float);
-		const int dxorigfloatsize = dx * sizeof(float);
+		const int dxorigfloatsize = sy->db_x.dx * sizeof(float);
 
 		int yshift = 0;
 		for (yshift = 0; yshift < ypixels; yshift+=width) {
 			const int offset = ypixelsrem+yshift;
 			memcpy(&outputdata[offset+xrem], &data[yshift], dxorigfloatsize); // TL to BR
-			memcpy(&outputdata[offset], &data[yshift+dx], xremfloatsize); // TR to BL
+			memcpy(&outputdata[offset], &data[yshift+sy->db_x.dx], xremfloatsize); // TR to BL
 		}
 		for (yshift = ypixels; yshift < size; yshift+=width) {
 			const int offset = yshift - ypixels;
 			memcpy(&outputdata[offset+xrem], &data[yshift], dxorigfloatsize); // BL to TR
-			memcpy(&outputdata[offset], &data[yshift+dx], xremfloatsize); // BR to TL
+			memcpy(&outputdata[offset], &data[yshift+sy->db_x.dx], xremfloatsize); // BR to TL
 		}
 
 		return outputdata;
 	} else {
 #if PIXEL_SPECIAL_COLOURS_ENABLED
 		if (greenlines) {
-			verticalline(dx, data, width, height, PIXEL_SPECIAL_VALUE_G);
-			horizontalline(dy, data, width, height, PIXEL_SPECIAL_VALUE_G);
+			verticalline(sy->db_x.dx, data, width, height, PIXEL_SPECIAL_VALUE_G);
+			horizontalline(sy->db_y.dx, data, width, height, PIXEL_SPECIAL_VALUE_G);
 		}
 #endif
 		return data;

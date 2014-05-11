@@ -14,12 +14,16 @@
 #define SYNCDETECTOR_H_
 
 typedef struct sweetspot_data {
+	int dx;
+	int vx;
+	int lastx;
+	int absvx;
+	int lastvx;
+
 	int curr_stripsize;
 } sweetspot_data_t;
 
 typedef struct syncdetector {
-	int lastx;
-
 	sweetspot_data_t db_x;
 	sweetspot_data_t db_y;
 } syncdetector_t;

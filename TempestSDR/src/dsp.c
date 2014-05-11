@@ -222,9 +222,9 @@ void dsp_dropped_compensation_init(dsp_dropped_compensation_t * res) {
 }
 
 // based on how many frames were dropped, it calculates how many new needs to be dropped
-static inline int dsp_dropped_cal_compensation(const int block, const int dropped) {
+static inline uint64_t dsp_dropped_cal_compensation(const int block, const int dropped) {
 	const uint64_t frames = dropped / block;
-	return (((frames + 1) * block - dropped) % block) + frames * block;
+	return ((frames + 1) * block - dropped) % block;
 }
 
 void dsp_dropped_compensation_add(dsp_dropped_compensation_t * res, CircBuff_t * cb, float * buff, const uint32_t size, uint32_t block) {
