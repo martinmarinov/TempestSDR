@@ -12,8 +12,10 @@ package martin.tempest.gui;
 
 import java.awt.Component;
 import java.awt.EventQueue;
+import java.awt.Graphics2D;
 import java.awt.Insets;
 import java.awt.Rectangle;
+import java.awt.RenderingHints;
 import java.awt.Toolkit;
 
 import javax.imageio.ImageIO;
@@ -367,7 +369,7 @@ public class Main implements TSDRLibrary.FrameReadyCallback, TSDRLibrary.Incomin
 		});
 		mnTweaks.add(chckbxmntmLowpassBeforeSync);
 		
-		chckbxmntmAutoCorrectAfterProc = new JCheckBoxMenuItem("Autogain after processing", prefs.getBoolean(PREF_AUTOGAIN_AFTER_PROC, false));
+		chckbxmntmAutoCorrectAfterProc = new JCheckBoxMenuItem("Autogain after lowpass", prefs.getBoolean(PREF_AUTOGAIN_AFTER_PROC, false));
 		chckbxmntmAutoCorrectAfterProc.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent arg0) {
 				try{
@@ -1051,16 +1053,33 @@ public class Main implements TSDRLibrary.FrameReadyCallback, TSDRLibrary.Incomin
 		}
 	
 	}
+	
+	private static BufferedImage resize(BufferedImage image, int width, int height) {
+	    int type = image.getType() == 0? BufferedImage.TYPE_INT_ARGB : image.getType();
+	    BufferedImage resizedImage = new BufferedImage(width, height, type);
+	    Graphics2D g = resizedImage.createGraphics();
+
+	    g.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BILINEAR);
+	    g.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_QUALITY);
+	    g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+
+	    g.drawImage(image, 0, 0, width, height, null);
+	    g.dispose();
+	    return resizedImage;
+	}
 
 	@Override
 	public void onFrameReady(TSDRLibrary lib, BufferedImage frame) {
 		if (snapshot) {
 			snapshot = false;
 			try {
+				final BufferedImage resized_frame = resize(frame, image_width, frame.getHeight());
 				final int freq = (int) Math.abs(((Long) spFrequency.getValue())/1000000.0d);
 				final String filename = "TSDR_"+(new SimpleDateFormat("yyyy-MM-dd_HH-mm-ss")).format(new Date())+"_"+freq+"MHz"+"."+SNAPSHOT_FORMAT;
 				final File outputfile = new File(filename);
-				ImageIO.write(frame, SNAPSHOT_FORMAT, outputfile);
+				
+				
+				ImageIO.write(resized_frame, SNAPSHOT_FORMAT, outputfile);
 				visualizer.setOSD("Saved to "+outputfile.getAbsolutePath(), OSD_TIME);
 			} catch (Throwable e) {
 				visualizer.setOSD("Failed to capture snapshot", OSD_TIME);
