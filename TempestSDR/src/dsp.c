@@ -39,6 +39,9 @@ void dsp_autogain_run(dsp_autogain_t * autogain, int sizetopoll, float * screenb
 
 	for (i = 0; i < sizetopoll; i++) {
 		const float val = screenbuffer[i];
+#if PIXEL_SPECIAL_COLOURS_ENABLED
+		if (val > 250.0 || val < -250) continue;
+#endif
 		if (val > max) max = val; else if (val < min) min = val;
 	}
 
@@ -47,8 +50,15 @@ void dsp_autogain_run(dsp_autogain_t * autogain, int sizetopoll, float * screenb
 	autogain->lastmin = oneminusnorm*autogain->lastmin + norm*min;
 	const float span = (autogain->lastmax == autogain->lastmin) ? (1.0f) : (autogain->lastmax - autogain->lastmin);
 
+#if PIXEL_SPECIAL_COLOURS_ENABLED
+	for (i = 0; i < sizetopoll; i++) {
+		const float val = screenbuffer[i];
+		sendbuffer[i] = (val > 250.0 || val < -250) ? (val) : ((screenbuffer[i] - autogain->lastmin) / span);
+	}
+#else
 	for (i = 0; i < sizetopoll; i++)
 		sendbuffer[i] = (screenbuffer[i] - autogain->lastmin) / span;
+#endif
 }
 
 void dsp_average_v_h(int width, int height, float * sendbuffer, float * widthcollapsebuffer, float * heightcollapsebuffer) {
@@ -110,14 +120,6 @@ float * dsp_post_process(tsdr_lib_t * tsdr, dsp_postprocess_t * pp, float * buff
 
 	}
 
-
-	dsp_autogain_run(&pp->dsp_autogain, pp->sizetopoll, buffer, pp->sendbuffer, lowpasscoeff);
-
-	if (pp->runs++ > AUTOGAIN_REPORT_EVERY_FRAMES) {
-		pp->runs = 0;
-		announce_callback_changed(tsdr, VALUE_ID_AUTOGAIN_VALUES, pp->dsp_autogain.lastmin, pp->dsp_autogain.lastmax);
-	}
-
 	if (pp->lowpass_before_sync != lowpass_before_sync) {
 		pp->lowpass_before_sync = lowpass_before_sync;
 		int i;
@@ -129,22 +131,29 @@ float * dsp_post_process(tsdr_lib_t * tsdr, dsp_postprocess_t * pp, float * buff
 	}
 
 	if (lowpass_before_sync) {
-		dsp_timelowpass_run(motionblur, pp->sizetopoll, pp->sendbuffer, pp->screenbuffer);
+		dsp_timelowpass_run(motionblur, pp->sizetopoll, buffer, pp->screenbuffer);
 		dsp_average_v_h(pp->width, pp->height, pp->screenbuffer, pp->widthcollapsebuffer, pp->heightcollapsebuffer);
 
 		float * syncresult = syncdetector_run(&pp->sync, tsdr, pp->screenbuffer, pp->corrected_sendbuffer, pp->width, pp->height, pp->widthcollapsebuffer, pp->heightcollapsebuffer, 1, 0);
 
-		return syncresult;
-	} else {
-		dsp_average_v_h(pp->width, pp->height, pp->sendbuffer, pp->widthcollapsebuffer, pp->heightcollapsebuffer);
+		dsp_autogain_run(&pp->dsp_autogain, pp->sizetopoll, syncresult, pp->sendbuffer, lowpasscoeff);
 
-		float * syncresult = syncdetector_run(&pp->sync, tsdr, pp->sendbuffer, pp->corrected_sendbuffer, pp->width, pp->height, pp->widthcollapsebuffer, pp->heightcollapsebuffer, motionblur == 0.0f, 1);
+	} else {
+		dsp_average_v_h(pp->width, pp->height, buffer, pp->widthcollapsebuffer, pp->heightcollapsebuffer);
+
+		float * syncresult = syncdetector_run(&pp->sync, tsdr, buffer, pp->corrected_sendbuffer, pp->width, pp->height, pp->widthcollapsebuffer, pp->heightcollapsebuffer, motionblur == 0.0f, 1);
 		dsp_timelowpass_run(motionblur, pp->sizetopoll, syncresult, pp->screenbuffer);
 
-		return pp->screenbuffer;
+		dsp_autogain_run(&pp->dsp_autogain, pp->sizetopoll, pp->screenbuffer, pp->sendbuffer, lowpasscoeff);
+
 	}
 
+	if (pp->runs++ > AUTOGAIN_REPORT_EVERY_FRAMES) {
+		pp->runs = 0;
+		announce_callback_changed(tsdr, VALUE_ID_AUTOGAIN_VALUES, pp->dsp_autogain.lastmin, pp->dsp_autogain.lastmax);
+	}
 
+	return pp->sendbuffer;
 
 }
 
