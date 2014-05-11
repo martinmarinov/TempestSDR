@@ -99,6 +99,7 @@ public class Main implements TSDRLibrary.FrameReadyCallback, TSDRLibrary.Incomin
 	private final static String PREF_HQ_REDNERING = "hq_rendering";
 	private final static String PREF_NEAREST_NEIGHBOUR = "near_neigh_rend";
 	private final static String PREF_LOW_PASS_BEFORE_SYNC = "lp_before_sync";
+	private final static String PREF_AUTOGAIN_AFTER_PROC = "auto_bf_proc";
 
 	private final SpinnerModel frequency_spinner_model = new SpinnerNumberModel(new Long(prefs.getLong(PREF_FREQ, 400000000)), new Long(0), new Long(2147483647), new Long(FREQUENCY_STEP));
 	
@@ -365,6 +366,20 @@ public class Main implements TSDRLibrary.FrameReadyCallback, TSDRLibrary.Incomin
 			}
 		});
 		mnTweaks.add(chckbxmntmLowpassBeforeSync);
+		
+		chckbxmntmAutoCorrectAfterProc = new JCheckBoxMenuItem("Autogain after processing", prefs.getBoolean(PREF_AUTOGAIN_AFTER_PROC, false));
+		chckbxmntmAutoCorrectAfterProc.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent arg0) {
+				try{
+					final boolean enabled = chckbxmntmAutoCorrectAfterProc.isSelected();
+					mSdrlib.setParam(PARAM.AUTOGAIN_AFTER_PROCESSING, enabled ? 1 : 0);
+					prefs.putBoolean(PREF_AUTOGAIN_AFTER_PROC, enabled);
+				} catch (TSDRException e1) {
+					onException(mSdrlib, e1);
+				}
+			}
+		});
+		mnTweaks.add(chckbxmntmAutoCorrectAfterProc);
 		
 		btnReset = new JToggleButton("RST");
 		btnReset.addActionListener(new ActionListener() {
@@ -691,6 +706,7 @@ public class Main implements TSDRLibrary.FrameReadyCallback, TSDRLibrary.Incomin
 		try {
 			mSdrlib.setParam(PARAM.NEAREST_NEIGHBOUR_RESAMPLING, chckbxmntmNearestNeighbourResampling.isSelected() ? 1 : 0);
 			mSdrlib.setParam(PARAM.LOW_PASS_BEFORE_SYNC, chckbxmntmLowpassBeforeSync.isSelected() ? 1 : 0);
+			mSdrlib.setParam(PARAM.AUTOGAIN_AFTER_PROCESSING, chckbxmntmAutoCorrectAfterProc.isSelected() ? 1 : 0);
 		} catch (TSDRException e1) {}
 	}
 	
@@ -1304,4 +1320,5 @@ public class Main implements TSDRLibrary.FrameReadyCallback, TSDRLibrary.Incomin
 	private final TransformerAndCallbackHeight height_transformer = new TransformerAndCallbackHeight();
 	private JCheckBoxMenuItem chckbxmntmHighQualityRendering;
 	private JCheckBoxMenuItem chckbxmntmLowpassBeforeSync;
+	private JCheckBoxMenuItem chckbxmntmAutoCorrectAfterProc;
 }

@@ -69,7 +69,7 @@ typedef struct {
 void dsp_post_process_init(dsp_postprocess_t * pp);
 
 /** Post processing */
-float * dsp_post_process(tsdr_lib_t * tsdr, dsp_postprocess_t * pp, float * buffer, int nowwidth, int nowheight, float motionblur, float lowpasscoeff, const int lowpass_before_sync);
+float * dsp_post_process(tsdr_lib_t * tsdr, dsp_postprocess_t * pp, float * buffer, int nowwidth, int nowheight, float motionblur, float lowpasscoeff, const int lowpass_before_sync, const int autogain_after_proc);
 
 void dsp_post_process_free(dsp_postprocess_t * pp);
 
