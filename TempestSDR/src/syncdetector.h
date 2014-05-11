@@ -16,9 +16,7 @@
 typedef struct sweetspot_data {
 	int dx;
 	int vx;
-	int lastx;
 	int absvx;
-	int lastvx;
 
 	int curr_stripsize;
 } sweetspot_data_t;
@@ -26,6 +24,8 @@ typedef struct sweetspot_data {
 typedef struct syncdetector {
 	sweetspot_data_t db_x;
 	sweetspot_data_t db_y;
+
+	double last_frame_diff;
 } syncdetector_t;
 
 void syncdetector_init(syncdetector_t * sy);

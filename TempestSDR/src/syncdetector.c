@@ -12,12 +12,10 @@
 #include <math.h>
 #include "gaussian.h"
 
-#define FRAMERATE_DX_LOWPASS_COEFF_WIDTH_MAX (1)
-#define FRAMERATE_DX_LOWPASS_COEFF_WIDTH_MIN (0.3)
 #define FRAMERATE_DX_LOWPASS_COEFF_HEIGHT (0.1)
+#define FRAMERATE_DX_LOWPASS_COEFF_WIDTH (0.4)
 
-#define FRAMERATE_PLL_GENTLE_SPEED (0.000001)
-#define FRAMERATE_PLL_SPEED (0.0001)
+#define FRAMERATE_PLL_SPEED (0.00001)
 
 
 static inline void findbestfit(float * data, const int size, const float totalsum, const int stripsize, double * bestfit, int * bestfitid) {
@@ -97,8 +95,6 @@ void findthesweetspot(sweetspot_data_t * db, float * data, int size, int minsize
 
 	const int h2 = size / 2;
 
-	db->lastx = db->dx;
-
 	int dxwithnolowpass = (beststripstart + beststripsize/2) % size;
 	const int rawdiff = dxwithnolowpass - db->dx;
 	if (rawdiff > h2)
@@ -106,10 +102,11 @@ void findthesweetspot(sweetspot_data_t * db, float * data, int size, int minsize
 	else if (rawdiff < -h2)
 		dxwithnolowpass += size;
 
+	const int lastx = db->dx;
 	db->dx = ((int) round(dxwithnolowpass * lowpasscoeff + (1.0 - lowpasscoeff) * db->dx)) % size;
 
-	const int rawvx = db->dx - db->lastx;
-	db->lastvx = db->vx;
+	const int rawvx = db->dx - lastx;
+
 	db->vx = (rawvx > h2) ? (size - rawvx) : ((rawvx < -h2) ? (-size - rawvx) : (rawvx));
 	db->absvx = (db->vx >= 0) ? (db->vx) : (-db->vx);
 
@@ -140,35 +137,30 @@ void setframerate(tsdr_lib_t * tsdr, double refreshrate, int width, int height) 
 void frameratepll(syncdetector_t * sy, tsdr_lib_t * tsdr, sweetspot_data_t * db_x, int width, int height) {
 
 	if ( tsdr->params_int[PARAM_INT_FRAMERATE_PLL] && db_x->vx != 0 ) {
-		int ho10 = height / 10;
-		if (ho10 == 0) ho10 = 1;
 
-		const double frameratediff = ((db_x->absvx <= ho10) ? (FRAMERATE_PLL_GENTLE_SPEED) : (FRAMERATE_PLL_SPEED)) * ((db_x->vx < 0) ? (-1) : (1));
+		const double frameratediff = FRAMERATE_PLL_SPEED * db_x->vx;
 
-		if (frameratediff != 0)
-			setframerate(tsdr, tsdr->refreshrate-frameratediff, width, height);
+		setframerate(tsdr, tsdr->refreshrate-frameratediff, width, height);
 	}
 }
 
 void syncdetector_init(syncdetector_t * sy) {
 	sy->db_x.curr_stripsize = 0;
-	sy->db_x.lastx = 0;
 	sy->db_x.dx = 0;
 	sy->db_x.vx= 0;
 	sy->db_x.absvx = 0;
-	sy->db_x.lastvx = 0;
 
 	sy->db_y.curr_stripsize = 0;
-	sy->db_y.lastx = 0;
 	sy->db_y.dx = 0;
 	sy->db_y.vx= 0;
 	sy->db_y.absvx = 0;
-	sy->db_y.lastvx = 0;
+
+	sy->last_frame_diff = 0.0;
 }
 
 float * syncdetector_run(syncdetector_t * sy, tsdr_lib_t * tsdr, float * data, float * outputdata, int width, int height, float * widthbuffer, float * heightbuffer, int greenlines) {
 
-	findthesweetspot(&sy->db_x, widthbuffer, width, width * 0.05f, (sy->db_x.lastvx == 0) ? (FRAMERATE_DX_LOWPASS_COEFF_WIDTH_MIN) : (FRAMERATE_DX_LOWPASS_COEFF_WIDTH_MAX));
+	findthesweetspot(&sy->db_x, widthbuffer, width, width * 0.05f, FRAMERATE_DX_LOWPASS_COEFF_WIDTH);
 	findthesweetspot(&sy->db_y, heightbuffer, height, height * 0.01f, FRAMERATE_DX_LOWPASS_COEFF_HEIGHT );
 
 	const int size = width * height;
