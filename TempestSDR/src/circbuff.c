@@ -63,14 +63,19 @@ int cb_add(CircBuff_t * cb, float * in, const size_t len) {
     if (len*cb->size_coeff > cb->buffer_size) cb->desired_buf_size = len*cb->size_coeff;
 
     if (cb->buffer_size < cb->desired_buf_size) {
+    	const size_t inflation = cb->desired_buf_size - cb->buffer_size;
+
         // if we need to resize the buffer, reset it
         cb->buffer = (float *) realloc((void *) cb->buffer, sizeof(float) * cb->desired_buf_size); // reallocate
+
+        cb->remaining_capacity += inflation;
+
+        if (cb->rempos > cb->pos) {
+        	memmove((void *) &cb->buffer[cb->rempos+inflation], (void *) &cb->buffer[cb->rempos], sizeof(float) * (cb->buffer_size-cb->rempos));
+        	cb->rempos = cb->rempos+inflation;
+        }
+
         cb->buffer_size = cb->desired_buf_size; // set the size
-
-        cb->remaining_capacity = cb->buffer_size; // how many elements could be loaded
-        cb->pos = 0; // where the next element will be added
-        cb->rempos = 0; // where the next element will be taken from
-
     }
 
     if (cb->buffering && cb->remaining_capacity < 2*len) {
@@ -99,6 +104,41 @@ int cb_add(CircBuff_t * cb, float * in, const size_t len) {
     }
 
     if (cb->is_waiting) mutex_signal(&cb->locker);
+
+    critical_leave(&cb->mutex);
+
+    return CB_OK;
+}
+
+int cb_rem_nonblocking(CircBuff_t * cb, float * in, const size_t len) {
+	if (cb->invalid) return CB_ERROR;
+	if (len <= 0) return CB_OK;
+
+	size_t items_inside = cb->buffer_size - cb->remaining_capacity;
+    while (items_inside < len) return CB_EMPTY; // if there are not enough items
+
+    if (cb->invalid) return CB_ERROR;
+    critical_enter(&cb->mutex);
+
+    if (cb->buffer_size - cb->remaining_capacity < len) {
+        critical_leave(&cb->mutex);
+        return CB_EMPTY;
+    }
+
+    const size_t oldrempos = cb->rempos;
+    cb->rempos = (oldrempos + len) % cb->buffer_size; // calculate new position
+
+    if (cb->rempos <= oldrempos) {
+        // we have to wrap around
+        const size_t remaining = cb->buffer_size - oldrempos;
+        memcpy(in, (void *) &cb->buffer[oldrempos], remaining*sizeof(float));
+        memcpy(&in[remaining], (void *) cb->buffer, cb->rempos*sizeof(float));
+    } else {
+        // we don't have to wrap around
+        memcpy(in, (void *) &cb->buffer[oldrempos], len*sizeof(float));
+    }
+
+    cb->remaining_capacity += len; // we have removed len items
 
     critical_leave(&cb->mutex);
 

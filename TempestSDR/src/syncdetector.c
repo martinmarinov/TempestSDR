@@ -119,8 +119,6 @@ void frameratepll(syncdetector_t * sy, tsdr_lib_t * tsdr, int dx, int width, int
 	const int rawvx = dx - sy->lastx;
 	const int h2 = width / 2;
 	const int vx = (rawvx > h2) ? (rawvx - h2) : ((rawvx < -h2) ? (rawvx + h2) : (rawvx));
-	const int absvx = (vx < 0) ? (-vx) : vx;
-	const int vxsign = (vx < 0) ? (-1) : (1);
 	sy->lastx = dx;
 
 	if (tsdr->params_int[PARAM_INT_FRAMERATE_PLL] && vx != 0) {

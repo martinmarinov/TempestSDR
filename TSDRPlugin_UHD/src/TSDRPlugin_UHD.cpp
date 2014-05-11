@@ -267,7 +267,7 @@ EXTERNC TSDRPLUGIN_API int __stdcall tsdrplugin_readasync(tsdrplugin_readasync_f
 			// if next call will overflow our buffer, call the callback
 			if (items_per_api_read + items_in_buffer > buff_size) {
 				int64_t dropped_samples = 0;
-				const int samples_in_buffer = items_in_buffer >> 1;
+				const uint64_t samples_in_buffer = items_in_buffer >> 1;
 
 				// estimate dropped samples
 				if (md.has_time_spec) {

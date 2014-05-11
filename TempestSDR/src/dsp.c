@@ -135,22 +135,23 @@ void dsp_post_process_free(dsp_postprocess_t * pp) {
 }
 
 void dsp_resample_init(dsp_resample_t * res) {
-	extbuffer_init(&res->out);
 
 	res->contrib = 0;
 	res->offset = 0;
 }
 
-float * dsp_resample_process(dsp_resample_t * res, int size, float * buffer, const double pixeloversampletme, int * pids, int nearest_neighbour_sampling) {
+void dsp_resample_process(dsp_resample_t * res, extbuffer_t * in, extbuffer_t * out, const double pixeloversampletme, int nearest_neighbour_sampling) {
 
+	const uint32_t size = in->size_valid_elements;
 	const uint32_t output_samples = (int) ((size - res->offset) / pixeloversampletme);
 
 	// resize buffer so it fits
-	extbuffer_preparetohandle(&res->out, output_samples);
+	extbuffer_preparetohandle(out, output_samples);
 
 	uint32_t id;
 
-	float * resbuff = res->out.buffer;
+	float * resbuff = out->buffer;
+	float * buffer = in->buffer;
 
 	if (nearest_neighbour_sampling) {
 		for (id = 0; id < output_samples; id++)
@@ -207,42 +208,51 @@ float * dsp_resample_process(dsp_resample_t * res, int size, float * buffer, con
 	}
 
 	res->offset += output_samples*pixeloversampletme-size;
-
-	*pids = output_samples;
-	return res->out.buffer;
 }
 
 void dsp_resample_free(dsp_resample_t * res) {
-	extbuffer_free(&res->out);
+
 }
 
 void dsp_dropped_compensation_init(dsp_dropped_compensation_t * res) {
-	res->dropped_samples = 0;
-	res->todrop = 0;
+	// the difference is the one between the planned sample_id that needs to be dropped in order to have
+	// the correct block and the actual dropped.
+	// if it gets negative, it needs to be recalculated
+	res->difference = 0;
 }
 
-void dsp_dropped_compensation_add(dsp_dropped_compensation_t * res, CircBuff_t * cb, float * buff, const size_t size, int block) {
-	if (res->dropped_samples > 0) {
-		const unsigned int moddropped = res->dropped_samples % block;
-		res->todrop += block - moddropped; // how much to drop so that it ends up on one frame
-		res->dropped_samples = 0;
+// based on how many frames were dropped, it calculates how many new needs to be dropped
+static inline int dsp_dropped_cal_compensation(const int block, const int dropped) {
+	const uint64_t frames = dropped / block;
+	return (((frames + 1) * block - dropped) % block) + frames * block;
+}
+
+void dsp_dropped_compensation_add(dsp_dropped_compensation_t * res, CircBuff_t * cb, float * buff, const uint32_t size, uint32_t block) {
+	assert(res->difference >= 0);
+
+	if (size <= res->difference)
+		res->difference -= size;
+	else if (cb_add(cb, &buff[res->difference], size-res->difference) == CB_OK)
+		res->difference = 0;
+	else {
+		res->difference -= size % block;
+		if (res->difference < 0) res->difference = dsp_dropped_cal_compensation(block, -res->difference);
 	}
-
-	if (res->todrop >= size)
-		res->todrop -= size;
-	else if (cb_add(cb, &buff[res->todrop], size-res->todrop) == CB_OK)
-		res->todrop = 0;
-	else // we lost samples due to buffer overflow
-		res->dropped_samples += size;
 }
 
-int dsp_dropped_compensation_will_drop_all(dsp_dropped_compensation_t * res, int size) {
-	return res->todrop >= size;
+int dsp_dropped_compensation_will_drop_all(dsp_dropped_compensation_t * res, uint32_t size, uint32_t block) {
+	assert(res->difference >= 0);
+
+	return size <= res->difference;
 }
 
-void dsp_dropped_compensation_shift_with(dsp_dropped_compensation_t * res, int block, int syncoffset) {
+void dsp_dropped_compensation_shift_with(dsp_dropped_compensation_t * res, uint32_t block, int64_t syncoffset) {
+
+
 	if (syncoffset >= 0)
-		res->dropped_samples += syncoffset;
-	else if (syncoffset < 0)
-		res->dropped_samples += block + syncoffset;
+		res->difference -= syncoffset % block;
+	else
+		res->difference -= block + syncoffset % block;
+
+	if (res->difference < 0) res->difference = dsp_dropped_cal_compensation(block, -res->difference);
 }
