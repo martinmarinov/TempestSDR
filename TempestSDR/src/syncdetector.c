@@ -103,7 +103,7 @@ void findthesweetspot(sweetspot_data_t * db, float * data, int size, int minsize
 		dxwithnolowpass += size;
 
 	const int lastx = db->dx;
-	db->dx = ((int) round(dxwithnolowpass * lowpasscoeff + (1.0 - lowpasscoeff) * db->dx)) % size;
+	db->dx = ((int64_t) round(dxwithnolowpass * lowpasscoeff + (1.0 - lowpasscoeff) * db->dx)) % ((int64_t) size);
 
 	const int rawvx = db->dx - lastx;
 

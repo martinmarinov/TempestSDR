@@ -307,10 +307,20 @@ void decimatingthread(void * ctx) {
 
 	dsp_dropped_compensation_init(&dsp_dropped);
 
+	int oldwidth = context->this->width;
+	int oldheight = context->this->height;
+
 	while (context->this->running) {
 
 		const int width = context->this->width;
 		const int height = context->this->height;
+
+		if (width != oldwidth || height != oldheight) {
+			oldwidth = width;
+			oldheight = height;
+			cb_purge(&context->circbuf_decimation_to_video);
+		}
+
 		const int totalpixels = width * height;
 		const int size = FRAMES_TO_POLL * context->this->samplerate / context->this->refreshrate;
 		extbuffer_preparetohandle(&buff, size);
