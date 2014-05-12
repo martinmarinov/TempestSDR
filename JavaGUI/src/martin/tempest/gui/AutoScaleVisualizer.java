@@ -23,6 +23,7 @@ public class AutoScaleVisualizer extends JPanel {
 	
 	private boolean font_set = false;
 	private int half_fontsize;
+	private Font font;
 	
 	private final static Color background = new Color(150, 170, 130);
 	private final static Color default_txt_colour_background = Color.DARK_GRAY;
@@ -31,8 +32,6 @@ public class AutoScaleVisualizer extends JPanel {
 	private static Color inverse_colour_map[];
 	
 	private final Object locker = new Object();
-	
-	private Font font;
 	
 	@Override
 	public void setBounds(int x, int y, int width, int height) {
