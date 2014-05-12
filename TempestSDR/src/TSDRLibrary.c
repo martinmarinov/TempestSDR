@@ -38,7 +38,7 @@
 
 #define DEFAULT_DECIMATOR_TO_POLL (128)
 
-#define FRAMES_TO_POLL (0.2)
+#define FRAMES_TO_POLL (0.1)
 
 struct tsdr_context {
 		tsdr_readasync_function cb;
@@ -46,7 +46,8 @@ struct tsdr_context {
 		tsdr_lib_t * this;
 
 		void *ctx;
-		CircBuff_t circbuf_decimation_to_video;
+		CircBuff_t circbuf_decimation_to_posproc;
+		CircBuff_t circbuf_posproc_to_video;
 		CircBuff_t circbuf_device_to_decimation;
 
 		dsp_dropped_compensation_t dsp_device_dropped;
@@ -297,29 +298,14 @@ void decimatingthread(void * ctx) {
 	extbuffer_t outbuff;
 	extbuffer_init(&outbuff);
 
-	extbuffer_t outbuff_final;
-	extbuffer_init(&outbuff_final);
-
-	CircBuff_t internalbuff;
-	cb_init(&internalbuff, CB_SIZE_MAX_COEFF_HIGH_LATENCY);
-
 	dsp_dropped_compensation_t dsp_dropped;
 
 	dsp_dropped_compensation_init(&dsp_dropped);
-
-	int oldwidth = context->this->width;
-	int oldheight = context->this->height;
 
 	while (context->this->running) {
 
 		const int width = context->this->width;
 		const int height = context->this->height;
-
-		if (width != oldwidth || height != oldheight) {
-			oldwidth = width;
-			oldheight = height;
-			cb_purge(&context->circbuf_decimation_to_video);
-		}
 
 		const int totalpixels = width * height;
 		const int size = FRAMES_TO_POLL * context->this->samplerate / context->this->refreshrate;
@@ -329,22 +315,49 @@ void decimatingthread(void * ctx) {
 
 			dsp_resample_process(&context->this->dsp_resample, &buff, &outbuff, context->this->pixeltimeoversampletime, context->this->params_int[PARAM_NEAREST_NEIGHBOUR_RESAMPLING]);
 
-			dsp_dropped_compensation_add(&dsp_dropped, &internalbuff, outbuff.buffer, outbuff.size_valid_elements, totalpixels);
+			dsp_dropped_compensation_add(&dsp_dropped, &context->circbuf_decimation_to_posproc, outbuff.buffer, outbuff.size_valid_elements, totalpixels);
 
 			// section for manual syncing
 			dsp_dropped_compensation_shift_with(&dsp_dropped,  totalpixels, -context->this->syncoffset);
 			context->this->syncoffset = 0;
 
-			extbuffer_preparetohandle(&outbuff_final, totalpixels);
-			while (cb_rem_nonblocking(&internalbuff, outbuff_final.buffer, totalpixels) == CB_OK)
-				cb_add(&context->circbuf_decimation_to_video, dsp_post_process(context->this , &context->this->dsp_postprocess, outbuff_final.buffer, width, height, context->this->motionblur, NORMALISATION_LOWPASS_COEFF, context->this->params_int[PARAM_LOW_PASS_BEFORE_SYNC], context->this->params_int[PARAM_AUTOGAIN_AFTER_PROCESSING]), totalpixels);
 		}
 	}
 
-	cb_free(&internalbuff);
-	extbuffer_free(&outbuff_final);
 	extbuffer_free(&outbuff);
 	extbuffer_free(&buff);
+
+	semaphore_leave(&context->this->threadsync);
+}
+
+void postprocessingthread(void * ctx) {
+	tsdr_context_t * context = (tsdr_context_t *) ctx;
+	semaphore_enter(&context->this->threadsync);
+
+	int oldwidth = context->this->width;
+	int oldheight = context->this->height;
+
+	extbuffer_t outbuff_final;
+	extbuffer_init(&outbuff_final);
+
+	while (context->this->running) {
+
+		const int width = context->this->width;
+		const int height = context->this->height;
+		const int totalpixels = width * height;
+
+		if (width != oldwidth || height != oldheight) {
+			oldwidth = width;
+			oldheight = height;
+			cb_purge(&context->circbuf_posproc_to_video);
+		}
+
+		extbuffer_preparetohandle(&outbuff_final, totalpixels);
+		if (cb_rem_blocking(&context->circbuf_decimation_to_posproc, outbuff_final.buffer, totalpixels) == CB_OK)
+			cb_add(&context->circbuf_posproc_to_video, dsp_post_process(context->this , &context->this->dsp_postprocess, outbuff_final.buffer, width, height, context->this->motionblur, NORMALISATION_LOWPASS_COEFF, context->this->params_int[PARAM_LOW_PASS_BEFORE_SYNC], context->this->params_int[PARAM_AUTOGAIN_AFTER_PROCESSING]), totalpixels);
+	}
+
+	extbuffer_free(&outbuff_final);
 
 	semaphore_leave(&context->this->threadsync);
 }
@@ -365,7 +378,7 @@ void videodecodingthread(void * ctx) {
 
 		extbuffer_preparetohandle(&buff, sizetopoll);
 
-		if (cb_rem_blocking(&context->circbuf_decimation_to_video, buff.buffer, sizetopoll) == CB_OK)
+		if (cb_rem_blocking(&context->circbuf_posproc_to_video, buff.buffer, sizetopoll) == CB_OK)
 			context->cb(buff.buffer, width, height, context->ctx);
 	}
 
@@ -458,19 +471,20 @@ int tsdr_loadplugin(tsdr_lib_t * tsdr, const char * pluginfilepath, const char *
 	context->this = tsdr;
 	context->cb = cb;
 	context->ctx = ctx;
-	cb_init(&context->circbuf_decimation_to_video, CB_SIZE_MAX_COEFF_LOW_LATENCY);
+	cb_init(&context->circbuf_decimation_to_posproc, CB_SIZE_MAX_COEFF_LOW_LATENCY);
+	cb_init(&context->circbuf_posproc_to_video, CB_SIZE_MAX_COEFF_LOW_LATENCY);
 	cb_init(&context->circbuf_device_to_decimation, CB_SIZE_MAX_COEFF_LOW_LATENCY);
 	dsp_dropped_compensation_init(&context->dsp_device_dropped);
 
 	frameratedetector_startthread(&tsdr->frameratedetect);
-	super_startthread(&tsdr->super);
+
 	thread_start(decimatingthread, (void *) context);
+	thread_start(postprocessingthread, (void *) context);
 	thread_start(videodecodingthread, (void *) context);
 
 	status = tsdr->plugin.tsdrplugin_readasync(process, (void *) context);
 
 	frameratedetector_stopthread(&tsdr->frameratedetect);
-	super_stopthread(&tsdr->super);
 
 	if (status != TSDR_OK) pluginsfault =1;
 
@@ -478,7 +492,8 @@ int tsdr_loadplugin(tsdr_lib_t * tsdr, const char * pluginfilepath, const char *
 	mutex_waitforever(&tsdr->stopsync);
 	free(context);
 
-	cb_free(&context->circbuf_decimation_to_video);
+	cb_free(&context->circbuf_posproc_to_video);
+	cb_free(&context->circbuf_decimation_to_posproc);
 	cb_free(&context->circbuf_device_to_decimation);
 
 end:

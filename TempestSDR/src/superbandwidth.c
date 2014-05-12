@@ -179,7 +179,10 @@ void superb_run(superbandwidth_t * bw, float * iq, int size, tsdr_lib_t * tsdr, 
 	*outbuff = NULL;
 	if (bw->tsdr != tsdr) bw->tsdr = tsdr;
 
-	if (bw->state == SUPER_STATE_STOPPED) bw->state = SUPER_STATE_STARTING;
+	if (bw->state == SUPER_STATE_STOPPED) {
+		bw->state = SUPER_STATE_STARTING;
+		super_startthread(bw);
+	}
 
 	if (bw->state == SUPER_STATE_STARTING) {
 		bw->buffid_current = 0;
@@ -254,6 +257,7 @@ void superb_stop(superbandwidth_t * bw, tsdr_lib_t * tsdr) {
 		bw->state = SUPER_STATE_STOPPED;
 		shiftfreq(tsdr, 0);
 		set_internal_samplerate(tsdr, tsdr->samplerate_real);
+		super_stopthread(bw);
 	}
 
 }
