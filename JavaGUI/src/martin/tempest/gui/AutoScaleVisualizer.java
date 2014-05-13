@@ -29,6 +29,7 @@ public class AutoScaleVisualizer extends JPanel {
 	private static final long serialVersionUID = 6629300250729955406L;
 	
 	private int nwidth = 1, nheight = 1;
+	private int fontsize = 12;
 	
 	private volatile double min = 0, max = 0, span = 1;
 	
@@ -98,6 +99,7 @@ public class AutoScaleVisualizer extends JPanel {
 				font = new Font(existing.getFontName(), Font.PLAIN, (int) (existing.getSize()*FONT_SIZE_COEFF));
 				g.setFont(font);
 				font_set = true;
+				fontsize = g.getFont().getSize();
 			} else {
 				g.setFont(font);
 			}
@@ -105,14 +107,26 @@ public class AutoScaleVisualizer extends JPanel {
 			// start drawing
 			g.setColor(background);
 			g.fillRect(0, 0, width, height);
+			
+			scale_y.paintScale(g);
 
 			final int maxvalidpx = Math.min(minpx, nheight);
 			for (int y = (maxpx < 0) ? 0 : maxpx ; y < maxvalidpx; y++) {
 				g.setColor(colour_map[pxtocol(y)]);
 				g.drawLine(0, y, nwidth, y);
 			}
-
-			scale_y.paintScale(g);
+			
+			if (this.min >= scale_y.getLowestValue() && this.min <= scale_y.getHighestValue()) {
+				final double min_db = scale_y.valtodb(this.min);
+				g.setColor(Color.lightGray);
+				g.drawString(String.format("%.2f", min_db), 0, minpx - fontsize/2);
+			}
+			
+			if (this.max >= scale_y.getLowestValue() && this.max <= scale_y.getHighestValue()) {
+				final double max_db = scale_y.valtodb(this.max);
+				g.setColor(Color.DARK_GRAY);
+				g.drawString(String.format("%.1f", max_db), 0, maxpx + fontsize);
+			}
 
 		}
 	}
