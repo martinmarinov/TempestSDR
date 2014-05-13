@@ -19,17 +19,17 @@ import java.awt.event.MouseMotionListener;
 
 import javax.swing.JPanel;
 
+import martin.tempest.gui.scale.LogScale;
+
 
 public class PlotVisualizer extends JPanel {
 
 	private static final long serialVersionUID = -6754436015453195809L;
-	
+
 	private static final double FONT_SPACING_COEFF = 1.3;
 	private static final double FONT_SIZE_COEFF = 0.8;
-	private static final double DB_MULTIPLIER = 10;
-	private final static Color default_txt_colour_background = Color.lightGray;
 	
-	private final static double[] POSSIBLE_SCALE_VALUES_DB = new double[] {50, 20, 10, 5, 2, 1, 0.5, 0.2, 0.1}; 
+	private final Color default_txt_colour_background = Color.LIGHT_GRAY;
 	
 	private Object locker = new Object();
 	private float[] data = null;
@@ -46,11 +46,6 @@ public class PlotVisualizer extends JPanel {
 	private int shift = 0;
 	private int shift2 = 0;
 	
-	private double lowest_db = -20;
-	private double highest_db = 0;
-	private double span_db = highest_db-lowest_db;
-	private double lowest_val = dbtoval(lowest_db), highest_val = dbtoval(highest_db);
-	
 	private int area_around_mouse = 0;
 	
 	private final TransformerAndCallback trans;
@@ -60,6 +55,8 @@ public class PlotVisualizer extends JPanel {
 	private boolean font_set = false;
 	private int half_fontsize;
 	private Font font;
+	
+	private final LogScale scale_y = new LogScale(default_txt_colour_background, FONT_SPACING_COEFF);
 	
 	public PlotVisualizer(final TransformerAndCallback trans) {
 		this.trans = trans;
@@ -160,24 +157,7 @@ public class PlotVisualizer extends JPanel {
 		return trans.getDescription(val, id);
 	}
 	
-	private double valtodb(final double val) {
-		return DB_MULTIPLIER*Math.log10(val);
-	}
-	
-	private double dbtoval(final double db) {
-		return Math.pow(10, db/DB_MULTIPLIER);
-	}
-	
-	private int valtologpx(final double val) {
-		if (val <= lowest_val) return nheight;
-		else if (val >= highest_val) return 0;
-		return (int) (nheight - (valtodb(val) - lowest_db) * nheight / span_db);
-	}
-	
-	private int dbtopx(final double db) {
-		final int px = (int) (nheight - (db - lowest_db) * nheight / span_db);
-		return (px < 0) ? 0 : (px >= nheight ? nheight - 1 : px);
-	}
+
 //	
 //	private double pxtoval(final int px) {
 //		final double db = LOWEST_DB * px / (double) nheight;
@@ -185,8 +165,8 @@ public class PlotVisualizer extends JPanel {
 //	}
 	
 	private void populateData() {
-		highest_val = data[0];
-		lowest_val = highest_val;
+		double highest_val = data[0];
+		double lowest_val = highest_val;
 		max_index = 0;
 		double max_val = highest_val;
 		
@@ -227,15 +207,12 @@ public class PlotVisualizer extends JPanel {
 		visdata[nwidth-1] = localmax;
 		
 		// set the values required to do the conversations
-		lowest_db = valtodb(lowest_val);
-		highest_db = valtodb(highest_val);
-		span_db = highest_db-lowest_db;
+		scale_y.setLowestHighestValue(lowest_val, highest_val);
 		
-		
-		if (span_db == 0 || Double.isInfinite(span_db) || Double.isNaN(span_db)) return;
+		if (!scale_y.valuesValid()) return;
 		
 		for (int x = 0; x < nwidth; x++)
-			visdata[x] = valtologpx(visdata[x]);
+			visdata[x] = scale_y.valtogpx(visdata[x]);
 	}
 
 	public void plot(float[] incoming_data, int offset, final int size, long samplerate) {
@@ -285,6 +262,7 @@ public class PlotVisualizer extends JPanel {
 	public void setBounds(int x, int y, int width, int height) {
 		this.nwidth = width;
 		this.nheight = height;
+		scale_y.setDimentions(this.nwidth, this.nheight);
 		enabled = isEnabled();
 		super.setBounds(x, y, width, height);
 	}
@@ -293,6 +271,7 @@ public class PlotVisualizer extends JPanel {
 	public void setBounds(Rectangle r) {
 		this.nwidth = r.width;
 		this.nheight = r.height;
+		scale_y.setDimentions(this.nwidth, this.nheight);
 		enabled = isEnabled();
 		super.setBounds(r);
 	}
@@ -311,57 +290,7 @@ public class PlotVisualizer extends JPanel {
 		
 		repaint();
 	}
-	
-	private static final int getAccuracy(double number) {
-		if (Math.abs(((int) (number)) - number) < 1e-10)
-			return 0;
-		
-		int accuracy = 0;
-		int i = 1;
-		while((i*=10) < 1e9) {
-			accuracy++;
-			if (Math.abs(((int) (number*i)/(double) i) - number) < 1e-10)
-				break;
-		}
-		return accuracy;
-	}
-	
-	public void paintScale(Graphics g) {
-		final int linewidth = nwidth / 200;
-		final int small_linewidth = nwidth / 400;
-		final int textoffset = linewidth + 2*small_linewidth;
-		
-		final double dvision = FONT_SPACING_COEFF * span_db / half_fontsize;
-		double db_step = POSSIBLE_SCALE_VALUES_DB[POSSIBLE_SCALE_VALUES_DB.length-1];
-		for (final double v : POSSIBLE_SCALE_VALUES_DB) if (v < dvision) {db_step = v; break;};
-		final double line_db_step = db_step/5;
-		
-		final double firstval = ((int) (highest_db / db_step)) * db_step;
-		final double firstval_line = ((int) (highest_db / line_db_step)) * line_db_step;
 
-		g.setColor(default_txt_colour_background);
-		
-		for (double db = firstval_line; db >= lowest_db; db -= line_db_step) {
-			if (db >= lowest_db && db <= highest_db) {
-				final int y = dbtopx ( db );
-				g.drawLine(0, y, small_linewidth, y);
-			}
-		}
-		
-		
-		final int accuracy = getAccuracy(db_step);
-		final String formatter_plus = String.format("+%%.%df dB", accuracy);
-		final String formatter_minus = String.format("%%.%df dB", accuracy);
-		for (double db = firstval; db >= lowest_db; db -= db_step) {
-			if (db >= lowest_db && db <= highest_db) {
-				final int y = dbtopx ( db );
-				g.drawString((db > 0) ? String.format(formatter_plus, db) : String.format(formatter_minus, db), textoffset, y+half_fontsize);
-				g.drawLine(0, y, linewidth, y);
-			}
-		}
-		
-	}
-	
 	private void setFont(Graphics g) {
 		if (!font_set) {
 			final Font existing = g.getFont();
@@ -382,13 +311,13 @@ public class PlotVisualizer extends JPanel {
 		if (data == null) {
 			g.setColor(Color.black);
 			g.fillRect(0, 0, nwidth, nheight);
-			paintScale(g);
+			scale_y.paintScale(g);
 			return;
 		}
 		
 		synchronized (locker) {
 
-			if (span_db == 0 || Double.isInfinite(span_db) || Double.isNaN(span_db)) return;
+			if (!scale_y.valuesValid()) return;
 			
 			g.setColor(enabled ? Color.black : Color.DARK_GRAY);
 			g.fillRect(0, 0, nwidth, nheight);
@@ -421,8 +350,8 @@ public class PlotVisualizer extends JPanel {
 				
 				if (id >= 0 && id < size) {
 					final int x = nwidth * id / size+shift2;
-					final int y = valtologpx(data[id]);
-					final double db = valtodb(data[id]);
+					final int y = scale_y.valtogpx(data[id]);
+					final double db = scale_y.valtodb(data[id]);
 					
 					g.drawString(getValueAt(id), mouse_x+nheight / 10, nheight / 5);
 					g.drawString(String.format("%.1f dB", db), mouse_x+nheight / 10, nheight / 5 + 3*half_fontsize);
@@ -446,7 +375,7 @@ public class PlotVisualizer extends JPanel {
 				}
 			}
 			
-			paintScale(g);
+			scale_y.paintScale(g);
 		}
 	}
 	
