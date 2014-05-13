@@ -54,6 +54,10 @@ public class LogScale {
 	public LogScale(final Color default_txt_colour_background, final double font_spacing, final double lowest_db, final double highest_db) {
 		this.font_spacing_coeff = font_spacing;
 		this.default_txt_colour_background = default_txt_colour_background;
+		setLowestHighestDb(lowest_db, highest_db);
+	}
+	
+	public void setLowestHighestDb(final double lowest_db, final double highest_db) {
 		this.lowest_db = lowest_db;
 		this.highest_db = highest_db;
 		span_db = highest_db-lowest_db;
@@ -67,6 +71,14 @@ public class LogScale {
 	
 	public double getHighestValue() {
 		return highest_val;
+	}
+	
+	public double getLowestDb() {
+		return lowest_db;
+	}
+	
+	public double getHighestDb() {
+		return highest_db;
 	}
 	
 	private static final int getAccuracy(double number) {

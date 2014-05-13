@@ -14,6 +14,7 @@
 #include "dsp.h"
 #include <stddef.h>
 #include <assert.h>
+#include <math.h>
 #include "syncdetector.h"
 
 #define AUTOGAIN_REPORT_EVERY_FRAMES (5)
@@ -29,6 +30,7 @@ void dsp_timelowpass_run(const float lowpassvalue, int sizetopoll, float * buffe
 void dsp_autogain_init(dsp_autogain_t * autogain) {
 	autogain->lastmax = 0;
 	autogain->lastmin = 0;
+	autogain->snr = 1.0;
 }
 
 void dsp_autogain_run(dsp_autogain_t * autogain, int sizetopoll, float * screenbuffer, float * sendbuffer, float norm) {
@@ -36,6 +38,7 @@ void dsp_autogain_run(dsp_autogain_t * autogain, int sizetopoll, float * screenb
 
 	float min = screenbuffer[0];
 	float max = min;
+	double sum = 0.0;
 
 	for (i = 0; i < sizetopoll; i++) {
 		const float val = screenbuffer[i];
@@ -43,6 +46,7 @@ void dsp_autogain_run(dsp_autogain_t * autogain, int sizetopoll, float * screenb
 		if (val > 250.0 || val < -250) continue;
 #endif
 		if (val > max) max = val; else if (val < min) min = val;
+		sum+=val;
 	}
 
 	const float oneminusnorm = 1.0f-norm;
@@ -50,15 +54,32 @@ void dsp_autogain_run(dsp_autogain_t * autogain, int sizetopoll, float * screenb
 	autogain->lastmin = oneminusnorm*autogain->lastmin + norm*min;
 	const float span = (autogain->lastmax == autogain->lastmin) ? (1.0f) : (autogain->lastmax - autogain->lastmin);
 
+	const double mean = sum / (double) sizetopoll;
+	double sum2 = 0.0;
+	double sum3 = 0.0;
 #if PIXEL_SPECIAL_COLOURS_ENABLED
 	for (i = 0; i < sizetopoll; i++) {
 		const float val = screenbuffer[i];
 		sendbuffer[i] = (val > 250.0 || val < -250) ? (val) : ((screenbuffer[i] - autogain->lastmin) / span);
+
+		const double valmeandiff = val - mean;
+		sum2 += valmeandiff*valmeandiff;
+		sum3 += valmeandiff;
 	}
 #else
-	for (i = 0; i < sizetopoll; i++)
-		sendbuffer[i] = (screenbuffer[i] - autogain->lastmin) / span;
+	for (i = 0; i < sizetopoll; i++) {
+		const float val = screenbuffer[i];
+		sendbuffer[i] = (val - autogain->lastmin) / span;
+
+		const float valmeandiff = val - mean;
+		sum2 += valmeandiff*valmeandiff;
+		sum3 += valmeandiff;
+	}
 #endif
+
+	const double stdev = sqrt((sum2 - sum3*sum3/(double) sizetopoll) / (double) (sizetopoll - 1));
+
+	autogain->snr = mean / stdev; // as from http://en.wikipedia.org/wiki/Signal-to-noise_ratio_(imaging)
 }
 
 void dsp_average_v_h(int width, int height, float * sendbuffer, float * widthcollapsebuffer, float * heightcollapsebuffer) {
@@ -169,6 +190,7 @@ float * dsp_post_process(tsdr_lib_t * tsdr, dsp_postprocess_t * pp, float * buff
 	if (pp->runs++ > AUTOGAIN_REPORT_EVERY_FRAMES) {
 		pp->runs = 0;
 		announce_callback_changed(tsdr, VALUE_ID_AUTOGAIN_VALUES, pp->dsp_autogain.lastmin, pp->dsp_autogain.lastmax);
+		announce_callback_changed(tsdr, VALUE_ID_SNR, pp->dsp_autogain.snr, 0);
 	}
 
 	return result;
