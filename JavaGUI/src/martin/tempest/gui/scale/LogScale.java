@@ -29,7 +29,7 @@ public class LogScale {
 	
 	private final Color default_txt_colour_background;
 	
-	private double lowest_db = -20;
+	private double lowest_db = -21;
 	private double highest_db = 1;
 	private double span_db = highest_db-lowest_db;
 	private double lowest_val = dbtoval(lowest_db), highest_val = dbtoval(highest_db);

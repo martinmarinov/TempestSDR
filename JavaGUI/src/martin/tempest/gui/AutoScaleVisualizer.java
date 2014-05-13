@@ -21,8 +21,8 @@ import martin.tempest.gui.scale.LogScale;
 
 public class AutoScaleVisualizer extends JPanel {
 	
-	private static final double FONT_SPACING_COEFF = 0.5;
-	private static final double LOWEST_DB = -50;
+	private static final double FONT_SPACING_COEFF = 1.5;
+	private static final double LOWEST_DB = -50.7;
 	private static final double HIGHEST_DB = 0.6;
 	private static final double FONT_SIZE_COEFF = 0.8;
 
