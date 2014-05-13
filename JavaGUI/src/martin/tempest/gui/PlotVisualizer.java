@@ -342,8 +342,10 @@ public class PlotVisualizer extends JPanel {
 		g.setColor(default_txt_colour_background);
 		
 		for (double db = firstval_line; db >= lowest_db; db -= line_db_step) {
-			final int y = dbtopx ( db );
-			g.drawLine(0, y, small_linewidth, y);
+			if (db >= lowest_db && db <= highest_db) {
+				final int y = dbtopx ( db );
+				g.drawLine(0, y, small_linewidth, y);
+			}
 		}
 		
 		
@@ -351,9 +353,11 @@ public class PlotVisualizer extends JPanel {
 		final String formatter_plus = String.format("+%%.%df dB", accuracy);
 		final String formatter_minus = String.format("%%.%df dB", accuracy);
 		for (double db = firstval; db >= lowest_db; db -= db_step) {
-			final int y = dbtopx ( db );
-			g.drawString((db > 0) ? String.format(formatter_plus, db) : String.format(formatter_minus, db), textoffset, y+half_fontsize);
-			g.drawLine(0, y, linewidth, y);
+			if (db >= lowest_db && db <= highest_db) {
+				final int y = dbtopx ( db );
+				g.drawString((db > 0) ? String.format(formatter_plus, db) : String.format(formatter_minus, db), textoffset, y+half_fontsize);
+				g.drawLine(0, y, linewidth, y);
+			}
 		}
 		
 	}
