@@ -164,10 +164,10 @@ static inline void announceexception(tsdr_lib_t * tsdr, const char * message, in
  }
 
  void announce_plotready(tsdr_lib_t * tsdr, int plot_id, extbuffer_t * buffer, uint32_t data_size, uint32_t data_offset, uint32_t samplerate) {
-		if (!buffer->valid) return;
+		if (!buffer->valid || buffer->type != EXTBUFFER_TYPE_DOUBLE) return;
 
 		if (tsdr->plotready_callback != NULL)
-			tsdr->plotready_callback(plot_id, data_offset, &buffer->buffer[data_offset], data_size, samplerate, tsdr->callbackctx);
+			tsdr->plotready_callback(plot_id, data_offset, buffer->dbuffer, data_size, samplerate, tsdr->callbackctx);
 }
 
  void * tsdr_getctx(tsdr_lib_t * tsdr) {

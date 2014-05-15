@@ -21,7 +21,7 @@
 #define MIN_HEIGHT (590)
 #define MAX_FRAMERATE (87)
 #define MAX_HEIGHT (1500)
-#define FRAMES_TO_CAPTURE (3.1)
+#define FRAMES_TO_CAPTURE (4)
 
 void autocorrelate(extbuffer_t * buff, float * data, int size) {
 	extbuffer_preparetohandle(buff, 2*size);
@@ -31,25 +31,37 @@ void autocorrelate(extbuffer_t * buff, float * data, int size) {
 
 }
 
-void accummulate(extbuffer_t * out, extbuffer_t * in) {
-	const uint32_t size = in->size_valid_elements;
-	const int calls = in->calls;
-	const int currcalls = calls - 1;
+void accummulate(extbuffer_t * out, extbuffer_t * in, int startid, int length) {
+	const uint64_t calls = in->calls;
+	const uint64_t currcalls = calls - 1;
 
-	extbuffer_preparetohandle(out, size);
+	extbuffer_preparetohandle(out, length);
 	uint32_t i;
 
-	if (currcalls < 0) {
-		memcpy(out->buffer, in->buffer, size*sizeof(float));
+	float * in_buff = in->buffer + startid*2;
+	double * out_buff = out->dbuffer;
+
+	if (calls == 0) {
+		for (i = 0; i < length; i++) {
+			const double I = *(in_buff++);
+			const double Q = *(in_buff++);
+			const double now_avg = sqrt(I*I + Q*Q);
+			*(out_buff++) = now_avg;
+		}
 	} else {
-		for (i = 0; i < size; i++) {
-			const float prev_avg = out->buffer[i];
-			out->buffer[i] = (prev_avg*currcalls + in->buffer[i])/calls;
+		const double callsd = calls;
+		const double currcallsd = currcalls;
+		for (i = 0; i < length; i++) {
+			const double I = *(in_buff++);
+			const double Q = *(in_buff++);
+			const double now_avg = sqrt(I*I + Q*Q);
+			const double prev_avg = *out_buff;
+			*(out_buff++) = (prev_avg*currcallsd + now_avg)/callsd;
 		}
 	}
 }
 
-void frameratedetector_runontodata(frameratedetector_t * frameratedetector, float * data, int size, extbuffer_t * extbuff, extbuffer_t * extbuff_small) {
+void frameratedetector_runontodata(frameratedetector_t * frameratedetector, float * data, int size, extbuffer_t * extbuff, extbuffer_t * extbuff_small1, extbuffer_t * extbuff_small2) {
 
 	if (frameratedetector->tsdr->params_int[PARAM_AUTOCORR_PLOTS_OFF]) return;
 
@@ -63,17 +75,20 @@ void frameratedetector_runontodata(frameratedetector_t * frameratedetector, floa
 		const int origval = frameratedetector->tsdr->params_int[PARAM_AUTOCORR_PLOTS_RESET];
 		frameratedetector->tsdr->params_int[PARAM_AUTOCORR_PLOTS_RESET] = 0;
 		extbuffer_cleartozero(extbuff);
-		extbuffer_cleartozero(extbuff_small);
+		extbuffer_cleartozero(extbuff_small1);
+		extbuffer_cleartozero(extbuff_small2);
 		if (origval == 1) announce_callback_changed(frameratedetector->tsdr, VALUE_ID_AUTOCORRECT_RESET, 0, 0);
 	}
 
 	if (frameratedetector->tsdr->params_int[PARAM_AUTOCORR_PLOTS_OFF]) return;
 
 	autocorrelate(extbuff, data, size);
-	accummulate(extbuff_small, extbuff);
 
-	announce_plotready(frameratedetector->tsdr, PLOT_ID_FRAME, extbuff_small, maxlength-minlength, minlength, frameratedetector->samplerate);
-	announce_plotready(frameratedetector->tsdr, PLOT_ID_LINE, extbuff_small, height_maxlength-height_minlength, height_minlength, frameratedetector->samplerate);
+	accummulate(extbuff_small1, extbuff, minlength, maxlength-minlength);
+	accummulate(extbuff_small2, extbuff, height_minlength, height_maxlength-height_minlength);
+
+	announce_plotready(frameratedetector->tsdr, PLOT_ID_FRAME, extbuff_small1, maxlength-minlength, minlength, frameratedetector->samplerate);
+	announce_plotready(frameratedetector->tsdr, PLOT_ID_LINE, extbuff_small2, height_maxlength-height_minlength, height_minlength, frameratedetector->samplerate);
 
 	announce_callback_changed(frameratedetector->tsdr, VALUE_ID_AUTOCORRECT_FRAMES_COUNT, 0, extbuff->calls);
 
@@ -83,10 +98,12 @@ void frameratedetector_thread(void * ctx) {
 	frameratedetector_t * frameratedetector = (frameratedetector_t *) ctx;
 
 	extbuffer_t extbuff;
-	extbuffer_t extbuff_small;
+	extbuffer_t extbuff_small1;
+	extbuffer_t extbuff_small2;
 
 	extbuffer_init(&extbuff);
-	extbuffer_init(&extbuff_small);
+	extbuffer_init_double(&extbuff_small1);
+	extbuffer_init_double(&extbuff_small2);
 
 	float * buf = NULL;
 	uint32_t bufsize = 0;
@@ -106,18 +123,20 @@ void frameratedetector_thread(void * ctx) {
 
 		if (frameratedetector->purge_buffers) {
 			extbuffer_cleartozero(&extbuff);
-			extbuffer_cleartozero(&extbuff_small);
+			extbuffer_cleartozero(&extbuff_small1);
+			extbuffer_cleartozero(&extbuff_small2);
 			frameratedetector->purge_buffers = 0;
 		}
 
 		if (cb_rem_blocking(&frameratedetector->circbuff, buf, desiredsize) == CB_OK)
-			frameratedetector_runontodata(frameratedetector, buf, desiredsize, &extbuff, &extbuff_small);
+			frameratedetector_runontodata(frameratedetector, buf, desiredsize, &extbuff, &extbuff_small1, &extbuff_small2);
 	}
 
 	free (buf);
 
 	extbuffer_free(&extbuff);
-	extbuffer_free(&extbuff_small);
+	extbuffer_free(&extbuff_small1);
+	extbuffer_free(&extbuff_small2);
 }
 
 void frameratedetector_init(frameratedetector_t * frameratedetector, tsdr_lib_t * tsdr) {
@@ -161,7 +180,6 @@ void frameratedetector_run(frameratedetector_t * frameratedetector, float * data
 	if (cb_add(&frameratedetector->circbuff, data, size) != CB_OK)
 		cb_purge(&frameratedetector->circbuff);
 
-	//printf("TUK! %d %%\n", (int) (100*cb_size(&frameratedetector->circbuff) / (FRAMES_TO_CAPTURE * frameratedetector->samplerate / (double) (MIN_FRAMERATE))));fflush(stdout);
 }
 
 void frameratedetector_free(frameratedetector_t * frameratedetector) {

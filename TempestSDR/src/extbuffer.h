@@ -16,9 +16,14 @@
 
 #include "stdint.h"
 
+#define EXTBUFFER_TYPE_FLOAT (0)
+#define EXTBUFFER_TYPE_DOUBLE (1)
+
 typedef struct extbuffer {
 
 	float * buffer;
+	double * dbuffer;
+
 	uint32_t size_valid_elements;
 
 	uint32_t buffer_max_size;
@@ -26,11 +31,13 @@ typedef struct extbuffer {
 	volatile int valid;
 	volatile int cleartozero;
 
-	int calls;
+	uint64_t calls;
+	int type;
 
 } extbuffer_t;
 
 void extbuffer_init(extbuffer_t * container);
+void extbuffer_init_double(extbuffer_t * container);
 void extbuffer_preparetohandle(extbuffer_t * container, uint32_t size);
 void extbuffer_cleartozero(extbuffer_t * container);
 void extbuffer_dumptofile(extbuffer_t * container, int offset, char * filename, char * xname, char * yname);

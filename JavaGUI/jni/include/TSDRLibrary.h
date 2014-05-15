@@ -54,7 +54,7 @@
 
 	typedef void(*tsdr_readasync_function)(float *buf, int width, int height, void *ctx);
 	typedef void(*tsdr_value_changed_callback)(int value_id, double arg0, double arg1, void * ctx);
-	typedef void(*tsdr_on_plot_ready_callback)(int plot_id, int offset, float * values, int size, uint32_t samplerate, void * ctx);
+	typedef void(*tsdr_on_plot_ready_callback)(int plot_id, int offset, double * values, int size, uint32_t samplerate, void * ctx);
 
 	void tsdr_init(tsdr_lib_t ** tsdr, tsdr_value_changed_callback callback, tsdr_on_plot_ready_callback plotready_callback, void * ctx);
 	void * tsdr_getctx(tsdr_lib_t * tsdr);

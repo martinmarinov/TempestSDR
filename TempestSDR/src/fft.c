@@ -45,7 +45,7 @@ void fft_complex_to_absolute_complex(float * data, int samples) {
 }
 
 // the array temp needs to be of size at least 2*size
-// the answer will be written in answer at entries fro 0 to size
+// the answer will be written in answer at entries fro 0 to 2*size
 void fft_autocorrelation(float * answer, float * real, uint32_t size) {
 
 	// set the real ids in answer to the val, the imaginary ones to 0
@@ -61,9 +61,6 @@ void fft_autocorrelation(float * answer, float * real, uint32_t size) {
 
 	// get the ifft
 	fft_perform(answer, fft_size, 1);
-
-	// get the abs value
-	complex_to_real(answer, size);
 }
 
 // a and b need to be complex with size samples * 2

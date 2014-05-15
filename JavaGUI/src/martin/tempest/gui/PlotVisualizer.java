@@ -38,14 +38,14 @@ public class PlotVisualizer extends JPanel {
 	private final Color default_txt_colour_background = Color.LIGHT_GRAY;
 	
 	private Object locker = new Object();
-	private float[] data = null;
+	private double[] data = null;
 	private double[] visdata = null;
 	private int size = 0;
 	private int max_index = 0;
 	private boolean enabled;
 	private int mouse_xpx = -1, mouse_drag = -1;
 	private Integer index_selected = null;
-	private Float initial_value = null;
+	private Double initial_value = null;
 
 	private long samplerate;
 	private int offset;
@@ -117,10 +117,15 @@ public class PlotVisualizer extends JPanel {
 			
 			public void mouseClicked(MouseEvent arg0) {
 				synchronized (locker) {
-					final int id_selected = getBestIdAround(mouse_xpx, area_around_mouse);
-					setSelectedIndex(id_selected);
-					trans.executeIdSelected(id_selected, offset, samplerate);
+					if (arg0.getButton() == MouseEvent.BUTTON1) {
+						final int id_selected = getBestIdAround(mouse_xpx, area_around_mouse);
+						setSelectedIndex(id_selected);
+						trans.executeIdSelected(id_selected, offset, samplerate);
+					} else
+						scale_x.reset();
 				}
+				
+				repaint();
 			}
 			
 			public void mouseExited(MouseEvent arg0) {
@@ -147,7 +152,7 @@ public class PlotVisualizer extends JPanel {
 		if (end_id > size) end_id = size;
 		
 		int bestid = start_id;
-		float max = data[bestid];
+		double max = data[bestid];
 		for (int id = start_id+1; id < end_id; id++)
 			if (data[id] > max) {
 				max = data[id];
@@ -157,7 +162,7 @@ public class PlotVisualizer extends JPanel {
 		return bestid;
 	}
 	
-	public void setSelectedValue(float val) {
+	public void setSelectedValue(double val) {
 		if (data == null) {
 			synchronized (locker) {
 				this.initial_value = val;
@@ -175,19 +180,19 @@ public class PlotVisualizer extends JPanel {
 		repaint();
 	}
 	
-	public Float getSelectedValue() {
+	public Double getSelectedValue() {
 		if (data == null)
 			return initial_value;
 		else
 			return trans.fromIndex(index_selected, offset, samplerate);
 	}
 	
-	public Float getValueFromId(int id) {
+	public Double getValueFromId(int id) {
 		return trans.fromIndex(id, offset, samplerate);
 	}
 	
 	private String getValueAt(int id) {
-		final float val = trans.fromIndex(id, offset, samplerate);
+		final double val = trans.fromIndex(id, offset, samplerate);
 		return trans.getDescription(val, id);
 	}
 	
@@ -204,10 +209,10 @@ public class PlotVisualizer extends JPanel {
 		
 		int prev_px = 0;
 		final int first_id = (int) Math.min( Math.max(scale_x.pixels_to_value_absolute(0), 0), size );
-		final int last_id = (int) Math.min( Math.max(scale_x.pixels_to_value_absolute(nwidth), 0), size);
-		float localmax = data[first_id];
+		final int last_id = (int) Math.min( Math.max(scale_x.pixels_to_value_absolute(nwidth) + 1, 0), size);
+		double localmax = data[first_id];
 		for (int id = first_id; id < last_id; id++) {
-			final float val = data[id];
+			final double val = data[id];
 			
 			final int px = scale_x.value_to_pixel_absolute(id);
 			if (px >= 0 && px < nwidth) {
@@ -241,12 +246,12 @@ public class PlotVisualizer extends JPanel {
 			visdata[i] = scale_y.valtopx(visdata[i]);
 	}
 
-	public void plot(float[] incoming_data, int offset, final int size, long samplerate) {
+	public void plot(double[] incoming_data, int offset, final int size, long samplerate) {
 		if (size <= 0) return;
 		
 		synchronized (locker) {
 			if (data == null || data.length < size)
-				data = new float[size];
+				data = new double[size];
 
 			
 			System.arraycopy(incoming_data, 0, data, 0, size);
@@ -408,9 +413,9 @@ public class PlotVisualizer extends JPanel {
 	}
 	
 	public static abstract class TransformerAndCallback {
-		public abstract float fromIndex(final int id, final int offset, final long samplerate);
-		public abstract int toIndex(final float val, final int offset, final long samplerate);
-		public abstract String getDescription(final float val, final int id);
+		public abstract double fromIndex(final int id, final int offset, final long samplerate);
+		public abstract int toIndex(final double val, final int offset, final long samplerate);
+		public abstract String getDescription(final double val, final int id);
 		
 		public void onMouseMoved(final int m_id, final int offset, final long samplerate) {};
 		public void onMouseExited() {};

@@ -106,7 +106,7 @@ void announce_jni_error(JNIEnv * env, int exception_code)
     (*env)->DeleteLocalRef(env, cls);
 }
 
-void on_plot_ready(int plot_id, int offset, float * values, int size, uint32_t samplerate, void * ctx) {
+void on_plot_ready(int plot_id, int offset, double * values, int size, uint32_t samplerate, void * ctx) {
 	if (tsdr_instance == NULL) return;
 
 	java_obj_context_t * context = (java_obj_context_t *) ctx;
@@ -126,12 +126,12 @@ void on_plot_ready(int plot_id, int offset, float * values, int size, uint32_t s
 
 	(*env)->CallVoidMethod(env, context->obj, (*env)->GetMethodID(env, cls, "onIncomingArray", "(I)V"), (jint) size);
 
-	jobject float_array = (*env)->GetObjectField(env, context->obj, (*env)->GetFieldID(env, (*env)->GetObjectClass(env, context->obj), "float_array", "[F"));
+	jobject float_array = (*env)->GetObjectField(env, context->obj, (*env)->GetFieldID(env, (*env)->GetObjectClass(env, context->obj), "double_array", "[D"));
 
 	assert((*env)->GetArrayLength(env, float_array) >= size);
 
 	// set elements
-	(*env)->SetFloatArrayRegion(env, float_array, 0, size, values);
+	(*env)->SetDoubleArrayRegion(env, float_array, 0, size, values);
 
 	// notifyCallbacks();
 	(*env)->CallVoidMethod(env, context->obj, (*env)->GetMethodID(env, cls, "onIncomingArrayNotify", "(IIIJ)V"), (jint) plot_id, (jint) offset, (jint) size, (jlong) samplerate);
