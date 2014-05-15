@@ -116,7 +116,7 @@ public class LogScale {
 	 * @param val
 	 * @return
 	 */
-	public int valtogpx(final double val) {
+	public int valtopx(final double val) {
 		if (val <= lowest_val) return nheight;
 		else if (val >= highest_val) return 0;
 		return (int) (nheight - (valtodb(val) - lowest_db) * nheight / span_db);

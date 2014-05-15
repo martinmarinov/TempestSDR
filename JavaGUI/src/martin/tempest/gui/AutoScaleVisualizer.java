@@ -91,8 +91,8 @@ public class AutoScaleVisualizer extends JPanel {
 			final int width = this.nwidth;
 			final int height = this.nheight;
 
-			final int minpx = scale_y.valtogpx(this.min);
-			final int maxpx = scale_y.valtogpx(this.max);
+			final int minpx = scale_y.valtopx(this.min);
+			final int maxpx = scale_y.valtopx(this.max);
 
 			if (!font_set) {
 				final Font existing = g.getFont();

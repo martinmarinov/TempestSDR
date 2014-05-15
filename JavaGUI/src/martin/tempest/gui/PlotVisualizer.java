@@ -16,10 +16,13 @@ import java.awt.Rectangle;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
 import java.awt.event.MouseMotionListener;
+import java.awt.event.MouseWheelEvent;
+import java.awt.event.MouseWheelListener;
 
 import javax.swing.JPanel;
 
 import martin.tempest.gui.scale.LogScale;
+import martin.tempest.gui.scale.ZoomableXScale;
 
 
 public class PlotVisualizer extends JPanel {
@@ -29,6 +32,9 @@ public class PlotVisualizer extends JPanel {
 	private static final double FONT_SPACING_COEFF = 1.3;
 	private static final double FONT_SIZE_COEFF = 0.8;
 	
+	private static final double ZOOM_AMOUNT = 0.9;
+	private static final double UNZOOM_AMOUNT = 1.1;
+	
 	private final Color default_txt_colour_background = Color.LIGHT_GRAY;
 	
 	private Object locker = new Object();
@@ -37,7 +43,8 @@ public class PlotVisualizer extends JPanel {
 	private int size = 0;
 	private int max_index = 0;
 	private boolean enabled;
-	private int mouse_x = -1;
+	private double mouse_x = -1;
+	private int mouse_xpx = -1;
 	private Integer index_selected = null;
 	private Float initial_value = null;
 
@@ -56,6 +63,7 @@ public class PlotVisualizer extends JPanel {
 	private int half_fontsize;
 	private Font font;
 	
+	private ZoomableXScale scale_x = new ZoomableXScale();
 	private final LogScale scale_y = new LogScale(default_txt_colour_background, FONT_SPACING_COEFF);
 	
 	public PlotVisualizer(final TransformerAndCallback trans) {
@@ -65,12 +73,28 @@ public class PlotVisualizer extends JPanel {
 			public void mouseDragged(MouseEvent arg0) {}
 			
 			public void mouseMoved(MouseEvent arg0) {
-				mouse_x = arg0.getX();
+				mouse_xpx = arg0.getX();
+				mouse_x = scale_x.pxtoval(mouse_xpx);
 				
-				final int m_id = size * mouse_x / nwidth;
+				final int m_id = (int) (size * mouse_x / nwidth);
 				if (m_id >= 0 && m_id < size)
 					trans.onMouseMoved(m_id, offset, samplerate);
 			
+				repaint();
+			}
+		});
+		
+		addMouseWheelListener(new MouseWheelListener() {
+			
+			@Override
+			public void mouseWheelMoved(MouseWheelEvent arg0) {
+				final double zoom = (arg0.getWheelRotation() > 0) ? ZOOM_AMOUNT : UNZOOM_AMOUNT;
+				scale_x.zoomAround(arg0.getX(), zoom);
+				
+				synchronized (locker) {
+					populateData();	
+				}
+				
 				repaint();
 			}
 		});
@@ -82,7 +106,7 @@ public class PlotVisualizer extends JPanel {
 			
 			public void mouseClicked(MouseEvent arg0) {
 				synchronized (locker) {
-					final int id_selected = getBestIdAround(mouse_x, area_around_mouse);
+					final int id_selected = getBestIdAround(mouse_x, scale_x.pxtoval_relative(area_around_mouse));
 					setSelectedIndex(id_selected);
 					trans.executeIdSelected(id_selected, offset, samplerate);
 				}
@@ -90,6 +114,7 @@ public class PlotVisualizer extends JPanel {
 			
 			public void mouseExited(MouseEvent arg0) {
 				mouse_x = -1;
+				mouse_xpx = -1;
 				trans.onMouseExited();
 				repaint();
 			}
@@ -101,14 +126,13 @@ public class PlotVisualizer extends JPanel {
 			area_around_mouse = area;
 	}
 	
-	private int getBestIdAround(final int x, final int area) {
-		if (area == 0) return size * x / nwidth;
+	private int getBestIdAround(final double x, final double area) {
 		
-		int start_id = size * (x - area/2) / nwidth ;
+		int start_id = (int) (size * (x - area/2) / nwidth) ;
 		if (start_id >= size) return -1;
 		if (start_id < 0) start_id = 0;
 		
-		int end_id = size * (x + area/2) / nwidth ;
+		int end_id = (int) (size * (x + area/2) / nwidth) ;
 		if (end_id < 0) return -1;
 		if (end_id > size) end_id = size;
 		
@@ -157,12 +181,6 @@ public class PlotVisualizer extends JPanel {
 		return trans.getDescription(val, id);
 	}
 	
-
-//	
-//	private double pxtoval(final int px) {
-//		final double db = LOWEST_DB * px / (double) nheight;
-//		return dbtoval(db);
-//	}
 	
 	private void populateData() {
 		double highest_val = data[0];
@@ -170,41 +188,40 @@ public class PlotVisualizer extends JPanel {
 		max_index = 0;
 		double max_val = highest_val;
 		
-		double localmax = highest_val;
-		max_index = 0;
-		int old_px = 0;
+		shift = (nwidth > size) ?  ((int) (scale_x.pxtoval_relative(1) * size / nwidth)) : 0;
+		shift2 = shift/2;
+
+		final int values_per_pixel = (int) (scale_x.pxtoval_relative(1) * size / nwidth) + 1;
 		
-		// do the auto scaling by finding the maximum and minimum local values
-		for (int i = 1; i < size; i++) {
-			final int curr_px = nwidth * i / size;
-			final float val = data[i];
+		for (int px = 0; px < nwidth; px++) {
+			final double realpx = scale_x.pxtoval(px);
 
-			if (old_px != curr_px) {
-
-				for (int px = old_px; px < curr_px; px++)
-					visdata[px] = localmax;
-
-				if (localmax > highest_val)
-					highest_val = localmax;
-				else if (localmax < lowest_val)
-					lowest_val = localmax;
-				
-				localmax = val;
+			final int startsize = (int) (size * realpx / nwidth);
+			
+			if (startsize < 0 || startsize >= size) {
+				visdata[px] = 0;
+				continue;
 			}
 			
-			old_px = curr_px;
-			
-			if (val > localmax)
-				localmax = val;
-			
-			if (val > max_val) {
-				max_val = val;
-				max_index = i;
+			double localmax = data[startsize];
+			for (int i = startsize; i < startsize+values_per_pixel; i++) {
+				if (i >= size) break;
+				final float val = data[i];
+				if (localmax < val) localmax = val;
+
+				if (val > max_val) {
+					max_val = val;
+					max_index = i;
+				}
 			}
+
+			if (localmax > highest_val)
+				highest_val = localmax;
+			else if (localmax < lowest_val)
+				lowest_val = localmax;
 			
+			visdata[px] = localmax;
 		}
-		
-		visdata[nwidth-1] = localmax;
 		
 		// set the values required to do the conversations
 		scale_y.setLowestHighestValue(lowest_val, highest_val);
@@ -212,7 +229,7 @@ public class PlotVisualizer extends JPanel {
 		if (!scale_y.valuesValid()) return;
 		
 		for (int x = 0; x < nwidth; x++)
-			visdata[x] = scale_y.valtogpx(visdata[x]);
+			visdata[x] = scale_y.valtopx(visdata[x]);
 	}
 
 	public void plot(float[] incoming_data, int offset, final int size, long samplerate) {
@@ -221,9 +238,7 @@ public class PlotVisualizer extends JPanel {
 		synchronized (locker) {
 			if (data == null || data.length < size)
 				data = new float[size];
-			
-			shift = ((size < nwidth) ? (nwidth / size) : 0);
-			shift2 = shift/2;
+
 			
 			System.arraycopy(incoming_data, 0, data, 0, size);
 			
@@ -263,6 +278,7 @@ public class PlotVisualizer extends JPanel {
 		this.nwidth = width;
 		this.nheight = height;
 		scale_y.setDimentions(this.nwidth, this.nheight);
+		scale_x.setDimentions(this.nwidth);
 		enabled = isEnabled();
 		super.setBounds(x, y, width, height);
 	}
@@ -272,6 +288,7 @@ public class PlotVisualizer extends JPanel {
 		this.nwidth = r.width;
 		this.nheight = r.height;
 		scale_y.setDimentions(this.nwidth, this.nheight);
+		scale_x.setDimentions(this.nwidth);
 		enabled = isEnabled();
 		super.setBounds(r);
 	}
@@ -325,7 +342,7 @@ public class PlotVisualizer extends JPanel {
 			if (mouse_x != -1) {
 				g.setColor(Color.darkGray);
 				
-				if (area_around_mouse != 0) g.fillRect(mouse_x-area_around_mouse/2, 0, area_around_mouse, nheight);
+				if (area_around_mouse != 0) g.fillRect(mouse_xpx-area_around_mouse/2, 0, area_around_mouse, nheight);
 			}
 
 			if (visdata.length == nwidth) {
@@ -341,23 +358,25 @@ public class PlotVisualizer extends JPanel {
 				return;
 			}
 			
+			final int pxls = (int) scale_x.valtopx_relative(nwidth / (double) size+shift2);
+			
 			if (mouse_x != -1) {
 				
 				g.setColor(default_txt_colour_background);
-				g.drawLine(mouse_x, 0, mouse_x, nheight);
+				g.drawLine(mouse_xpx, 0, mouse_xpx, nheight);
 				
-				final int id = getBestIdAround(mouse_x, area_around_mouse);
+				final int id = getBestIdAround(mouse_x, scale_x.pxtoval_relative(area_around_mouse));
 				
 				if (id >= 0 && id < size) {
-					final int x = nwidth * id / size+shift2;
-					final int y = scale_y.valtogpx(data[id]);
+					final int x = scale_x.valtopx(nwidth * id / (double) size+shift2);
+					final int y = scale_y.valtopx(data[id]);
 					final double db = scale_y.valtodb(data[id]);
 					
-					g.drawString(getValueAt(id), mouse_x+nheight / 10, nheight / 5);
-					g.drawString(String.format("%.1f dB", db), mouse_x+nheight / 10, nheight / 5 + 3*half_fontsize);
+					g.drawString(getValueAt(id), mouse_xpx+nheight / 10, nheight / 5);
+					g.drawString(String.format("%.1f dB", db), mouse_xpx+nheight / 10, nheight / 5 + 3*half_fontsize);
 					
 					g.setColor(Color.yellow);
-					g.fillRect(x-shift2, y, shift+1, nheight);
+					g.fillRect(x-shift2, y, pxls+shift+1, nheight);
 				}
 			}
 			
@@ -366,7 +385,7 @@ public class PlotVisualizer extends JPanel {
 				if (index_selected >= 0 || index_selected < size) {
 					g.setColor(Color.green);
 
-					final int x = nwidth * index_selected / size+shift2;
+					final int x = scale_x.valtopx( nwidth * index_selected / (double) size+shift2 )+pxls/2;
 
 					g.drawLine(x, 0, x, nheight);
 
