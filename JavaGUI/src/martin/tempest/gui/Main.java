@@ -814,6 +814,8 @@ public class Main implements TSDRLibrary.FrameReadyCallback, TSDRLibrary.Incomin
 	
 	private void onResolutionChange(int width, int height, double framerate, int closest_videomode_id) {
 		
+		this.framerate = framerate;
+		
 		plot_change_from_auto = true;
 		frame_plotter.setSelectedValue((float) framerate);
 		line_plotter.setSelectedValue(height);
@@ -846,8 +848,7 @@ public class Main implements TSDRLibrary.FrameReadyCallback, TSDRLibrary.Incomin
 		}
 		
 		spinner_change_from_auto = false;
-		
-		this.framerate = framerate;
+
 	}
 	
 	private void onCenterFreqChange() {
