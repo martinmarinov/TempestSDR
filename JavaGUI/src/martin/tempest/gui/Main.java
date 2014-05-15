@@ -122,6 +122,7 @@ public class Main implements TSDRLibrary.FrameReadyCallback, TSDRLibrary.Incomin
 	private ImageVisualizer visualizer;
 	private PlotVisualizer line_plotter, frame_plotter;
 	private AutoScaleVisualizer autoScaleVisualizer;
+	private SNRVisualizer snrLevelVisualizer;
 	private Rectangle visualizer_bounds;
 	private double framerate = 25;
 	private JTextField txtFramerate;
@@ -214,7 +215,7 @@ public class Main implements TSDRLibrary.FrameReadyCallback, TSDRLibrary.Incomin
 		});
 		
 		visualizer = new ImageVisualizer();
-		visualizer.setBounds(10, 33, 518, 346);
+		visualizer.setBounds(35, 33, 505, 346);
 		visualizer.addKeyListener(keyhook);
 		visualizer.setFocusable(true);
 		visualizer.addMouseListener(new MouseAdapter() {
@@ -705,6 +706,10 @@ public class Main implements TSDRLibrary.FrameReadyCallback, TSDRLibrary.Incomin
 		
 		visualizer.setRenderingQualityHigh(chckbxmntmHighQualityRendering.isSelected());
 		
+		snrLevelVisualizer = new SNRVisualizer();
+		snrLevelVisualizer.setBounds(10, 33, 25, 346);
+		frmTempestSdr.getContentPane().add(snrLevelVisualizer);
+		
 		try {
 			mSdrlib.setParam(PARAM.NEAREST_NEIGHBOUR_RESAMPLING, chckbxmntmNearestNeighbourResampling.isSelected() ? 1 : 0);
 			mSdrlib.setParam(PARAM.LOW_PASS_BEFORE_SYNC, chckbxmntmLowpassBeforeSync.isSelected() ? 1 : 0);
@@ -1185,6 +1190,9 @@ public class Main implements TSDRLibrary.FrameReadyCallback, TSDRLibrary.Incomin
 			break;
 		case AUTOGAIN:
 			autoScaleVisualizer.setValue(arg0, arg1);
+			break;
+		case SNR:
+			snrLevelVisualizer.setSNRValue(arg0);
 			break;
 		default:
 			System.out.println("Java Main received notification that value "+id+" has changed to arg0="+arg0+" and arg1="+arg1);

@@ -30,6 +30,7 @@ void dsp_timelowpass_run(const float coeff, int size, float * input, float * out
 typedef struct {
 	float lastmax;
 	float lastmin;
+	float snr;
 } dsp_autogain_t;
 
 /** Initialize autogain storate */
