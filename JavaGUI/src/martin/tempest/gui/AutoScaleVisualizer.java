@@ -31,7 +31,7 @@ public class AutoScaleVisualizer extends JPanel {
 	private int nwidth = 1, nheight = 1;
 	private int fontsize = 12;
 	
-	private volatile double min = 0, max = 0, span = 1, snr_db = LOWEST_DB-10;
+	private volatile double min = 0, max = 0, span = 1;
 	
 	private boolean font_set = false;
 	private Font font;
