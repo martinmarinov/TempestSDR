@@ -212,10 +212,10 @@ void dsp_resample_init(dsp_resample_t * res) {
 	res->offset = 0;
 }
 
-void dsp_resample_process(dsp_resample_t * res, extbuffer_t * in, extbuffer_t * out, const double pixeloversampletme, int nearest_neighbour_sampling) {
+void dsp_resample_process(dsp_resample_t * res, extbuffer_t * in, extbuffer_t * out, const double pixeloversampletme, const double sampletimeoverpixel, int nearest_neighbour_sampling) {
 
 	const uint32_t size = in->size_valid_elements;
-	const uint32_t output_samples = (int) ((size - res->offset) / pixeloversampletme);
+	const uint32_t output_samples = (int) ((size - res->offset) * sampletimeoverpixel);
 
 	// resize buffer so it fits
 	extbuffer_preparetohandle(out, output_samples);
@@ -230,7 +230,12 @@ void dsp_resample_process(dsp_resample_t * res, extbuffer_t * in, extbuffer_t * 
 			*(resbuff++) = buffer[((uint64_t) size * id) / output_samples];
 	} else {
 		double t = res->offset;
+		uint32_t pid = 0;
 		for (id = 0; id < size; id++) {
+			const double idcheck = ((double) id - res->offset) * sampletimeoverpixel;
+			const double idcheck2 = ((double) id + 1.0 - pixeloversampletme - res->offset) * sampletimeoverpixel;
+			const double idcheck3 = ((double) id + 1.0 - res->offset) * sampletimeoverpixel;
+
 			const float val = *(buffer++);
 
 			// we are in case:
@@ -240,12 +245,13 @@ void dsp_resample_process(dsp_resample_t * res, extbuffer_t * in, extbuffer_t * 
 			// ____|__val__|_______|_______|_______| samples (id)
 			//    id     id+1    id+2
 
-			if (t < id && (t + pixeloversampletme) < (id+1)) {
-				const float start = (id-t)/pixeloversampletme;
+			if (pid < idcheck && pid < idcheck2) {
+				const float start = (id-t)*sampletimeoverpixel;
 				const float contrfract = 1.0 - start;
 				*(resbuff++) = res->contrib + val*contrfract;
 				res->contrib = 0;
-				t+=pixeloversampletme;
+				pid++;
+				t=res->offset+pid*pixeloversampletme;
 			}
 
 			// we are in case:
@@ -255,10 +261,11 @@ void dsp_resample_process(dsp_resample_t * res, extbuffer_t * in, extbuffer_t * 
 			// ____|__val__|_______|_______|_______| samples (id)
 			//    id
 
-			while ((t+pixeloversampletme) < (id+1)) {
+			while (pid < idcheck2) {
 				// this only ever triggers if post < 1
 				*(resbuff++) = val;
-				t+=pixeloversampletme;
+				pid++;
+				t=res->offset+pid*pixeloversampletme;
 			}
 
 			// we are in case:
@@ -268,12 +275,12 @@ void dsp_resample_process(dsp_resample_t * res, extbuffer_t * in, extbuffer_t * 
 			// ____|__val__|_______|_______|_______| samples (id)
 			//    id     id+1    id+2
 
-			if (t < (id + 1) && t > id) {
-				const float contrfract = (id+1-t)/pixeloversampletme;
+			if (pid < idcheck3 && pid > idcheck) {
+				const float contrfract = (id+1-t)*sampletimeoverpixel;
 				res->contrib += contrfract * val;
 			} else {
 				const float idt = id - t;
-				const float contrfract = (idt+1-idt)/pixeloversampletme;
+				const float contrfract = (idt+1-idt)*sampletimeoverpixel;
 				res->contrib += contrfract * val;
 			}
 		}

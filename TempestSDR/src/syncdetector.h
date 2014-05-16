@@ -26,6 +26,8 @@ typedef struct syncdetector {
 	sweetspot_data_t db_y;
 
 	double last_frame_diff;
+	int state;
+	double avg_speed;
 } syncdetector_t;
 
 void syncdetector_init(syncdetector_t * sy);

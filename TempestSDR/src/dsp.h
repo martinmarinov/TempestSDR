@@ -83,7 +83,7 @@ typedef struct {
 
 void dsp_resample_init(dsp_resample_t * res);
 
-void dsp_resample_process(dsp_resample_t * res, extbuffer_t * in, extbuffer_t * out, const double pixeloversampletme, int nearest_neighbour_sampling);
+void dsp_resample_process(dsp_resample_t * res, extbuffer_t * in, extbuffer_t * out, const double pixeloversampletme, const double sampletimeoverpixel, int nearest_neighbour_sampling);
 void dsp_resample_free(dsp_resample_t * res);
 
 // compensating for dropped samples

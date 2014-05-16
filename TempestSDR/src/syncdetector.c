@@ -13,9 +13,14 @@
 #include "gaussian.h"
 
 #define FRAMERATE_DX_LOWPASS_COEFF_HEIGHT (0.1)
-#define FRAMERATE_DX_LOWPASS_COEFF_WIDTH (0.4)
+#define FRAMERATE_DX_LOWPASS_COEFF_WIDTH (0.9)
 
-#define FRAMERATE_PLL_SPEED (0.00001)
+#define FRAMERATE_PLL_SPEED_HI (0.00001)
+#define FRAMERATE_PLL_SPEED_LO (0.000001)
+#define FRAMERATE_PLL_LOCKED_VALUE (0.5)
+
+#define SYNCDETECTOR_STATE_NOT_LOCKED (0)
+#define SYNCDETECTOR_STATE_LOCKED (1)
 
 
 static inline void findbestfit(float * data, const int size, const float totalsum, const int stripsize, double * bestfit, int * bestfitid) {
@@ -125,22 +130,25 @@ void horizontalline(int y, float * data, int width, int height, float val) {
 		data[i+width*y] = val;
 }
 
-void setframerate(tsdr_lib_t * tsdr, double refreshrate, int width, int height) {
-	tsdr->pixelrate = width * height * refreshrate;
-	tsdr->pixeltime = 1.0/tsdr->pixelrate;
-	tsdr->refreshrate = refreshrate;
-	if (tsdr->sampletime != 0)
-		tsdr->pixeltimeoversampletime = tsdr->pixeltime /  tsdr->sampletime;
-	announce_callback_changed(tsdr, VALUE_ID_PLL_FRAMERATE, refreshrate, 0);
-}
-
 void frameratepll(syncdetector_t * sy, tsdr_lib_t * tsdr, sweetspot_data_t * db_x, int width, int height) {
+	sy->avg_speed = sy->avg_speed * 0.99 + 0.01 * db_x->vx;
+
+	if (sy->avg_speed < FRAMERATE_PLL_LOCKED_VALUE && sy->avg_speed > -FRAMERATE_PLL_LOCKED_VALUE)
+		sy->state = SYNCDETECTOR_STATE_LOCKED;
+	else
+		sy->state = SYNCDETECTOR_STATE_NOT_LOCKED;
 
 	if ( tsdr->params_int[PARAM_INT_FRAMERATE_PLL] && db_x->vx != 0 ) {
+		double frameratediff;
 
-		const double frameratediff = FRAMERATE_PLL_SPEED * db_x->vx;
+		if (sy->state == SYNCDETECTOR_STATE_NOT_LOCKED)
+			frameratediff = db_x->vx * FRAMERATE_PLL_SPEED_HI;
+		else
+			frameratediff = sy->avg_speed * FRAMERATE_PLL_SPEED_LO;
 
-		setframerate(tsdr, tsdr->refreshrate-frameratediff, width, height);
+		tsdr->refreshrate-=frameratediff;
+		set_internal_samplerate(tsdr, tsdr->samplerate);
+		announce_callback_changed(tsdr, VALUE_ID_PLL_FRAMERATE, tsdr->refreshrate, 0);
 	}
 }
 
@@ -156,6 +164,8 @@ void syncdetector_init(syncdetector_t * sy) {
 	sy->db_y.absvx = 0;
 
 	sy->last_frame_diff = 0.0;
+	sy->state = SYNCDETECTOR_STATE_NOT_LOCKED;
+	sy->avg_speed = 0;
 }
 
 float * syncdetector_run(syncdetector_t * sy, tsdr_lib_t * tsdr, float * data, float * outputdata, int width, int height, float * widthbuffer, float * heightbuffer, int greenlines, int modify_data_allowed) {

@@ -256,8 +256,10 @@ public class PlotVisualizer extends JPanel {
 			
 			System.arraycopy(incoming_data, 0, data, 0, size);
 			
-			if (visdata == null || visdata.length != nwidth)
+			if (visdata == null || visdata.length != nwidth) {
 				visdata = new double[nwidth];
+				scale_x.reset();
+			}
 			
 			this.size = size;
 			scale_x.setMinMaxValue(0, size);

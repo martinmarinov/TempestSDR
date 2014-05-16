@@ -33,13 +33,12 @@
 		mutex_t stopsync;
 		uint32_t samplerate;
 		uint32_t samplerate_real;
-		double sampletime;
 		int width;
 		int height;
 		double pixelrate;
 		double refreshrate;
-		double pixeltime;
 		double pixeltimeoversampletime;
+		double sampletimeoverpixeltime;
 		volatile int running;
 		volatile int nativerunning;
 		uint32_t centfreq;
