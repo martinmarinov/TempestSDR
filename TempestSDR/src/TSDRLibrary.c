@@ -313,7 +313,7 @@ void decimatingthread(void * ctx) {
 
 		if (cb_rem_blocking(&context->circbuf_device_to_decimation, buff.buffer, size) == CB_OK) {
 
-			dsp_resample_process(&context->this->dsp_resample, &buff, &outbuff, context->this->pixeltimeoversampletime, context->this->sampletimeoverpixeltime, context->this->params_int[PARAM_NEAREST_NEIGHBOUR_RESAMPLING]);
+			dsp_resample_process(&context->this->dsp_resample, &buff, &outbuff, context->this->width * context->this->height * context->this->refreshrate, context->this->samplerate, context->this->params_int[PARAM_NEAREST_NEIGHBOUR_RESAMPLING]);
 
 			dsp_dropped_compensation_add(&dsp_dropped, &context->circbuf_decimation_to_posproc, outbuff.buffer, outbuff.size_valid_elements, totalpixels);
 
@@ -515,10 +515,8 @@ end:
 		tsdr->width = (int) real_width;
 		tsdr->pixelrate = tsdr->width * tsdr->height * tsdr->refreshrate;
 
-		if (tsdr->samplerate != 0 && tsdr->pixelrate != 0) {
+		if (tsdr->samplerate != 0 && tsdr->pixelrate != 0)
 			tsdr->pixeltimeoversampletime = ((double) tsdr->samplerate) / tsdr->pixelrate;
-			tsdr->sampletimeoverpixeltime = tsdr->pixelrate / ((double) tsdr->samplerate);
-		}
  }
 
  int tsdr_setresolution(tsdr_lib_t * tsdr, int height, double refreshrate) {

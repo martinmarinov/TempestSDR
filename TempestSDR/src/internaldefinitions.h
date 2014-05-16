@@ -38,7 +38,6 @@
 		double pixelrate;
 		double refreshrate;
 		double pixeltimeoversampletime;
-		double sampletimeoverpixeltime;
 		volatile int running;
 		volatile int nativerunning;
 		uint32_t centfreq;

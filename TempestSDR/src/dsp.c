@@ -212,7 +212,10 @@ void dsp_resample_init(dsp_resample_t * res) {
 	res->offset = 0;
 }
 
-void dsp_resample_process(dsp_resample_t * res, extbuffer_t * in, extbuffer_t * out, const double pixeloversampletme, const double sampletimeoverpixel, int nearest_neighbour_sampling) {
+void dsp_resample_process(dsp_resample_t * res, extbuffer_t * in, extbuffer_t * out, const double upsample_by, const double downsample_by, int nearest_neighbour_sampling) {
+
+	const double sampletimeoverpixel = upsample_by / downsample_by;
+	const double pixeloversampletme = downsample_by / upsample_by;
 
 	const uint32_t size = in->size_valid_elements;
 	const uint32_t output_samples = (int) ((size - res->offset) * sampletimeoverpixel);
@@ -225,64 +228,37 @@ void dsp_resample_process(dsp_resample_t * res, extbuffer_t * in, extbuffer_t * 
 	float * resbuff = out->buffer;
 	float * buffer = in->buffer;
 
+	const double offset_sample = -res->offset * sampletimeoverpixel;
+
 	if (nearest_neighbour_sampling) {
 		for (id = 0; id < output_samples; id++)
 			*(resbuff++) = buffer[((uint64_t) size * id) / output_samples];
 	} else {
-		double t = res->offset;
+		//const int idcheck_less_than_idcheck2 = 1.0 < sampletimeoverpixel;
+
 		uint32_t pid = 0;
 		for (id = 0; id < size; id++) {
-			const double idcheck = ((double) id - res->offset) * sampletimeoverpixel;
-			const double idcheck2 = ((double) id + 1.0 - pixeloversampletme - res->offset) * sampletimeoverpixel;
-			const double idcheck3 = ((double) id + 1.0 - res->offset) * sampletimeoverpixel;
+			const double idcheck = id*sampletimeoverpixel + offset_sample;
+			const double idcheck3 = idcheck + sampletimeoverpixel;
+			const double idcheck2 = idcheck + sampletimeoverpixel - 1.0;
 
-			const float val = *(buffer++);
-
-			// we are in case:
-			//    pid
-			//    t                                  (in terms of id)
-			//  . ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! !  pixels (pid)
-			// ____|__val__|_______|_______|_______| samples (id)
-			//    id     id+1    id+2
+			const double val = *(buffer++);
 
 			if (pid < idcheck && pid < idcheck2) {
-				const float start = (id-t)*sampletimeoverpixel;
-				const float contrfract = 1.0 - start;
-				*(resbuff++) = res->contrib + val*contrfract;
+				*(resbuff++) = res->contrib + val*(1.0 - idcheck+pid);
 				res->contrib = 0;
 				pid++;
-				t=res->offset+pid*pixeloversampletme;
 			}
-
-			// we are in case:
-			//      pid
-			//      t t+post                        (in terms of id)
-			//  . ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! !  pixels (pid)
-			// ____|__val__|_______|_______|_______| samples (id)
-			//    id
 
 			while (pid < idcheck2) {
-				// this only ever triggers if post < 1
 				*(resbuff++) = val;
 				pid++;
-				t=res->offset+pid*pixeloversampletme;
 			}
 
-			// we are in case:
-			//            pid
-			//            t                          (in terms of id)
-			//  . ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! ! !  pixels (pid)
-			// ____|__val__|_______|_______|_______| samples (id)
-			//    id     id+1    id+2
-
-			if (pid < idcheck3 && pid > idcheck) {
-				const float contrfract = (id+1-t)*sampletimeoverpixel;
-				res->contrib += contrfract * val;
-			} else {
-				const float idt = id - t;
-				const float contrfract = (idt+1-idt)*sampletimeoverpixel;
-				res->contrib += contrfract * val;
-			}
+			if (pid < idcheck3 && pid > idcheck)
+				res->contrib += (idcheck3-pid) * val;
+			else
+				res->contrib += sampletimeoverpixel * val;
 		}
 	}
 
