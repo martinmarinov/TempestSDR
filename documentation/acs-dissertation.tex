@@ -8,9 +8,8 @@
 %%
 %%   SMH, May 2010. 
 
-
 \documentclass[a4paper,12pt,twoside,openright]{report}
-
+\usepackage{graphicx}
 
 %%
 %% EDIT THE BELOW TO CUSTOMIZE
@@ -23,7 +22,8 @@
 \def\wordcount{??,???}
 
 
-\usepackage{epsfig,graphicx,parskip,setspace,tabularx,xspace} 
+\usepackage{epsfig,graphicx,parskip,setspace,tabularx,xspace,epstopdf} 
+\graphicspath{ {./images/} }
 
 %% START OF DOCUMENT
 \begin{document}
@@ -74,7 +74,20 @@
 
 [TODO! Explain how resolution and framerate detection works]
 
-[TODO! Explain how bandwidth relates to resolution width*height*framerate = samplerate ]
+
+
+\section{Sampling Rate}
+
+[TODO! Explain how bandwidth relates to resolution width * height * framerate = samplerate ]
+
+The sampling rate
+
+\begin{figure}[h!]
+  \caption{The original image}
+  \centering
+    \includegraphics[width=0.5\textwidth]{sr_original.png}
+\end{figure}
+
 
 \chapter{Practical attack} 
 

@@ -63,6 +63,7 @@ local.properties
 *.ear
 
 JavaGUI/jni/TSDRLibraryNDK.h
+documentation/CUni3-eps-converted-to.pdf
 
 # Java crash log files
 *.log
