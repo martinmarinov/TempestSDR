@@ -28,7 +28,7 @@
 #define SUPER_STATE_DATA_READY (4)
 #define SUPER_STATE_OUTPUT_DATA_READY (5)
 
-#define SUPER_SECS_TO_RECORD (2)
+#define SUPER_SAMPLES_TO_RECORD (10)
 
 #define SUPER_SECS_TO_PAUSE (0.5)
 
@@ -81,6 +81,7 @@ void complex_to_abs_diff(float * data, int size) {
 }
 
 inline static int superb_bestfit(superbandwidth_t * bw, float * data1, float * data2, int size) {
+	size = (size / bw->samples_in_frame) * bw->samples_in_frame;
 	size = fft_getrealsize(size);
 	const int samples = size/2;
 
@@ -193,7 +194,7 @@ void superb_run(superbandwidth_t * bw, float * iq, int size, tsdr_lib_t * tsdr, 
 			bw->samplerate = tsdr->samplerate_real;
 
 			bw->samples_in_frame =  tsdr->samplerate_real / tsdr->refreshrate;
-			bw->samples_to_gather = SUPER_SECS_TO_RECORD * bw->samples_in_frame;
+			bw->samples_to_gather = SUPER_SAMPLES_TO_RECORD * bw->samples_in_frame;
 			bw->samples_to_pause = SUPER_SECS_TO_PAUSE * tsdr->samplerate_real;
 
 			super_freebuff(bw);

@@ -164,7 +164,7 @@ float * dsp_post_process(tsdr_lib_t * tsdr, dsp_postprocess_t * pp, float * buff
 		dsp_timelowpass_run(motionblur, pp->sizetopoll, input, pp->screenbuffer);
 		dsp_average_v_h(pp->width, pp->height, pp->screenbuffer, pp->widthcollapsebuffer, pp->heightcollapsebuffer);
 
-		float * syncresult = syncdetector_run(&pp->sync, tsdr, pp->screenbuffer, pp->corrected_sendbuffer, pp->width, pp->height, pp->widthcollapsebuffer, pp->heightcollapsebuffer, 1, 0);
+		float * syncresult = syncdetector_run(&pp->sync, tsdr, pp->screenbuffer, pp->corrected_sendbuffer, pp->width, pp->height, pp->widthcollapsebuffer, pp->heightcollapsebuffer, !tsdr->params_int[PARAM_AUTOCORR_SUPERRESOLUTION], 0);
 
 		if (autogain_after_proc) {
 			dsp_autogain_run(&pp->dsp_autogain, pp->sizetopoll, syncresult, pp->sendbuffer, lowpasscoeff);
@@ -176,7 +176,7 @@ float * dsp_post_process(tsdr_lib_t * tsdr, dsp_postprocess_t * pp, float * buff
 	} else {
 		dsp_average_v_h(pp->width, pp->height, input, pp->widthcollapsebuffer, pp->heightcollapsebuffer);
 
-		float * syncresult = syncdetector_run(&pp->sync, tsdr, input, pp->corrected_sendbuffer, pp->width, pp->height, pp->widthcollapsebuffer, pp->heightcollapsebuffer, motionblur == 0.0f, 1);
+		float * syncresult = syncdetector_run(&pp->sync, tsdr, input, pp->corrected_sendbuffer, pp->width, pp->height, pp->widthcollapsebuffer, pp->heightcollapsebuffer, (motionblur == 0.0f) && (!tsdr->params_int[PARAM_AUTOCORR_SUPERRESOLUTION]), 1);
 		dsp_timelowpass_run(motionblur, pp->sizetopoll, syncresult, pp->screenbuffer);
 
 		if (autogain_after_proc) {
