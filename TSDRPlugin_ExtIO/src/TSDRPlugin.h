@@ -46,7 +46,7 @@ extern "C" {
 
 	#include <stdint.h>
 
-	typedef void(*tsdrplugin_readasync_function)(float *buf, uint32_t items_count, void *ctx, int samples_dropped);
+	typedef void(*tsdrplugin_readasync_function)(float *buf, uint64_t items_count, void *ctx, int64_t samples_dropped);
 
 	EXTERNC TSDRPLUGIN_API void __stdcall tsdrplugin_getName(char *);
 	EXTERNC TSDRPLUGIN_API int __stdcall tsdrplugin_init(const char * params);
