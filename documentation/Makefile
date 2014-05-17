@@ -21,5 +21,5 @@ acs-dissertation.dvi: acs-dissertation.tex titlepage.tex declaration.tex abstrac
 
 clean:
 	$(RM) -f acs-dissertation.pdf acs-dissertation.ps acs-dissertation.dvi 
-	$(RM) -f *.log *.aux *.toc *.bbl *.lot *.lof
+	$(RM) -f *.log *.aux *.toc *.bbl *.lot *.lof *.blg acs-dissertation.synctex.gz
 
