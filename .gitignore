@@ -62,6 +62,8 @@ local.properties
 *.war
 *.ear
 
+JavaGUI/jni/TSDRLibraryNDK.h
+
 # Java crash log files
 *.log
 
