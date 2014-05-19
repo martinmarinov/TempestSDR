@@ -70,6 +70,26 @@
 
 \chapter{Methodology} 
 
+\section{Anatomy of a Video Signal}
+
+Almost all contemporary video monitors are raster based. The image is transferred from the video controller to the display in scanlines that occur at a specific rate. Each of these scanlines contains a number of pixels which are continuously encoded as a time varying signal. This signal is generated internally in the video controller by an oscillator which runs at the pixel clock rate. The signal is thereafter multiplied by the pixel intensities at the specific time.
+
+Let's assume that the signal started transmitting at time $t=0$, and each video frame contains $h$ scanlines, each of which contains $w$ pixels. The frequency with which frames are being generated is $f$ frames per second. Therefore the duration of transmission of each individual pixel is $$T_{\Delta}=\frac{1}{w h f}$$ Furthermore at time $t$ frame number $n_{t}$ started transmission where $$n_{t}=\lfloor t f \rfloor$$ Therefore if we assume that the top left corner of a frame has coordinates $(0, 0)$, a pixel at position $(x, y)$ in frame $n_{t}$ will start to be transmitted at time $$T_{(x,y)}= (y w + x + n_{t} w h) T_{\Delta} $$ and will finish transmission before time $$T_{(x+1,y)} = T_{(x,y)} + T_{\Delta} =(y w + x + 1 + n_{t} w h) T_{\Delta} $$ at which the next pixel will start transmitting.
+
+In practice $w$ and $h$ are determined by the screen resolution and $f$ is simply the screen refresh rate. For a typical screen resolution of $width \times height$, it is true that $w \geq width$ and $h \geq height$. The reason is that video signals tend to have additional blanking intervals. This means more pixels are transmitted than what is in the active video region. This gives opportunity for the receiving monitor to synchronise its internal clock, calibrate its colour levels or in case of CRT, allow enough time for the electron beam to return to the beginning of the next line on the screen. The synchronisation timings for personal computers have been standardised by Video Electronics Standards Association (VESA) \cite{vesa}.
+
+In order to decode an individual pixel, the receiving monitor has its own internal oscillator. It locks it to the pixel rate of the incoming signal either via an external clock source or using the blanking intervals. Once it receives the signal for an individual pixel, the monitor will usually average it over the time from $T_{x,y}$ to $T_{x,y}+T_{\Delta}$. The amplitude of this average relates to pixel intensity. This allows the monitor to display the video in real time. If multiple colours are desired, the intensity of each of them (or some other combination) will be transmitted separately on different wires.
+
+\section{Eavesdropping}
+
+As we already know, a changing signal in a wire produces an electromagnetic field. Therefore the changing intensities of the pixels in the wires will produce electromagnetic waves. We can model the signal as a band limited signal with a maximum frequency component of $\nu_{max}=\frac{1}{T_{\Delta}}$. This signal will contain the full information that is required to reconstruct the transmitted image. In practice, the signal contains higher frequencies. This is due to the fact that the signal for each pixel is not smooth \cite{kuhn2003compromising}. However, the extra frequencies could be eliminated with a low pass filter which can produce the ideal band limited signal. If the band limited signal is written as $f(t)$, then its Fourier transform $F(t)$ will range from $-\frac{\nu_{max}{2}$ to $\frac{\nu_{max}{2}$ (all other elements will be zero).
+
+[TODO! Do the derivation of the Fourier transform repetitions]
+
+The Fourier transform of such a signal will therefore range from $-\frac{\nu_{max}{2}$ to $\frac{\nu_{max}{2}$ (all other elements will be zero). The lowest frequency components will be centred around DC while the highest one will span up to $\frac{\nu_{max}{2}$ in each direction. Therefore in order to fully reconstruct the signal, we will need to sample an output from an antenna with a rate of $\nu_{max}$. However, the video cables are usually much shorter than those wavelengths and therefore they don't emit efficiently in this range. 
+
+[Discuss how IQ relates to AM and how it can be used to reconstruct video.]
+
 [Explain how the whole system works in high level]
 
 [TODO! Explain how resolution and framerate detection works]
@@ -83,12 +103,11 @@
 The sampling rate
 
 \begin{figure}[h!]
-  \caption{The original image}
+\minipage{0.49\textwidth}
   \centering
     \includegraphics[width=0.5\textwidth]{sr_original}
-\end{figure}
-
-\begin{figure}[h!]
+  \caption{Transmitted image}
+\endminipage\hfill
 \minipage{0.49\textwidth}
   \centering
     \includegraphics[width=\linewidth]{sr_50MHz_at_190MHz}
