@@ -31,22 +31,22 @@ INC += "$(JAVA_HOME)/include" "$(JAVA_HOME)/include/win32"
 
 # Discover the library extension for each OS
 ifeq ($(OS),Windows_NT)
-	
+
 	OSNAME ?= WINDOWS
-	
+
 	ifndef $(ARCHNAME)
-	
+
 		ifeq ($(PROCESSOR_ARCHITECTURE),AMD64)
 			ARCHNAME = X64
 		endif
 		ifeq ($(PROCESSOR_ARCHITECTURE),x86)
 			ARCHNAME = X86
 		endif
-	
+
 	endif
 else ifeq ($(shell uname -s),Darwin)
 	OSNAME ?= MAC
-	INC ?= /System/Library/Frameworks/JavaVM.framework/Versions/Current/Headers
+	INC += /System/Library/Frameworks/JavaVM.framework/Versions/Current/Headers
 	EXT ?= .so
 	ifeq ($(shell uname -m),x86)
 		ARCHNAME = X86
@@ -57,16 +57,16 @@ else ifeq ($(shell uname -s),Darwin)
 else
 
 	ifndef $(OSNAME)
-	
+
 		UNAME_S := $(shell uname -s)
 		ifeq ($(UNAME_S),Linux)
 			OSNAME = LINUX
 		endif
-	
+
 	endif
-	
+
 	ifndef $(ARCHNAME)
-	
+
 		UNAME_P := $(shell uname -p)
 		ifeq ($(UNAME_P),x86_64)
 			ARCHNAME = X64
@@ -77,7 +77,7 @@ else
 		ifneq ($(filter arm%,$(UNAME_P)),)
 			ARCHNAME = ARM
 		endif
-	
+
 	endif
 endif
 
@@ -115,7 +115,7 @@ _OBJS = $(patsubst %,$(OBJFOLDER)/%,$(OBJS))
 
 # We want to build the library
 all : rebuildtempestsdr library
-	
+
 # Linking
 library : $(_OBJS)
 	$(CC) -Wall -shared $(LDFLAGS) $(DEBUGFLAGS) $(COMPILATION_TYPE) -o $(OUTPUTFOLDER)/$(LIBPREFIX)TSDRLibraryNDK$(EXT) $< ../../TempestSDR/bin/$(OSNAME)/$(ARCHNAME)/$(LIBPREFIX)TSDRLibrary.a

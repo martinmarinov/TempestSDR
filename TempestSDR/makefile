@@ -26,18 +26,18 @@ endif
 
 # Discover the library extension for each OS
 ifeq ($(OS),Windows_NT)
-	
+
 	OSNAME ?= WINDOWS
-	
+
 	ifndef $(ARCHNAME)
-	
+
 		ifeq ($(PROCESSOR_ARCHITECTURE),AMD64)
 			ARCHNAME = X64
 		endif
 		ifeq ($(PROCESSOR_ARCHITECTURE),x86)
 			ARCHNAME = X86
 		endif
-	
+
 	endif
 else ifeq ($(shell uname -s),Darwin)
 	OSNAME ?= MAC
@@ -52,16 +52,16 @@ else ifeq ($(shell uname -s),Darwin)
 else
 
 	ifndef $(OSNAME)
-	
+
 		UNAME_S := $(shell uname -s)
 		ifeq ($(UNAME_S),Linux)
 			OSNAME = LINUX
 		endif
-	
+
 	endif
-	
+
 	ifndef $(ARCHNAME)
-	
+
 		UNAME_P := $(shell uname -p)
 		ifeq ($(UNAME_P),x86_64)
 			ARCHNAME = X64
@@ -72,7 +72,7 @@ else
 		ifneq ($(filter arm%,$(UNAME_P)),)
 			ARCHNAME = ARM
 		endif
-	
+
 	endif
 endif
 
@@ -124,7 +124,7 @@ $(OBJFOLDER)/%.o : src/%.c $(_DEPS)
 	mkdir -p $(OUTPUTFOLDER)
 	mkdir -p $(OBJFOLDER)
 	$(CC) -Wall $(foreach d, $(INC), -I$d) $(CFLAGS) $(DEBUGFLAGS) $(COMPILATION_TYPE) -c $< -o $@
-	
+
 .PHONY: clean
 
 # Clean artifacts
