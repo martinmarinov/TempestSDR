@@ -81,7 +81,7 @@ public class TSDRLibrary {
 			EXT = ".so";
 			LIBPREFIX = "lib";
 		} else if (rawOSNAME.contains("mac")) {
-			EXT = ".a";
+			EXT = ".so";
 		}
 
 		if (EXT == null)
