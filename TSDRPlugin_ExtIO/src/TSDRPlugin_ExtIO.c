@@ -28,8 +28,6 @@
 #define EXTIO_HWTYPE_32B	6
 #define EXTIO_HWTYPE_FLOAT	7
 
-typedef void(*tsdrplugin_readasync_function)(float *buf, uint32_t len, void *ctx, int dropped_samples);
-
 extiosource_t * source = NULL;
 int hwtype;
 tsdrplugin_readasync_function tsdr_cb;
