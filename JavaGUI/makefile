@@ -89,6 +89,8 @@ ifeq ($(OSNAME),WINDOWS)
 PLUGINS += TSDRPlugin_Mirics TSDRPlugin_ExtIO
 else ifeq ($(OSNAME), LINUX)
 PLUGINS += TSDRPlugin_UHD
+else ifeq ($(OSNAME), MAC)
+PLUGINS += TSDRPlugin_UHD
 endif
 
 # USER CONFIGURATION ENDS HERE
