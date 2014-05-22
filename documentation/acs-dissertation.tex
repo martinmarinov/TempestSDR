@@ -18,11 +18,11 @@
 \def\authorname{Martin Marinov\xspace}
 \def\authorcollege{St Edmund's College\xspace}
 \def\authoremail{mtm46@cam.ac.uk}
-\def\dissertationtitle{Remote Video Eavesdropping Using a Software Defined Radio Platform}
+\def\dissertationtitle{Remote video eavesdropping using a software-defined radio platform}
 \def\wordcount{??,???}
 
 
-\usepackage{epsfig,graphicx,parskip,setspace,tabularx,xspace,epstopdf} 
+\usepackage{epsfig,graphicx,parskip,setspace,tabularx,xspace,epstopdf,amssymb} 
 \graphicspath{ {./images/} }
 
 %% START OF DOCUMENT
@@ -70,23 +70,87 @@
 
 \chapter{Methodology} 
 
-\section{Anatomy of a Video Signal}
+\section{Analogue Video Signals}
 
 Almost all contemporary video monitors are raster based. The image is transferred from the video controller to the display in scanlines that occur at a specific rate. Each of these scanlines contains a number of pixels which are continuously encoded as a time varying signal. This signal is generated internally in the video controller by an oscillator which runs at the pixel clock rate. The signal is thereafter multiplied by the pixel intensities at the specific time.
 
-Let's assume that the signal started transmitting at time $t=0$, and each video frame contains $h$ scanlines, each of which contains $w$ pixels. The frequency with which frames are being generated is $f$ frames per second. Therefore the duration of transmission of each individual pixel is $$T_{\Delta}=\frac{1}{w h f}$$ Furthermore at time $t$ frame number $n_{t}$ started transmission where $$n_{t}=\lfloor t f \rfloor$$ Therefore if we assume that the top left corner of a frame has coordinates $(0, 0)$, a pixel at position $(x, y)$ in frame $n_{t}$ will start to be transmitted at time $$T_{(x,y)}= (y w + x + n_{t} w h) T_{\Delta} $$ and will finish transmission before time $$T_{(x+1,y)} = T_{(x,y)} + T_{\Delta} =(y w + x + 1 + n_{t} w h) T_{\Delta} $$ at which the next pixel will start transmitting.
+Let's assume that the signal started transmitting at time $t=0$, and each video frame contains $h$ scanlines, each of which contains $w$ pixels. The frequency with which frames are being generated is $f_{f}$ frames per second. Therefore the duration of transmission of each individual pixel is \begin{equation}
+\label{eq:tdelta_definition}
+T_{\Delta}=\frac{1}{w h f_{f}}
+\end{equation}
+Furthermore at time $t$ frame number $n_{t}$ started transmission where 
+\begin{equation}
+n_{t}=\lfloor t f_{f} \rfloor
+\end{equation}
+Therefore 
+if we assume that the top left corner of a frame has coordinates $(0, 0)$, a pixel at position $(x, y)$ in frame $n_{t}$ will start to be transmitted at time
+\begin{equation}
+T_{(x,y)}= (y w + x + n_{t} w h) T_{\Delta}
+\end{equation}
+and will finish transmission before time 
+\begin{equation}
+T_{(x+1,y)} = T_{(x,y)} + T_{\Delta} =(y w + x + 1 + n_{t} w h) T_{\Delta}
+\end{equation}
+at which the next pixel will start transmitting.
 
-In practice $w$ and $h$ are determined by the screen resolution and $f$ is simply the screen refresh rate. For a typical screen resolution of $width \times height$, it is true that $w \geq width$ and $h \geq height$. The reason is that video signals tend to have additional blanking intervals. This means more pixels are transmitted than what is in the active video region. This gives opportunity for the receiving monitor to synchronise its internal clock, calibrate its colour levels or in case of CRT, allow enough time for the electron beam to return to the beginning of the next line on the screen. The synchronisation timings for personal computers have been standardised by Video Electronics Standards Association (VESA) \cite{vesa}.
+In practice $w$ and $h$ are determined by the screen resolution and $f_{f}$ is simply the screen refresh rate. For a typical screen resolution of $width \times height$, it is true that $w \geq width$ and $h \geq height$. The reason is that video signals tend to have additional blanking intervals. This means more pixels are transmitted than what is in the active video region. This gives opportunity for the receiving monitor to synchronise its internal clock, calibrate its colour levels or in case of CRT, allow enough time for the electron beam to return to the beginning of the next line on the screen. The synchronisation timings for personal computers have been standardised by Video Electronics Standards Association (VESA) \cite{vesa}.
 
-In order to decode an individual pixel, the receiving monitor has its own internal oscillator. It locks it to the pixel rate of the incoming signal either via an external clock source or using the blanking intervals. Once it receives the signal for an individual pixel, the monitor will usually average it over the time from $T_{x,y}$ to $T_{x,y}+T_{\Delta}$. The amplitude of this average relates to pixel intensity. This allows the monitor to display the video in real time. If multiple colours are desired, the intensity of each of them (or some other combination) will be transmitted separately on different wires.
+In order to decode an individual pixel, the receiving monitor has its own internal oscillator. It locks it to the pixel rate of the incoming signal either via an external clock source or using the blanking intervals. Once it receives the signal for an individual pixel, its amplitude (or binary content in case of digital signal) will correspond to the intensity. This allows the monitor to display the video in real time. If multiple colours are desired, they can be transmitted separately on different wires in the same fashion.
 
-\section{Eavesdropping}
+\section{Generated Radio Wave}
 
-As we already know, a changing signal in a wire produces an electromagnetic field. Therefore the changing intensities of the pixels in the wires will produce electromagnetic waves. We can model the signal as a band limited signal with a maximum frequency component of $\nu_{max}=\frac{1}{T_{\Delta}}$. This signal will contain the full information that is required to reconstruct the transmitted image. In practice, the signal contains higher frequencies. This is due to the fact that the signal for each pixel is not smooth \cite{kuhn2003compromising}. However, the extra frequencies could be eliminated with a low pass filter which can produce the ideal band limited signal. If the band limited signal is written as $f(t)$, then its Fourier transform $F(t)$ will range from $-\frac{\nu_{max}{2}$ to $\frac{\nu_{max}{2}$ (all other elements will be zero).
+Let's assume the discrete pixels in a video signal have intensities $v_{i} (i \in \mathbb{Z})$ and are being transmitted for a duration of $T_{\Delta}=\frac{1}{w h f_{f}}$ (from \ref{eq:tdelta_definition}). Let's also assume that the shape of the pixel is $p(t)$ where $p(t)=0$ for $|t| > \frac{T_{\Delta}}{2}$. We know that pixel $i$ starts transmitting at time $t_{i}=i T_{\Delta}$ (if we assume that that pixel 0 was transmitted at $t=0$). Also the amplitude of the signal of the transmitted pixel is linearly dependant on its intensity $v_{i}$. Then the resulting signal between time $t_{i}$ and $t_{i+1}$ will have the form $v_{i} p(t-i T_{\Delta})$. To generalise for all $i$, the resulting actual transmitted radio wave in the time domain will have the form 
+\begin{equation}
+\label{eq:video_signal}
+v(t) = \sum\limits_{i=-\infty}^{\infty} v_{i} p(t-i T_{\Delta})
+\end{equation}
+Which is a continuous function. Equation \ref{eq:video_signal} can be rewritten as a convolution with a Dirac delta function
+\begin{equation}
+\label{eq:vasconv}
+v(t) = p(t) \ast \left( \sum\limits_{i=-\infty}^{\infty} v_{i} \cdot \delta(t-i T_{\Delta}) \right) = p(t) \ast \hat{v}(t)
+\end{equation}
+Where we have put
+\begin{equation}
+\label{eq:vhattdef}
+\hat{v}(t) = \sum\limits_{i=-\infty}^{\infty} v_{i} \cdot \delta(t-i T_{\Delta})
+\end{equation}
+Note that this results in infinitesimally short (in time) spikes at values exact integer multiples of $T_{\Delta}$ with amplitudes corresponding to the pixel intensities at that time. We can view \ref{eq:vasconv} as the pixel shape being repeated at intervals of $T_{\Delta}$ modulated by $v_{i}$. We can also notice that $t$ can only take discrete values, namely  $i T_{\Delta}$, therefore we can write $i$ as $i = \lfloor \frac{t}{T_{\Delta}} \rfloor$ and therefore rewrite \ref{eq:vhattdef} as
+\begin{equation}
+\hat{v}(t) = \sum\limits_{i=-\infty}^{\infty} v_{ \lfloor \frac{t}{T_{\Delta}} \rfloor } \cdot \delta(t-i T_{\Delta}) = v_{ \lfloor \frac{t}{T_{\Delta}} \rfloor } \sum\limits_{i=-\infty}^{\infty} \delta(t-i T_{\Delta})
+\end{equation}
+Now let's revise some mathematical identities. According to the convolution theorem
+\begin{equation}
+\mathcal{F} \left\{ g \cdot h \right\} = \mathcal{F} \left\{ g \right\} \ast  \mathcal{F} \left\{ h \right\}
+\end{equation}
+Which reads: the Fourier transform of a multiplication of two functions is equivalent to the Fourier transforms of the individual functions convolved together. And vice versa
+\begin{equation}
+\mathcal{F} \left\{ g \ast h \right\} = \mathcal{F} \left\{ g \right\} \cdot  \mathcal{F} \left\{ h \right\}
+\end{equation}
+The convolution of the Fourier transform of two functions is equivalent to the individual Fourier transforms of the two functions multiplied together.
+Also
+\begin{equation}
+\mathcal{F} \left\{ \sum\limits_{n=-\infty}^{\infty}  \delta(t-n k) \right\} = \frac{1}{k} \sum\limits_{n=-\infty}^{\infty}  \delta \left( t-\frac{n}{k} \right)
+\end{equation}
+Using the last three identities, we can write the Fourier transform of \ref{eq:vasconv} as
+\begin{equation} 
+\mathcal{F} \left\{ p(t) \ast \hat{v}(t) \right\} = V(f) =
+\left[ \frac{1}{T_{\Delta}} \cdot P(f) \cdot \mathcal{F} \left\{ v_{ \lfloor \frac{t}{T_{\Delta}} \rfloor } \right\} \right] \ast
+\left[ \sum\limits_{i=-\infty}^{\infty}  \delta \left( t-\frac{i}{T_{\Delta}} \right) \right]
+\end{equation}
+Where $P(f)$ is the Fourier transform of $p(t)$ and $V(f)$ is the Fourier transform of $v(t)$. If we put 
+\begin{equation} 
+G(f) = \frac{1}{T_{\Delta}} \cdot P(f) \cdot \mathcal{F} \left\{ v_{ \lfloor \frac{t}{T_{\Delta}} \rfloor } \right\}
+\end{equation}
+Then we we can arrive to our final conclusion that
+\begin{equation}
+V(f) = G(f) \ast
+\left[ \sum\limits_{i=-\infty}^{\infty}  \delta \left( t-\frac{i}{T_{\Delta}} \right) \right]
+\end{equation}
+This simply means that the signal spectrum $G(f)$ repeats at regular intervals throughout the radio spectrum with a frequency of $\frac{1}{T_{\Delta}} = w h f_(f)$. Therefore we should expect to be able to tune our receivers at an integer multiple of that frequency and pick up the entire transmitted video signal (given that $G(f)$ is band limited and the bandwidth of our receiver is higher than the bandwidth of $G(f)$).
 
-[TODO! Do the derivation of the Fourier transform repetitions]
+\section{Sampling Rate}
 
-The Fourier transform of such a signal will therefore range from $-\frac{\nu_{max}{2}$ to $\frac{\nu_{max}{2}$ (all other elements will be zero). The lowest frequency components will be centred around DC while the highest one will span up to $\frac{\nu_{max}{2}$ in each direction. Therefore in order to fully reconstruct the signal, we will need to sample an output from an antenna with a rate of $\nu_{max}$. However, the video cables are usually much shorter than those wavelengths and therefore they don't emit efficiently in this range. 
+The Fourier transform of such a signal will therefore range from $\frac{-\nu_{max}}{2}$ to $\frac{\nu_{max}}{2}$ (all other elements will be zero). The lowest frequency components will be centred around DC while the highest one will span up to $\frac{\nu_{max}}{2}$ in each direction. Therefore in order to fully reconstruct the signal, we will need to sample an output from an antenna with a rate of $\nu_{max}$. However, the video cables are usually much shorter than those wavelengths and therefore they don't emit efficiently in this range. 
 
 [Discuss how IQ relates to AM and how it can be used to reconstruct video.]
 
@@ -94,7 +158,7 @@ The Fourier transform of such a signal will therefore range from $-\frac{\nu_{ma
 
 [TODO! Explain how resolution and framerate detection works]
 
-
+[Digital video]
 
 \section{Sampling Rate}
 
