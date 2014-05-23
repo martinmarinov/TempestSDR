@@ -22,7 +22,7 @@
 \def\wordcount{??,???}
 
 
-\usepackage{epsfig,graphicx,parskip,setspace,tabularx,xspace,epstopdf,amssymb} 
+\usepackage{epsfig,graphicx,parskip,setspace,tabularx,xspace,epstopdf,amssymb,caption,subcaption} 
 \graphicspath{ {./images/} }
 
 %% START OF DOCUMENT
@@ -154,7 +154,7 @@ Where $P(f)$ is the Fourier transform of $p(t)$, $\tilde{V}(f)$ is the Fourier t
 G(f) = \frac{1}{T_{\Delta}} \cdot P(f) \cdot V(f)
 \end{equation}
 Then we we can arrive to our final conclusion that
-\begin{equation}\\
+\begin{equation}
 \label{eq:vspectrum}
 \tilde{V}(f) = G(f) \ast
 \left[ \sum\limits_{i=-\infty}^{\infty}  \delta \left( t-\frac{i}{T_{\Delta}} \right) \right]
@@ -169,60 +169,63 @@ In order to obtain the full video signal, we need to know what is the minimum ra
 $$G(f) = \frac{1}{T_{\Delta}} \cdot P(f) \cdot V(f)$$
 As a consequence from the Whittaker--Shannon interpolation formula that we used to construct $v(t)$, we know that $V(f)$ is band limited so that $V(f) = 0$ for all $|f| \geq \frac{1}{2 T_{\Delta}}$. This implies that $G(f)$ is also band limited to the same range (because of the multiplication). Therefore we need to have a receiver with a sampling rate of at least $\frac{1}{T_{\Delta}}$ in order to reconstruct $G(f)$. Note however that $g(t)$ contains the video signal convolved with the shape of the pixel $p(t)$. We can however assume $P(f)=1$ for $|f| \le \frac{1}{2 T_{\Delta}}$ and zero otherwise. Therefore $G(f) = V(f)$ which would imply a sinc shaped $p(t)$. This in fact is not the case since different video cards have different pixel shapes\cite{kuhn2003compromising}. However in practice, this is enough to obtain a good approximation of the signal.
 
-\section{Reception in Practice}
+\section{Reception}
 
-[Digital video]
+\subsection{Theory}
+In order to receive a copy of the video signal, we will need to apply a bandpass filter centred at a multiple of the pixel frequency. The width of the bandpass needs to be the same as the band limited video signal we want to eavesdrop. Then we need to generate an internal clock that runs at the pixel rate and use that to obtain the estimated pixel intensities. Luckily these steps are already done in a typical AM (Amplitude Modulation) receiver. Unfortunately the signal bandwidth is much wider than what a typical off-the-shelf AM receiver can handle.
 
+However some Software Defined Radio receivers can provide the required bandwidth. The Ettus Research USRP B200 can provide more than 50 MHz of realtime bandwidth which is more than what is required to eavesdrop video signals. Software Defined Radios provide the radio samples as a quadrature vector which angle relates to the instantaneous phase in relation to the internal hardware oscillator of the hardware. The size of the vector is proportional to the received amplitude for each sample. For AM reception, we do not need the phase information since the video signal is being transmitted with a constant frequency. Therefore we can make a simple AM demodulator by taking the length of the vector of each sample. When our digital sampling rate matches the pixel rate, then each sample will contain an estimate of the pixel intensity at that time.
 
+\subsection{Practice}
+The VESA standard specifies an allowed frequency tolerance for $f_{p}$ of 0.5\%. Therefore due to hardware limitations, we might not be able to accurately tune the receiver sampling rate with enough accuracy to match the transmitted pixel rate. This means that some resampling needs to be done in software in order to create a new digital signal that matches as close as possible the transmitted pixel rate in which each sample corresponds to a pixel.
 
-[Discuss how IQ relates to AM and how it can be used to reconstruct video.]
-
-[Explain how the whole system works in high level]
-
-[TODO! Explain how resolution and framerate detection works]
-
-[TODO! Explain how bandwidth relates to resolution width * height * framerate = samplerate ]
-
-The sampling rate
+It is also true that we might be able to recover a lot of information from a signal even if our receiver is not capable of sampling the full width of the video spectrum. This means we will only receive a of $g(f)$ with a bandpass filter applied to it. In this case the digital resampling could interpolate the received samples to fit into multiple pixels. Therefore it is useful to introduce a measurement $\kappa$ of how accurate we can reconstruct pixels of $g(t)$. This measurement can be the number of input samples that have gone into constructing a single output pixels. Therefore
+\begin{equation}
+\kappa = receiver\_samplerate \cdot T_{\Delta} = \frac{receiver\_samplerate}{w h f_{f}}
+\end{equation}
+If $\kappa \geq 1$, then we can deconstruct individual pixels. If $\kappa < 1$ we are looking at a band-passed version of the signal and consecutive reconstructed pixels will depend on one another. Please refer to Figure \ref{fig:samplerates} for a visual comparison of different values of $\kappa$.
 
 \begin{figure}[h!]
-\minipage{0.49\textwidth}
-  \centering
-    \includegraphics[width=0.5\textwidth]{sr_original}
+\centering
+\begin{subfigure}[b]{0.45\textwidth}
+  \includegraphics[width=\textwidth]{sr_original}
   \caption{Transmitted image}
-\endminipage\hfill
-\minipage{0.49\textwidth}
-  \centering
-    \includegraphics[width=\linewidth]{sr_50MHz_at_190MHz}
-  \caption{50 MHz}
-\endminipage\hfill
-\minipage{0.49\textwidth}
-  \centering
-    \includegraphics[width=\linewidth]{sr_40MHz_at_190MHz}
-  \caption{40 MHz}
-\endminipage\hfill
-\minipage{0.49\textwidth}
-  \centering
-    \includegraphics[width=\linewidth]{sr_30MHz_at_190MHz}
-  \caption{30 MHz}
-\endminipage\hfill
-\minipage{0.49\textwidth}
-  \centering
-    \includegraphics[width=\linewidth]{sr_20MHz_at_190MHz}
-  \caption{20 MHz}
-\endminipage\hfill
-\minipage{0.49\textwidth}
-  \centering
-    \includegraphics[width=\linewidth]{sr_10MHz_at_190MHz}
-  \caption{10 MHz}
-\endminipage\hfill
-\minipage{0.49\textwidth}
-  \centering
-    \includegraphics[width=\linewidth]{sr_5MHz_at_190MHz}
-  \caption{5 MHz}
-\endminipage
+\end{subfigure} ~
+\begin{subfigure}[b]{0.45\textwidth}
+  \includegraphics[width=\textwidth]{sr_40MHz_at_190MHz}
+  \caption{$\kappa = 1.003$}
+\end{subfigure} ~
+\begin{subfigure}[b]{0.45\textwidth}
+  \includegraphics[width=\textwidth]{sr_30MHz_at_190MHz}
+  \caption{$\kappa = 0.753$}
+\end{subfigure} ~
+\begin{subfigure}[b]{0.45\textwidth}
+  \includegraphics[width=\textwidth]{sr_20MHz_at_190MHz}
+  \caption{$\kappa = 0.502$}
+\end{subfigure} ~
+\begin{subfigure}[b]{0.45\textwidth}
+  \includegraphics[width=\textwidth]{sr_10MHz_at_190MHz}
+  \caption{$\kappa = 0.251$}
+\end{subfigure} ~
+\begin{subfigure}[b]{0.45\textwidth}
+  \includegraphics[width=\textwidth]{sr_5MHz_at_190MHz}
+  \caption{$\kappa = 0.125$}
+\end{subfigure}
+\caption{The transmitted image (a) is being sent at a pixel rate of 800x600 at 60 fps with $w = 1056$, $h = 628$ and $f_{f} = 60.11$. Each of the screenshots shows the reconstructed image with the receiver (USRP B2000) running at different sample rates: (b) - 40 MHz, (c) - 30 MHz, (d) - 20 MHz, (e) - 10 MHz and (f) - 5 MHz}
+\label{fig:samplerates}
 \end{figure}
 
+Another possible source of distortions is the usage of multiple wires to transmit colour information. These signals interfere with each other and the resulting pixel intensity becomes a complicated mix of the signals generated in these wires. Therefore colour information would be very difficult to obtain. Nevertheless the outlined strategy allows an eavesdropper to detect changes in colour since this would result in different signal amplitudes arriving at the receiver for each pixel.
+
+This means that we would not be able to decode colour. Very often we can't even decode grayscale images being displayed either. This is because even grayscale pixels will depend on more than one wire to display the correct shade. What we will see is that each decoded pixel will have an intensity that relates to the colour of the original pixel in a very non-linear and non-unique fashion. Nevertheless practice shows that this is enough to read text from the remote screen as you have seen in the screenshots on Figure \ref{fig:samplerates}.
+
+Dr Markus Kuhn has shown that the outlined procedure even works for decoding digital video signals\cite{kuhn2005electromagnetic}. If the pixel intensities are transmitted as a bit pattern rather than an analogue amplitude, the received intensity will be the average intensity in the bit pattern. The redundancy of bit patterns means that even in such case we can still receive a signal that will allow us to read text on the remote screen. 
+
+\section{Resolution and Framerate Detection}
+
+The outlined method for decoding the video stream relies on us having the exact values for $w$, $h$ and $f_{f}$. This is not very practical for a real world attack. We would require the adversary not to have any knowledge of the target system whatsoever. Therefore we would need to infer all of these parameters remotely by exploiting some typical characteristics of a video signal.
+
+[TODO! insert a plot of the autocorrelation function]
 
 \chapter{Practical attack} 
 
