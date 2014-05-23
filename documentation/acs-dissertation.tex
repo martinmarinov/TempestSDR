@@ -99,25 +99,36 @@ In order to decode an individual pixel, the receiving monitor has its own intern
 
 \section{Generated Radio Wave}
 
+\subsection{Signal Equation}
 Let's assume the discrete pixels in a video signal have intensities $v_{i} (i \in \mathbb{Z})$ and are being transmitted for a duration of $T_{\Delta}=\frac{1}{w h f_{f}}$ (from \ref{eq:tdelta_definition}). Let's also assume that the shape of the pixel is $p(t)$ where $p(t)=0$ for $|t| > \frac{T_{\Delta}}{2}$. We know that pixel $i$ starts transmitting at time $t_{i}=i T_{\Delta}$ (if we assume that that pixel 0 was transmitted at $t=0$). Also the amplitude of the signal of the transmitted pixel is linearly dependant on its intensity $v_{i}$. Then the resulting signal between time $t_{i}$ and $t_{i+1}$ will have the form $v_{i} p(t-i T_{\Delta})$. To generalise for all $i$, the resulting actual transmitted radio wave in the time domain will have the form 
 \begin{equation}
 \label{eq:video_signal}
-v(t) = \sum\limits_{i=-\infty}^{\infty} v_{i} p(t-i T_{\Delta})
+\tilde{v}(t) = \sum\limits_{i=-\infty}^{\infty} v_{i} p(t-i T_{\Delta})
 \end{equation}
 Which is a continuous function. Equation \ref{eq:video_signal} can be rewritten as a convolution with a Dirac delta function
 \begin{equation}
 \label{eq:vasconv}
-v(t) = p(t) \ast \left( \sum\limits_{i=-\infty}^{\infty} v_{i} \cdot \delta(t-i T_{\Delta}) \right) = p(t) \ast \hat{v}(t)
+\tilde{v}(t) = p(t) \ast \left( \sum\limits_{i=-\infty}^{\infty} v_{i} \cdot \delta(t-i T_{\Delta}) \right) = p(t) \ast \hat{v}(t)
 \end{equation}
 Where we have put
 \begin{equation}
 \label{eq:vhattdef}
 \hat{v}(t) = \sum\limits_{i=-\infty}^{\infty} v_{i} \cdot \delta(t-i T_{\Delta})
 \end{equation}
-Note that this results in infinitesimally short (in time) spikes at values exact integer multiples of $T_{\Delta}$ with amplitudes corresponding to the pixel intensities at that time. We can view \ref{eq:vasconv} as the pixel shape being repeated at intervals of $T_{\Delta}$ modulated by $v_{i}$. We can also notice that $t$ can only take discrete values, namely  $i T_{\Delta}$, therefore we can write $i$ as $i = \lfloor \frac{t}{T_{\Delta}} \rfloor$ and therefore rewrite \ref{eq:vhattdef} as
+Note that this results in infinitesimally short (in time) spikes at values exact integer multiples of $T_{\Delta}$ with amplitudes weighted to the pixel intensities at that time. We can view \ref{eq:vasconv} as the pixel shape being repeated at intervals of $T_{\Delta}$ modulated by $v_{i}$. 
+
+\subsection{Sampling}
+We can notice that \ref{eq:vhattdef} looks like the result of a continuous signal being sampled at discrete points in time $T_{\Delta}$ apart. If we call this continuous signal $v(t)$, then we can rewrite the equation so that it reads
 \begin{equation}
-\hat{v}(t) = \sum\limits_{i=-\infty}^{\infty} v_{ \lfloor \frac{t}{T_{\Delta}} \rfloor } \cdot \delta(t-i T_{\Delta}) = v_{ \lfloor \frac{t}{T_{\Delta}} \rfloor } \sum\limits_{i=-\infty}^{\infty} \delta(t-i T_{\Delta})
+\hat{v}(t) = \sum\limits_{i=-\infty}^{\infty} v(t) \cdot \delta(t-i T_{\Delta}) = v(t) \sum\limits_{i=-\infty}^{\infty} \delta(t-i T_{\Delta})
 \end{equation}
+The requirement is that if $v(t)$ is sampled at discrete intervals $i T_{\Delta}$, it should be equal to the corresponding pixel values i.e. $v(0)=v_{0}$, $v(T_{\Delta})=v_{1}$, $v(2 T_{\Delta})=v_{2}$, etc. This would mean that we can precisely obtain the samples from the continuous function by applying the series of Dirac delta functions. However, now we would also like to be able to obtain the continuous signal by only having the sampled values $v_{i}$. This means that we need a unique perfect reconstruction i.e. to be able to obtain all $v_{i}$ from $v(x)$ and $v(x)$ from all $v_{i}$. This condition is satisfied by the Whittaker--Shannon interpolation formula which can give us the condition for perfect reconstruction for digitally sampled signals. It states that the continuous signal could be uniquely reconstructed using $sinc$ interpolation. If we apply it to our $v_{i}$ samples, it yields
+\begin{equation}
+v(t) = \sum\limits_{k=-\infty}^{\infty} v_{k} \cdot sinc ( \pi \left( \frac{t}{T_{\Delta}} - k \right) )
+\end{equation}
+We can verify that when $t=i T_{\Delta}$, then $sinc(\pi (i-k) )$ will always yield $0$ except for when $i = k$ in which case it will be $1$. Therefore we have proved that $v(i T_{\Delta}) = v_{i}$.
+
+\subsection{Repetitions}
 Now let's revise some mathematical identities. According to the convolution theorem
 \begin{equation}
 \mathcal{F} \left\{ g \cdot h \right\} = \mathcal{F} \left\{ g \right\} \ast  \mathcal{F} \left\{ h \right\}
@@ -133,34 +144,42 @@ Also
 \end{equation}
 Using the last three identities, we can write the Fourier transform of \ref{eq:vasconv} as
 \begin{equation} 
-\mathcal{F} \left\{ p(t) \ast \hat{v}(t) \right\} = V(f) =
-\left[ \frac{1}{T_{\Delta}} \cdot P(f) \cdot \mathcal{F} \left\{ v_{ \lfloor \frac{t}{T_{\Delta}} \rfloor } \right\} \right] \ast
+\mathcal{F} \left\{ p(t) \ast \hat{v}(t) \right\} = \tilde{V}(f) =
+\left[ \frac{1}{T_{\Delta}} \cdot P(f) \cdot V(f) \right] \ast
 \left[ \sum\limits_{i=-\infty}^{\infty}  \delta \left( t-\frac{i}{T_{\Delta}} \right) \right]
 \end{equation}
-Where $P(f)$ is the Fourier transform of $p(t)$ and $V(f)$ is the Fourier transform of $v(t)$. If we put 
+Where $P(f)$ is the Fourier transform of $p(t)$, $\tilde{V}(f)$ is the Fourier transform of $\tilde{v}(t)$ and $V(f)$ is the Fourier transform of $v(t)$. If we put 
 \begin{equation} 
-G(f) = \frac{1}{T_{\Delta}} \cdot P(f) \cdot \mathcal{F} \left\{ v_{ \lfloor \frac{t}{T_{\Delta}} \rfloor } \right\}
+\label{eq:gfdef}
+G(f) = \frac{1}{T_{\Delta}} \cdot P(f) \cdot V(f)
 \end{equation}
 Then we we can arrive to our final conclusion that
-\begin{equation}
-V(f) = G(f) \ast
+\begin{equation}\\
+\label{eq:vspectrum}
+\tilde{V}(f) = G(f) \ast
 \left[ \sum\limits_{i=-\infty}^{\infty}  \delta \left( t-\frac{i}{T_{\Delta}} \right) \right]
 \end{equation}
-This simply means that the signal spectrum $G(f)$ repeats at regular intervals throughout the radio spectrum with a frequency of $\frac{1}{T_{\Delta}} = w h f_(f)$. Therefore we should expect to be able to tune our receivers at an integer multiple of that frequency and pick up the entire transmitted video signal (given that $G(f)$ is band limited and the bandwidth of our receiver is higher than the bandwidth of $G(f)$).
+This simply means that the signal spectrum $G(f)$ repeats at regular intervals throughout the radio spectrum with a frequency of $\frac{1}{T_{\Delta}} = w h f_(f)$.
 
-\section{Sampling Rate}
+For example, for a resolution of $800 \cdot 600 @ 60fps$ (ignore blanking intervals for simplicity), we would have a frequency of $\frac{1}{T_{\Delta}} = 800 \cdot 600 \cdot 60 = 28.8 MHz$. This means that we would expect to find such a signal centred at DC, 28.8 MHz, 57.6 MHz, 86.4 MHz, etc.
 
-The Fourier transform of such a signal will therefore range from $\frac{-\nu_{max}}{2}$ to $\frac{\nu_{max}}{2}$ (all other elements will be zero). The lowest frequency components will be centred around DC while the highest one will span up to $\frac{\nu_{max}}{2}$ in each direction. Therefore in order to fully reconstruct the signal, we will need to sample an output from an antenna with a rate of $\nu_{max}$. However, the video cables are usually much shorter than those wavelengths and therefore they don't emit efficiently in this range. 
+\subsection{Sampling Rate}
+
+In order to obtain the full video signal, we need to know what is the minimum rate at which we need to sample the baseband. We saw from \ref{eq:vspectrum} that $G(f)$ repeats at the regular intervals. In fact we can see from \ref{eq:gfdef} that it is $G(f)$ that contains the actual video information
+$$G(f) = \frac{1}{T_{\Delta}} \cdot P(f) \cdot V(f)$$
+As a consequence from the Whittaker--Shannon interpolation formula that we used to construct $v(t)$, we know that $V(f)$ is band limited so that $V(f) = 0$ for all $|f| \geq \frac{1}{2 T_{\Delta}}$. This implies that $G(f)$ is also band limited to the same range (because of the multiplication). Therefore we need to have a receiver with a sampling rate of at least $\frac{1}{T_{\Delta}}$ in order to reconstruct $G(f)$. Note however that $g(t)$ contains the video signal convolved with the shape of the pixel $p(t)$. We can however assume $P(f)=1$ for $|f| \le \frac{1}{2 T_{\Delta}}$ and zero otherwise. Therefore $G(f) = V(f)$ which would imply a sinc shaped $p(t)$. This in fact is not the case since different video cards have different pixel shapes\cite{kuhn2003compromising}. However in practice, this is enough to obtain a good approximation of the signal.
+
+\section{Reception in Practice}
+
+[Digital video]
+
+
 
 [Discuss how IQ relates to AM and how it can be used to reconstruct video.]
 
 [Explain how the whole system works in high level]
 
 [TODO! Explain how resolution and framerate detection works]
-
-[Digital video]
-
-\section{Sampling Rate}
 
 [TODO! Explain how bandwidth relates to resolution width * height * framerate = samplerate ]
 
