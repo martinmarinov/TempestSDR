@@ -185,7 +185,7 @@ It is also true that we might be able to recover a lot of information from a sig
 \end{equation}
 If $\kappa \geq 1$, then we can deconstruct individual pixels. If $\kappa < 1$ we are looking at a band-passed version of the signal and consecutive reconstructed pixels will depend on one another. Please refer to Figure \ref{fig:samplerates} for a visual comparison of different values of $\kappa$.
 
-\begin{figure}[h!]
+\begin{figure}[p!]
 \centering
 \begin{subfigure}[b]{0.45\textwidth}
   \includegraphics[width=\textwidth]{sr_original}
@@ -223,9 +223,68 @@ Dr Markus Kuhn has shown that the outlined procedure even works for decoding dig
 
 \section{Resolution and Framerate Detection}
 
-The outlined method for decoding the video stream relies on us having the exact values for $w$, $h$ and $f_{f}$. This is not very practical for a real world attack. We would require the adversary not to have any knowledge of the target system whatsoever. Therefore we would need to infer all of these parameters remotely by exploiting some typical characteristics of a video signal.
+The outlined method for decoding the video stream relies on us having the exact values for $w$, $h$ and $f_{f}$. This is not very practical for a real world attack. We would require the adversary not to have any knowledge of the target system whatsoever. Therefore we would need to infer all of these parameters remotely by exploiting some typical characteristics of a video signal. Namely the fact that the signal is periodic.
 
-[TODO! insert a plot of the autocorrelation function]
+As we have already seen, a video signal consists of video frames with width $w$ and height $h$. The speed at which such frames are transmitted is $f_{f}$. However most of the time any two consecutive frames would be identical. This would be the case if the victim is looking at static text on the screen. Therefore we can regard the transmitted signal as a repeating periodic signal of a single frame. Which means if we analyse the signal for repeating patterns we should be able to spot the repeating video frames in it and use that to estimate $f_{f}$.
+
+\subsection{Introduction to Autocorrelation}
+A good way of doing so would be calculating the discrete autocorrelation of the incoming signal which is defined as 
+$$ R_{vv}(j)=\sum\limits_{i} v_{i} \bar{v}_{i-j} $$
+Where $\bar{v}$ is the complex conjugate of $v$ and $j$ is the \textbf{samples lag}. In our case $v$ is the set of real samples, therefore $\bar{v} = v$. Basically the autocorrelation is a measure of the similarity of a signal with the same signal shifted by a lag. The higher the value of $R_{vv}(j)$ is, the more similar the function is at that lag. Therefore by analysing $R_{vv}(j)$, we would be able to spot any repeating patterns inside $v_{i}$.
+
+Figure \ref{fig:autocorr} shows the discrete autocorrelation of a video signal that was captured using the Mirics USB dongle at 8 MHz (i.e. $8,000,000$ samples per second) sampling rate. The vertical axis is logarithmic, containing the decibels of the autocorrelation i.e. $10 \times log10( R_{vv} )$. The horizontal axis contains the time lag in milliseconds. This was converted from the lag in samples $j$ by $x = j \cdot T_{delta}$.
+
+\begin{figure}[h]
+\centering
+  \includegraphics[width=0.96\textwidth]{autocorr}
+  \caption{Autocorrelation of a signal}
+  \label{fig:autocorr}
+\end{figure}
+
+This particular example consists of $524,288$ samples which is $65.536$ milliseconds of recording. This allows us to estimate the autocorrelation up to half of it, namely $32.768$ milliseconds. The reason is because $R_{vv}(j)=-R_{vv}(j)$ due to symmetry. We can see a peak at $16.672$ milliseconds which corresponds to a frequency of $f_{f} = \frac{1}{0.016672} = 59.98 Hz$. This is our estimate for $f_{f}$. And it makes sense, $60 Hz$ is a common refresh rate for contemporary video displays.
+
+\subsection{Aliasing}
+We should be able to see the peak repeating again at $2 \times 16.672 = 33.344 ms$. This is analogous to comparing every two consecutive frames with every two other frames. However, as this falls just outside our window it would be seen as an alias at $65.536-33.344 = 32.192 ms$. The same applies for the third peak at $3 \times 16.672 = 50.016 ms$ which would be comparing each block of three consecutive frames with the next three. This will alias at $65.536 - 50.016 = 15.52 ms$. This explains the second small peak we see on the left of the main one at $16.672 ms$ but we see that the difference in its power is already several decibels lower. Therefore any further aliasing induced would be even smaller.
+
+It is therefore important to choose the number of samples to be used for the autocorrelation wisely in order to avoid aliasing. We need to have enough full frames in our data so that the autocorrelation can physically work. The minimum frequency we can get from an autocorrelation is $\frac{2 \times receiver\_samplerate}{numer\_of\_samples}$. It could be easily shown that the second alias is
+\begin{equation}
+a_{2} = \frac{1}{\frac{2}{f_{min}}-\frac{2}{f}} = \frac{1}{\frac{number\_of\_samples}{receiver\_samplerate}-\frac{2}{f}}
+\end{equation}
+Where $f$ is the frequency we are going to see the alias for. Therefore if we want to be able to pick up a repeating pattern of at least $f_{min} = 50 Hz$, we would need $\frac{2 \times receiver\_samplerate}{50}$ which in our case is $320,000$ samples. However having such a small number of samples if we observe a signal at 85 Hz we would discover a strong alias at $\frac{1}{\frac{320,000}{8,000,000}-\frac{2}{85} } = 60.714$ Hz which would be very misleading and will look like a legitimate signal at $60.714$ Hz. 
+
+Let us assume $f_{lo} \leq f_{f} \leq f_{hi}$. In order to minimise aliasing, we can try to keep the second alias $a_{2}$ outside this range. Therefore we need to pick the number of samples so that
+$$ \frac{1}{\frac{number\_of\_samples}{receiver\_samplerate}-\frac{2}{f_{lo}}} \leq f_{lo} \,\,\,\,\ or \,\,\,\,\ \frac{1}{\frac{number\_of\_samples}{receiver\_samplerate}-\frac{2}{f_{hi}}} \geq f_{hi} $$
+Which means that
+$$ 3 \times \frac{receiver\_samplerate}{f_{lo}} \leq number\_of\_samples $$
+or
+$$3 \times \frac{receiver\_samplerate}{f_{hi}} \geq number\_of\_samples $$
+and don't forget that in the same time we have the condition
+$$\frac{2 \times receiver\_samplerate}{f_{lo}} \leq numer\_of\_samples$$
+so in the end, in order to eliminate the second alias in the desired region from $f_{lo}$ to $f_{hi}$ in the autocorrelation, we would need to choose the number of samples to be
+\begin{equation}
+\label{eq:autocorraliasingcondition}
+numer\_of\_samples \geq 3 \times \frac{receiver\_samplerate}{f_{lo}}
+\end{equation}
+To paraphrase this result, we will need to do the autocorrelation on at least 3 frames worth of samples for the lowest frequency in our range $f_{lo}$ to avoid second order aliasing interfering with our plot.
+
+\subsection{Number of Lines in a Frame}
+
+We were able to estimate $f_{f}$ using an autocorrelation and eliminate aliased signals in the frequency window that we are looking to detect repetitions. However, we still have not estimated neither $w$, nor $h$. As a matter of fact we might not be able to measure $w$ at all. The reason is that $w$ might be a continuous signal and could potentially contain any number of pixels. However, each line of $w$ pixels repeat $h$ times in a frame. There are, however, the blanking intervals that repeat on each line. Therefore we can use their repeating nature to estimate $h$ from the autocorrelation plot.
+
+For this reason we need to zoom in to our plot. Refer to Figure \ref{fig:autocorr_zoomed} which is a zoomed out version of the figure we saw in the previous subsection. If we still have our allowed $f_{f}$ window between $f_{lo}$ and $f_{hi}$, then we can assume that $h$ also spans between $h_{lo}$ and $h_{hi}$. We would therefore expect to see a peak between $\frac{1}{f_{hi} \cdot h_{hi}}$ and $\frac{1}{f_{lo} \cdot h_{lo}}$ milliseconds. If we detect a peak at time $t_{peak}$, then this would correspond to $h = round \left( \frac{1}{t_{peak} \cdot f_{f}} \right)$. Note that we should have already estimated $f_{f}$.
+
+\begin{figure}[h]
+\centering
+  \includegraphics[width=0.96\textwidth]{autocorr_zoomed}
+  \caption{Zoomed in version of \ref{fig:autocorr}}
+  \label{fig:autocorr_zoomed}
+\end{figure}
+
+Our plot shows a peak at $0.017875$ milliseconds. Since we already estimated $f_{f} = 59.98 Hz$, then $h = round \left( \frac{1000}{0.017875 \times 59.98} \right) = 933$ lines. If we look at a list of VESA video modes, we can see that there is a conveniently close video mode that corresponds to $h = 933$ and $f_{f} = 59.98$. It is the ``1440x900 @ 60 Hz'' video mode with $w = 1904$ pixels, $h = 932$ lines and $f_{f}=60 Hz$. Therefore we could use the value of $w = 1904$ for our estimate of the number of pixels in a row. This will keep the aspect ratio correct.
+
+\subsection{Errors}
+
+There are errors that [introduced by sampling and height could be +- 6 for ex]
 
 \chapter{Practical attack} 
 
