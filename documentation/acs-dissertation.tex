@@ -232,7 +232,7 @@ A good way of doing so would be calculating the discrete autocorrelation of the 
 $$ R_{vv}(j)=\sum\limits_{i} v_{i} \bar{v}_{i-j} $$
 Where $\bar{v}$ is the complex conjugate of $v$ and $j$ is the \textbf{samples lag}. In our case $v$ is the set of real samples, therefore $\bar{v} = v$. Basically the autocorrelation is a measure of the similarity of a signal with the same signal shifted by a lag. The higher the value of $R_{vv}(j)$ is, the more similar the function is at that lag. Therefore by analysing $R_{vv}(j)$, we would be able to spot any repeating patterns inside $v_{i}$.
 
-Figure \ref{fig:autocorr} shows the discrete autocorrelation of a video signal that was captured using the Mirics USB dongle at 8 MHz (i.e. $8,000,000$ samples per second) sampling rate. The vertical axis is logarithmic, containing the decibels of the autocorrelation i.e. $10 \times log10( R_{vv} )$. The horizontal axis contains the time lag in milliseconds. This was converted from the lag in samples $j$ by $x = j \cdot T_{delta}$.
+Figure \ref{fig:autocorr} shows the discrete autocorrelation of a video signal that was captured using the Mirics USB dongle at 8 MHz (i.e. $8,000,000$ samples per second) sampling rate. The vertical axis is logarithmic, containing the decibels of the autocorrelation i.e. $10 \times log10( R_{vv} )$. The horizontal axis contains the time lag in milliseconds. This was converted from the lag in samples $j$ by $x = \frac{j}{receiver\_samplerate}$.
 
 \begin{figure}[h]
 \centering
@@ -280,11 +280,25 @@ For this reason we need to zoom in to our plot. Refer to Figure \ref{fig:autocor
   \label{fig:autocorr_zoomed}
 \end{figure}
 
-Our plot shows a peak at $0.017875$ milliseconds. Since we already estimated $f_{f} = 59.98 Hz$, then $h = round \left( \frac{1000}{0.017875 \times 59.98} \right) = 933$ lines. If we look at a list of VESA video modes, we can see that there is a conveniently close video mode that corresponds to $h = 933$ and $f_{f} = 59.98$. It is the ``1440x900 @ 60 Hz'' video mode with $w = 1904$ pixels, $h = 932$ lines and $f_{f}=60 Hz$. Therefore we could use the value of $w = 1904$ for our estimate of the number of pixels in a row. This will keep the aspect ratio correct.
+Our plot shows a peak at $0.017875$ milliseconds. Since we already estimated $f_{f} = 59.98 Hz$, then $h = \| \frac{1000}{0.017875 \times 59.98} \| = 933$ lines. If we look at a list of VESA video modes, we can see that there is a conveniently close video mode that corresponds to $h = 933$ and $f_{f} = 59.98$. It is the ``1440x900 @ 60 Hz'' video mode with $w = 1904$ pixels, $h = 932$ lines and $f_{f}=60 Hz$. Therefore we could use the value of $w = 1904$ for our estimate of the number of pixels in a row. This will keep the aspect ratio correct.
+
+We should not worry about aliasing since the number of samples in the autocorrelation is much bigger than our range. We can see on the plot the autocorrelation values repeating for each two lines, each three lines, etc. This results in a number of peaks repeating with the rate at which individual lines repeat in the video signal.
 
 \subsection{Errors}
 
-There are errors that [introduced by sampling and height could be +- 6 for ex]
+There is a limit on how accurately one can determine $f_{f}$ and $h$ using the outlined autocorrelation method. This depends on the sampling rate of the device. The resolution of the autocorrelation is $\delta f = \frac{1}{receiver\_samplerate}$. Therefore we can only say that if there is a peak at $t_{x}$ in the autocorrelation, then we have a repeating component in the signal with a frequency $f_{x} \pm \delta f$.
+
+The accuracy at which we can determine $h$ depends both on the accuracy of $f_{f}$ and $t_{peak}$ and can vary. Furthermore $h$ should be rounded to an integer (we can only display an integer number of lines on a PC screen) which introduces further errors. Our definition for $h$ is
+$$h = \| \frac{1}{t_{peak} \cdot f_{f}} \| \pm (\delta h + 0.5)$$
+Where $0.5$ comes from the rounding. Also the uncertainties in $t_{peak}$ and $f_{f}$ are $\delta f$ since both are being read from the same autocorrelation plot in milliseconds. In order to do error propagation, we need to take the partial derivatives with respect to $f_{f}$ and $t_{peak}$.
+$$\frac{\partial h}{\partial f_{f}} = - \frac{1}{t_{peak} \cdot f_{f}^2}
+ \,\,\,\,\ and \,\,\,\,\ \
+\frac{\partial h}{\partial t_{peak}} = - \frac{1}{f_{f} \cdot t_{peak}^2}$$
+So for the uncertainty in $h$, we have
+$$\delta h =
+\sqrt{\left( \frac{\partial h}{\partial f_{f}} \delta f_{f} \right)^2 + \left( \frac{\partial h}{\partial t_{peak}} \delta t_{peak} \right)^2} = 
+\sqrt{\frac{1}{f_{f}^2} + \frac{1}{t_{peak}^2}} \times \frac{\delta f}{f_{f} \cdot t_{peak}}$$
+We can also observe that the larger the sample rate gets, the smaller $\delta f$ and $\delta t$ get.
 
 \chapter{Practical attack} 
 
