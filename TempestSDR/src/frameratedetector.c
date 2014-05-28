@@ -61,6 +61,29 @@ void accummulate(extbuffer_t * out, extbuffer_t * in, int startid, int length) {
 	}
 }
 
+void dump_autocorrect(extbuffer_t * rawiq, double samplerate) {
+	assert (rawiq->valid);
+
+	FILE *f = NULL;
+
+	f = fopen("autocorr.csv", "w");
+
+	fprintf(f, "%s, %s\n", "ms", "dB");
+
+	int i;
+	const int maxels = fft_getrealsize(rawiq->size_valid_elements)/2;
+	for (i = 0; i < maxels; i+=2) {
+		const double I = (rawiq->type == EXTBUFFER_TYPE_DOUBLE) ? (rawiq->dbuffer[i]) : (rawiq->buffer[i]);
+		const double Q = (rawiq->type == EXTBUFFER_TYPE_DOUBLE) ? (rawiq->dbuffer[i+1]) : (rawiq->buffer[i+1]);
+		const double db = 10.0*log10(sqrt(I*I+Q*Q));
+		const double t = 1000.0 * (i / 2) / (double) samplerate;
+
+		fprintf(f, "%f, %f\n", t, db);
+	}
+
+	fclose(f);
+}
+
 void frameratedetector_runontodata(frameratedetector_t * frameratedetector, float * data, int size, extbuffer_t * extbuff, extbuffer_t * extbuff_small1, extbuffer_t * extbuff_small2) {
 
 	if (frameratedetector->tsdr->params_int[PARAM_AUTOCORR_PLOTS_OFF]) return;
@@ -83,6 +106,14 @@ void frameratedetector_runontodata(frameratedetector_t * frameratedetector, floa
 	if (frameratedetector->tsdr->params_int[PARAM_AUTOCORR_PLOTS_OFF]) return;
 
 	autocorrelate(extbuff, data, size);
+
+	if (frameratedetector->tsdr->params_int[PARAM_AUTOCORR_DUMP]) {
+		frameratedetector->tsdr->params_int[PARAM_AUTOCORR_DUMP] = 0;
+
+		dump_autocorrect(extbuff, frameratedetector->samplerate);
+
+		announce_callback_changed(frameratedetector->tsdr, VALUE_ID_AUTOCORRECT_DUMPED, 0, 0);
+	}
 
 	accummulate(extbuff_small1, extbuff, minlength, maxlength-minlength);
 	accummulate(extbuff_small2, extbuff, height_minlength, height_maxlength-height_minlength);

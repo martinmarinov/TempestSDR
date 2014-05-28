@@ -46,7 +46,7 @@ public class TSDRLibrary {
 	/** The desired direction of manual synchronisation */
 	public enum SYNC_DIRECTION {ANY, UP, DOWN, LEFT, RIGHT};
 	
-	public enum PARAM {AUTOSHIFT, PLLFRAMERATE, AUTOCORR_PLOTS_RESET, AUTOCORR_PLOTS_OFF, SUPERRESOLUTION, NEAREST_NEIGHBOUR_RESAMPLING, LOW_PASS_BEFORE_SYNC, AUTOGAIN_AFTER_PROCESSING};
+	public enum PARAM {AUTOSHIFT, PLLFRAMERATE, AUTOCORR_PLOTS_RESET, AUTOCORR_PLOTS_OFF, SUPERRESOLUTION, NEAREST_NEIGHBOUR_RESAMPLING, LOW_PASS_BEFORE_SYNC, AUTOGAIN_AFTER_PROCESSING, AUTOCORR_DUMP};
 	public enum PARAM_DOUBLE {};
 	
 	/** Whether native is running or not */
@@ -412,7 +412,7 @@ public class TSDRLibrary {
 	}
 	
 	public interface IncomingValueCallback {
-		public static enum VALUE_ID {PLL_FRAMERATE, AUTOCORRECT_RESET, FRAMES_COUNT, AUTOGAIN, SNR};
+		public static enum VALUE_ID {PLL_FRAMERATE, AUTOCORRECT_RESET, FRAMES_COUNT, AUTOGAIN, SNR, AUTOCORRECT_DUMPED};
 		public static enum PLOT_ID {FRAME, LINE};
 		
 		public void onValueChanged(final VALUE_ID id, double arg0, double arg1);

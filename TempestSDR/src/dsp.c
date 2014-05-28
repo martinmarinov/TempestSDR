@@ -190,7 +190,7 @@ float * dsp_post_process(tsdr_lib_t * tsdr, dsp_postprocess_t * pp, float * buff
 	if (pp->runs++ > AUTOGAIN_REPORT_EVERY_FRAMES) {
 		pp->runs = 0;
 		announce_callback_changed(tsdr, VALUE_ID_AUTOGAIN_VALUES, pp->dsp_autogain.lastmin, pp->dsp_autogain.lastmax);
-		announce_callback_changed(tsdr, VALUE_ID_SNR, pp->dsp_autogain.snr, 0);
+		// TO ENABLE SNR UNCOMMENT THIS announce_callback_changed(tsdr, VALUE_ID_SNR, pp->dsp_autogain.snr, 0);
 	}
 
 	return result;

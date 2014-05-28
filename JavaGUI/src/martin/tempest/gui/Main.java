@@ -122,7 +122,7 @@ public class Main implements TSDRLibrary.FrameReadyCallback, TSDRLibrary.Incomin
 	private ImageVisualizer visualizer;
 	private PlotVisualizer line_plotter, frame_plotter;
 	private AutoScaleVisualizer autoScaleVisualizer;
-	private SNRVisualizer snrLevelVisualizer;
+	//private SNRVisualizer snrLevelVisualizer; to enable snr start by uncommenting this
 	private Rectangle visualizer_bounds;
 	private double framerate = 25;
 	private JTextField txtFramerate;
@@ -131,6 +131,7 @@ public class Main implements TSDRLibrary.FrameReadyCallback, TSDRLibrary.Incomin
 	private ParametersToggleButton tglbtnAutoPosition, tglbtnPllFramerate, tglbtnAutocorrPlots, tglbtnSuperBandwidth;
 	private JToggleButton tglbtnLockHeightAndFramerate;
 	private JToggleButton btnReset;
+	private JToggleButton tglbtnDmp;
 	private JToggleButton btnAutoResolution;
 	private JLabel lblFrames;
 	private JSpinner spAreaAroundMouse;
@@ -215,7 +216,7 @@ public class Main implements TSDRLibrary.FrameReadyCallback, TSDRLibrary.Incomin
 		});
 		
 		visualizer = new ImageVisualizer();
-		visualizer.setBounds(35, 33, 505, 346);
+		visualizer.setBounds(10, 33, 530, 346);
 		visualizer.addKeyListener(keyhook);
 		visualizer.setFocusable(true);
 		visualizer.addMouseListener(new MouseAdapter() {
@@ -707,9 +708,25 @@ public class Main implements TSDRLibrary.FrameReadyCallback, TSDRLibrary.Incomin
 		
 		visualizer.setRenderingQualityHigh(chckbxmntmHighQualityRendering.isSelected());
 		
-		snrLevelVisualizer = new SNRVisualizer();
-		snrLevelVisualizer.setBounds(10, 33, 25, 346);
-		frmTempestSdr.getContentPane().add(snrLevelVisualizer);
+		//snrLevelVisualizer = new SNRVisualizer();
+		//snrLevelVisualizer.setBounds(10, 33, 25, 346);
+		//frmTempestSdr.getContentPane().add(snrLevelVisualizer);
+		
+		tglbtnDmp = new JToggleButton("DMP");
+		tglbtnDmp.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent arg0) {
+				try {
+					tglbtnDmp.setSelected(true);
+					mSdrlib.setParam(PARAM.AUTOCORR_DUMP, 1);
+				} catch (TSDRException e1) {
+					displayException(frmTempestSdr, e1);
+				}
+			}
+		});
+		tglbtnDmp.setToolTipText("Dump the full instanteneous autocorrelation to file");
+		tglbtnDmp.setMargin(new Insets(0, 0, 0, 0));
+		tglbtnDmp.setBounds(749, 498, 41, 22);
+		frmTempestSdr.getContentPane().add(tglbtnDmp);
 		
 		try {
 			mSdrlib.setParam(PARAM.NEAREST_NEIGHBOUR_RESAMPLING, chckbxmntmNearestNeighbourResampling.isSelected() ? 1 : 0);
@@ -1194,7 +1211,12 @@ public class Main implements TSDRLibrary.FrameReadyCallback, TSDRLibrary.Incomin
 			autoScaleVisualizer.setValue(arg0, arg1);
 			break;
 		case SNR:
-			snrLevelVisualizer.setSNRValue(arg0);
+			//snrLevelVisualizer.setSNRValue(arg0);
+			break;
+		case AUTOCORRECT_DUMPED:
+			tglbtnDmp.setSelected(false);
+			final File f = new File("autocorr.csv");
+			visualizer.setOSD(f.exists() ? "Autocorrelation dumped "+f.getAbsolutePath() : "Failed to dump autocorrelation", OSD_TIME);
 			break;
 		default:
 			System.out.println("Java Main received notification that value "+id+" has changed to arg0="+arg0+" and arg1="+arg1);
