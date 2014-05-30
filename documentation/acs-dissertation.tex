@@ -116,7 +116,7 @@ Overall his system improves on van Eck's one by supporting a variety of modern v
 
 The presented project is inspired by Dr Kuhn's work. His report simplifies further research into the topic by giving a very detailed and mathematical description of the emanated signal and its properties. This gave room for a number of improvements to his real time monitoring implementation making it affordable and more practical.
 
-\section{Achieved Goals}
+\section{Achieved Goals and Motivation}
 
 The project aims to raise awareness of the potential security implications of the compromising emanations emitted by video monitors. It implements the principles outlined in the related work section \ref{sec:RelatedWork} using a completely new approach: utilising a software-defined radio receiver. It also combines them into a single portable software library. In its basic form it allows tuning to a video signal by manually controlling the vertical and horizontal synchronisation similar to the implementation that van Eck and Kuhn have used in their practical demonstrations.
 
@@ -155,21 +155,24 @@ However, the report does not discuss ways of limiting the amount of information 
 
 The report also does not claim that the experimental results presented are exhaustive. This is due to the fact that there is a wide range of software-defined radio front-ends that are supported, each of them having different characteristics. Therefore no attempt was done to characterise the hardware used for the experiments. The presented measurements are not provided as absolute value (i.e. voltages) but rather as relative (i.e decibels). The results will very much depend on the target video display as well. Some displays will emit strong signals that could be picked up tens of meters away, while others emit no detectable video emanations. Characterising receivers and target video displays could be also left as a further research topic.
 
-Also, there are some caveats with the system itself:
+Unfortunately, there are also some inherent caveats that come with the system:
 \begin{itemize}
 
   \item The performance of the system depends on the speed of the CPU of the attacker. No GPU acceleration was implemented since it wasn't really necessary. 35 fps could easily be achieved on a Intel Core i5 laptop without GPU acceleration.
   \item Difficult to compare its core performance to existing implementations due to the fundamental differences of the underlying architectures.
-  \item More research could be dong to improve the user friendliness of the GUI.
   \item Software-defined radio receivers have a lower sensitivity and higher noise figure due to lack of high quality analogue filters compared to specialised wideband receivers. There is also interference caused by their internal IC circuits or the USB/Ethernet/Power cables that connect them to the PC. However, Dr Kuhn showed that in practice this could be greatly improved using suitable analogue preconditioning.
   
 \end{itemize}
 
 \chapter{Background}
 
-\section{Electronic Emanations} 
+A reader should have knowledge of undergraduate level mathematics including calculus. Some of the equations and theorems are simply stated and then used. If the reader wants to learn more about their derivations, they need to look at a relevant textbook. Furthermore, it is assumed that the reader has a computer science background and understands the basic concepts behind object oriented programming and procedural programming. Familiarity with the C programming language and some basic knowledge of Java would be helpful as well. Understanding the basics of signal processing and Fourier theory is also desirable but not strictly required.
 
-\section{IQ sampling} 
+\section{Electromagnetism} 
+
+\section{Signal Processing} 
+
+\section{IQ Sampling} 
 
 \chapter{Methodology} 
 

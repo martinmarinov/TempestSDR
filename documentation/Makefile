@@ -3,6 +3,8 @@ BIBTEX=bibtex
 
 all: acs-dissertation.pdf
 
+remake : clean all
+
 acs-dissertation.pdf: 
 	$(LATEX) acs-dissertation
 	$(BIBTEX) acs-dissertation
