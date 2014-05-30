@@ -151,7 +151,9 @@ The library comes with a Java GUI but it could be used independently by any othe
 
 This report provides some background information on the physics behind the radio wave generation. It describes the basics of a SDR radio receiver. It then explains the properties of the emanated signal and how to reconstruct it. It goes on describing the automatic remote estimation of video parameters. A practical attack is demonstrated afterwards showing that an attacker with no prior knowledge of the target video display can receive its signal from a distance using the system. It then outlines the architectural details of the library and the implementation details. Finally, a conclusion is done with some suggestions on further research.
 
-However, the project does not discuss ways of limiting the amount of information leaked via such compromising emanations. This is beyond the scope of the project. The system, however, could be used for further research on the topic. It could possibly aid such attempts by serving as a rapid prototyping tool.
+However, the report does not discuss ways of limiting the amount of information leaked via such compromising emanations. This is beyond the scope of the project. The system, however, could be used for further research on the topic. It could possibly aid such attempts by serving as a rapid prototyping tool.
+
+The report also does not claim that the experimental results presented are exhaustive. This is due to the fact that there is a wide range of software-defined radio front-ends that are supported, each of them having different characteristics. Therefore no attempt was done to characterise the hardware used for the experiments. The presented measurements are not provided as absolute value (i.e. voltages) but rather as relative (i.e decibels). The results will very much depend on the target video display as well. Some displays will emit strong signals that could be picked up tens of meters away, while others emit no detectable video emanations. Characterising receivers and target video displays could be also left as a further research topic.
 
 Also, there are some caveats with the system itself:
 \begin{itemize}
