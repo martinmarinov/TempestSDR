@@ -22,7 +22,7 @@
 \def\wordcount{??,???}
 
 
-\usepackage{epsfig,graphicx,parskip,setspace,tabularx,xspace,epstopdf,amssymb,caption,subcaption,hyperref} 
+\usepackage{epsfig,graphicx,parskip,setspace,tabularx,xspace,epstopdf,amssymb,caption,subcaption,hyperref,amsmath} 
 \graphicspath{ {./images/} }
 
 %% START OF DOCUMENT
@@ -155,7 +155,7 @@ However, the report does not discuss ways of limiting the amount of information 
 
 The report also does not claim that the experimental results presented are exhaustive. This is due to the fact that there is a wide range of software-defined radio front-ends that are supported, each of them having different characteristics. Therefore no attempt was done to characterise the hardware used for the experiments. The presented measurements are not provided as absolute value (i.e. voltages) but rather as relative (i.e decibels). The results will very much depend on the target video display as well. Some displays will emit strong signals that could be picked up tens of meters away, while others emit no detectable video emanations. Characterising receivers and target video displays could be also left as a further research topic.
 
-Unfortunately, there are also some inherent caveats that come with the system:
+There are also some inherent notes about the system:
 \begin{itemize}
 
   \item The performance of the system depends on the speed of the CPU of the attacker. No GPU acceleration was implemented since it wasn't really necessary. 35 fps could easily be achieved on a Intel Core i5 laptop without GPU acceleration.
@@ -168,9 +168,35 @@ Unfortunately, there are also some inherent caveats that come with the system:
 
 A reader should have knowledge of undergraduate level mathematics including calculus. Some of the equations and theorems are simply stated and then used. If the reader wants to learn more about their derivations, they need to look at a relevant textbook. Furthermore, it is assumed that the reader has a computer science background and understands the basic concepts behind object oriented programming and procedural programming. Familiarity with the C programming language and some basic knowledge of Java would be helpful as well. Understanding the basics of signal processing and Fourier theory is also desirable but not strictly required.
 
-\section{Electromagnetism} 
-
 \section{Signal Processing} 
+
+The fact that changing currents in a wire induce currents in another nearby wire comes straight from Maxwell's equations \cite{maxwell1881treatise}. A signal is just changing current and/or voltage in the time domain. Let's imagine we have a wire that we call wire A. We want to transmit a signal over it. We connect it to a signal generator, so that voltage across the wire at time $t$ could be written as $f(t) = V \cdot sin(2\pi f_{c} t)$ where $V$ is called the \textbf{amplitude} and $f_{c}$ is the \textbf{frequency} of the continuous tone. Because of Maxwell's equations, the changing current in wire A will also generate a circular changing magnetic field around itself.
+
+Let's imagine that an adversary puts a wire B lying parallel to wire A. The changing magnetic field from wire A will generate changing current in wire B. The adversary can measure the voltage in wire B as a function of time $\hat{f}(t)$. If we think about the ideal case and ignore resistance and capacitance, we would get perfect coupling, i.e. the adversary will measure $\hat{f}(t) = V \cdot sin(2\pi f_{c} t)$ which is precisely $f(t)$, the signal in wire A. We have unintentionally broadcasted a continuous wave and an adversary has successfully received it remotely, without physically tapping into our wire. This is the source of the compromising emanations we observe - signals in wires unintentionally inducing currents in other nearby wires. Of course in the real world we don't only broadcast sine waves. The waves could be rather complex but the same principles apply since each signal could be decomposed into a series of sine tones using Fourier analysis. In the real world we also can't ignore resistance and capacitance so we need to use antennas to intercept signals. We will also have interference from other sources so recovering the original signal is a challenge but it could be done using signal processing techniques.
+
+We can apply \textbf{Fourier transform}\cite{briggs1995dft} to see how the signal spectrum will look in the frequency domain. This will decompose the function into a sum of complex $sin$ and $cos$ terms. The Fourier transform of $f(t)$ is defined as
+$$F(\omega)=\mathcal{F} \left\{ f(t) \right\} = \int_{-\infty}^{\infty} f(t) e^{-j \omega t} dt $$
+and the inverse Fourier transform
+$$f(t) = \mathcal{F}^{-1} \left\{ F(\omega) \right\} = \frac{1}{2\pi} \int_{-\infty}^{\infty} F(\omega) e^{j \omega t} d\omega$$
+
+A sine wave of the form $f(t) = sin(2 \pi \Omega t)$ will result in spikes $F(\omega) = \frac{1}{2 i} [\delta(\omega - \Omega) - \delta(\omega
+ + \Omega)]$ at $F(-\Omega)$ and $F(\Omega)$ since $F(\omega) = 0$ everywhere else. Therefore we can see that the Fourier transform basically gives an indication of the frequency of the source signal. Note that the \textbf{Dirac delta} function is defined as
+$$ \delta(t) = \begin{cases} +\infty, & x = 0 \\ 0, & x \neq 0 \end{cases} $$
+
+The Dirac delta functions have the so-called ``sifting'' property so that if multiplied with a function $f(t)$, it will \textbf{sample} out only a single value, namely
+$$ \int_{-\infty}^{\infty} f(t) \delta(t - T) dt = f(T) $$
+We will also encounter the ``Dirac comb'' defined as:
+$$ \sum_{k=-\infty}^{\infty} \delta(t - kT) $$
+Which is basically an infinite number of Dirac delta functions repeating at regular intervals of $T$. We can therefore ``sample'' a function $f(t)$ at times $T$ by multiplying it with a Dirac comb. This will result in discrete samples being obtained from $f(t)$ at regular intervals of $T$ i.e. we will obtain $\dots, f(-2 T), f(-T), f(0), f(T), f(2 T), \dots$.
+
+We also need to mention \textbf{convolution}, denoted by the operator $\ast$. The convolution of two functions $f(t)$ and $g(t)$ is defined as:
+$$(f \ast g)(t) = \int_{-\infty}^{\infty} f(\tau) g(t - \tau) d \tau$$
+Note that for simplicity, in the current report, I have chosen to drop the $(t)$ so if you encounter $f \ast g$, it should read $(f \ast g)(t)$.
+
+To illustrate how convolution works, consider convolving a function $f(t)$ with a Dirac delta
+$$ f(t) \ast \delta(t-T) =  \int_{-\infty}^{\infty} f(\tau) \delta(t - \tau - T ) d \tau = \int_{-\infty}^{\infty} f(\tau) \delta( \tau - ( t -T) ) = f(t-T)$$
+Where we used the fact that the Dirac delta function has an even symmetry $\delta(t) = \delta(-t)$. This results in a new function $f(t-T)$ which is a time shifted copy of $f(t)$ with a shift of $T$. Convolving with a Dirac comb could be shown to produce infinite copies of $f(t)$ at regular intervals $T$ which are basically summed together.
+
 
 \section{IQ Sampling} 
 
@@ -471,7 +497,7 @@ The choice for a SDR front-end for this demonstration is a USRP B200\footnote{Re
 
 \subsection{Extended Bandwidth}
 
-\subsection{Testing and Benchmarking}
+%\subsection{Testing and Benchmarking}
 
 \chapter{Summary and Conclusions} 
 
