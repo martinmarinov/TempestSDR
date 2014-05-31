@@ -171,9 +171,9 @@ A reader should have knowledge of undergraduate level mathematics including calc
 
 \section{Signal Processing} 
 
-The fact that changing currents in a wire induce currents in another nearby wire comes straight from Maxwell's equations \cite{maxwell1881treatise}. A signal is just changing current and/or voltage in the time domain. Let's imagine we have a wire that we call wire A. We want to transmit a signal over it. We connect it to a signal generator, so that current across the wire at time $t$ could be written as $f(t) = I \cdot sin(2\pi f_{c} t)$ where $I$ is called the \textbf{amplitude} and $f_{c}$ is the \textbf{frequency} of the continuous tone. Because of Maxwell's equations, the changing current in wire A will also generate a circular changing magnetic field around itself.
+The fact that changing currents in a wire induce currents in another nearby wire comes straight from Maxwell's equations \cite{maxwell1881treatise}. A signal is just changing current and/or voltage in the time domain. Let's imagine we have a wire that we call wire A. We want to transmit a signal over it. We connect it to a signal generator, so that current across the wire at time $t$ could be written as $f(t) = I \cdot sin(2\pi f_{c} t)$. Where $I$ the \textbf{amplitude}, $f_{c}$ is the \textbf{frequency} of the continuous tone and the whole argument of the $sin$, namely $2\pi f_{c} t$ is called the \textbf{phase} of the wave. Because of Maxwell's equations, the changing current in wire A will also generate a circular changing magnetic field around itself.
 
-Let's imagine that an adversary puts a wire B lying parallel to wire A. The changing magnetic field from wire A will generate changing current in wire B. The adversary can measure the current in wire B as a function of time $\hat{f}(t)$. If we think about the ideal case and ignore resistance and capacitance, we would get perfect coupling, i.e. the adversary will measure $\hat{f}(t) = I \cdot sin(2\pi f_{c} t)$ which is precisely $f(t)$, the signal in wire A. We have unintentionally broadcasted a continuous wave and an adversary has successfully received it remotely, without physically tapping into our wire. This is the source of the compromising emanations we observe - signals in wires unintentionally inducing currents in other nearby wires. Of course in the real world we don't only broadcast sine waves. The waves could be rather complex but the same principles apply since each signal could be decomposed into a series of sine tones using Fourier analysis. In the real world we also can't ignore resistance and capacitance so we need to use antennas and amplifiers to intercept signals. We will also have interference from other sources so recovering the original signal is a challenge but it could be done using signal processing techniques.
+Let's imagine that an adversary puts a wire B lying parallel to wire A. The changing magnetic field from wire A will generate changing current in wire B. The adversary can measure the current in wire B as a function of time $\hat{f}(t)$. If we think about the ideal case and ignore resistance and capacitance, we would get perfect coupling, i.e. the adversary will measure $\hat{f}(t) = I \cdot sin(2\pi f_{c} t)$ which is precisely $f(t)$, the signal in wire A. We have unintentionally broadcasted a continuous wave and an adversary has successfully received it remotely, without physically tapping into our wire (Figure \ref{fig:wirecurrent}). This is the source of the compromising emanations we observe - signals in wires unintentionally inducing currents in other nearby wires. Of course in the real world we don't only broadcast sine waves. The waves could be rather complex but the same principles apply since each signal could be decomposed into a series of sine tones using Fourier analysis. In the real world we also can't ignore resistance and capacitance so we need to use antennas and amplifiers to intercept signals. We will also have interference from other sources so recovering the original signal is a challenge but it could be done using signal processing techniques.
 
 We can apply \textbf{Fourier transform}\cite{briggs1995dft} to see how the signal spectrum will look in the frequency domain. This will decompose the function into a sum of complex $sin$ and $cos$ terms. The Fourier transform of $f(t)$ is defined as
 $$F(\omega)=\mathcal{F} \left\{ f(t) \right\} = \int_{-\infty}^{\infty} f(t) e^{-j \omega t} dt $$
@@ -209,7 +209,7 @@ A simple analogue to digital converter will measure the voltage at a wire by pro
 \sum_{k=-\infty}^{\infty} f(t) \delta(t - kT)
 \end{equation}
 
-If we want to detect signal with frequency up to $f_{max}$, then according to the Nyquist sampling theorem, we need to sample with a sample rate $s \geq 2 f_{max}$. However, this usually gets impractical when $f_{max}$ gets large. One way of dealing with that (assuming the signal we want to receive is band limited) is using a local oscillator that runs at frequency $f_{lo}$. The oscillator generates a signal $A_{lo} \cdot cos(f_{lo} t)$. The output from the local oscillator is multiplied with the incoming \textbf{RF} (radio frequency) baseband signal (a.k.a. mixing). Say the RF signal is $f(t) = A(t) cos(f_{c} t)$. It has a \textbf{frequency} of $f_{c}$ and \textbf{phase} of $f_{c} t$. For simplicity, let's put $A_{lo} = 2$. After the mixing stage, our resulting signal will be
+If we want to detect signal with frequency up to $f_{max}$, then according to the Nyquist sampling theorem, we need to sample with a sample rate $s \geq 2 f_{max}$. However, this usually gets impractical when $f_{max}$ gets large. One way of dealing with that (assuming the signal we want to receive is band limited) is using a local oscillator that runs at frequency $f_{lo}$. The oscillator generates a signal $A_{lo} \cdot cos(f_{lo} t)$. The output from the local oscillator is multiplied with the incoming \textbf{RF} (radio frequency) baseband signal (a.k.a. mixing). Say the RF signal is $f(t) = A(t) cos(f_{c} t)$. It has a frequency of $f_{c}$ and phase of $f_{c} t$. For simplicity, let's put $A_{lo} = 2$. After the mixing stage, our resulting signal will be
 \begin{multline}
 \label{eq:hetero}
 f(t) \cdot A_{lo} cos(f_{lo} t) =  A(t) cos(f_{c} t) \cdot 2 cos(f_{lo} t) = \\
@@ -235,15 +235,22 @@ I_{n} = A_{n} cos( \varphi_{n} ) \,\,\,\,\, and \,\,\,\,\, Q_{n} = A_{n} sin( \v
 \end{equation}
 These I and Q samples form the basic principles of software-defined radio. I and Q stand for in-phase and quadrature phase\cite{kirkhorn1999introduction}. These terms refer to the $cos$ and $-sin$ oscillator phases used for mixing. After the IQ samples are obtained, they are received by a PC with a sample rate of $s$. Further analysis of the phase, frequency and amplitude could be done in software allowing for any signals that fit within the bandwidth to be demodulated.
 
-The following identities could be used to obtain them for a sample $n$:
+The following identities could be used to obtain them for a sample $n$ ($\omega_{n}$ is the frequency):
 \begin{subequations}
 \begin{align}
 A_{n} = \sqrt{I_n^2+Q_n^2} = \sqrt{A_{n}^2 \cdot (cos^2(\varphi_n) + sin^2(\varphi_n))} \\
-\varphi_{n} = tan^{-1}\left(\frac{I_{n}}{Q_{n}}\right) = tan^{-1}\left(\frac{cos(\varphi_{n})}{sin(\varphi_{n})}\right) \\
+\varphi_{n} = tan^{-1}\left(\frac{Q_{n}}{I_{n}}\right) = tan^{-1}\left(\frac{sin(\varphi_{n})}{cos(\varphi_{n})}\right) \\
 \omega_{n} = \frac{d \varphi_{n}}{dt} = \varphi_{n} - \varphi_{n-1}
 \end{align}
 \end{subequations}
-Where $\omega_{n}$ is the frequency.
+Refer to Figure \ref{fig:IQ} for geometrical representation of the outlined properties.
+
+\begin{figure}
+\centering
+\includegraphics[width=0.9\textwidth]{iqdrawing}
+  \caption{Graphical representation of an IQ sample $n$ in the complex plane. All points with the same amplitude $A_{n}$ will lie on the a circle showed in gray. The angle that the sample vector makes with the real axis is the instantaneous phase $\varphi$ of the sample.}
+  \label{fig:IQ}
+\end{figure}
 
 \chapter{Methodology} 
 
