@@ -19,11 +19,12 @@
 \def\authorcollege{St Edmund's College\xspace}
 \def\authoremail{mtm46@cam.ac.uk}
 \def\dissertationtitle{Remote video eavesdropping using a software-defined radio platform}
-\def\wordcount{??,???}
 
 
-\usepackage{epsfig,graphicx,parskip,setspace,tabularx,xspace,epstopdf,amssymb,caption,subcaption,hyperref,amsmath,gensymb} 
+\usepackage{epsfig,graphicx,parskip,setspace,tabularx,xspace,epstopdf,amssymb,caption,subcaption,hyperref,amsmath,gensymb,verbatim} 
 \graphicspath{ {./images/} }
+% Define macro \wordcount for including the counts
+\def\wordcount{\verbatiminput{\jobname.sum}}
 
 %% START OF DOCUMENT
 \begin{document}

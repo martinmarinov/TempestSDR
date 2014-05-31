@@ -1,2 +1,2 @@
 #!/bin/sh
-texcount -brief -inc acs-dissertation.tex
+texcount -1 -inc -sum acs-dissertation.tex | awk '{printf "%\x27 d", $1}' > acs-dissertation.sum
