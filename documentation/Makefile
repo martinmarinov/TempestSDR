@@ -12,6 +12,7 @@ acs-dissertation.pdf:
 	$(LATEX) acs-dissertation
 	$(LATEX) acs-dissertation
 	$(RM) -f CUni3-eps-converted-to.pdf acs-dissertation.sum
+	@texcount -1 -inc -sum acs-dissertation.tex | awk '{printf "\n\n----------------------------\nTotal words in dissertation:%\x27 d\n\n", $$1}'
 
 clean:
 	$(RM) -f acs-dissertation.pdf acs-dissertation.ps acs-dissertation.dvi 
