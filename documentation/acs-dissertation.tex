@@ -22,7 +22,7 @@
 \def\wordcount{??,???}
 
 
-\usepackage{epsfig,graphicx,parskip,setspace,tabularx,xspace,epstopdf,amssymb,caption,subcaption,hyperref,amsmath} 
+\usepackage{epsfig,graphicx,parskip,setspace,tabularx,xspace,epstopdf,amssymb,caption,subcaption,hyperref,amsmath,gensymb} 
 \graphicspath{ {./images/} }
 
 %% START OF DOCUMENT
@@ -103,7 +103,7 @@ However there are a few caveats:
 
 \begin{itemize}
 
-  \item A researcher will need access to very expensive, export restricted equipment in order to repeat his experiments.
+  \item A researcher will need access to very expensive, export restricted equipment in order to repeat his experiments. This equipment often lacks mobility and is bulky and heavy.
   \item As with van Ecks' system, Kuhn's solution still requires manual synchronisation.
   \item Digital signal processing for improving reception of weak signals (like time averaging) was not attempted.
   \item An attacker will need to know the exact video mode the target is using.
@@ -170,9 +170,9 @@ A reader should have knowledge of undergraduate level mathematics including calc
 
 \section{Signal Processing} 
 
-The fact that changing currents in a wire induce currents in another nearby wire comes straight from Maxwell's equations \cite{maxwell1881treatise}. A signal is just changing current and/or voltage in the time domain. Let's imagine we have a wire that we call wire A. We want to transmit a signal over it. We connect it to a signal generator, so that voltage across the wire at time $t$ could be written as $f(t) = V \cdot sin(2\pi f_{c} t)$ where $V$ is called the \textbf{amplitude} and $f_{c}$ is the \textbf{frequency} of the continuous tone. Because of Maxwell's equations, the changing current in wire A will also generate a circular changing magnetic field around itself.
+The fact that changing currents in a wire induce currents in another nearby wire comes straight from Maxwell's equations \cite{maxwell1881treatise}. A signal is just changing current and/or voltage in the time domain. Let's imagine we have a wire that we call wire A. We want to transmit a signal over it. We connect it to a signal generator, so that current across the wire at time $t$ could be written as $f(t) = I \cdot sin(2\pi f_{c} t)$ where $I$ is called the \textbf{amplitude} and $f_{c}$ is the \textbf{frequency} of the continuous tone. Because of Maxwell's equations, the changing current in wire A will also generate a circular changing magnetic field around itself.
 
-Let's imagine that an adversary puts a wire B lying parallel to wire A. The changing magnetic field from wire A will generate changing current in wire B. The adversary can measure the voltage in wire B as a function of time $\hat{f}(t)$. If we think about the ideal case and ignore resistance and capacitance, we would get perfect coupling, i.e. the adversary will measure $\hat{f}(t) = V \cdot sin(2\pi f_{c} t)$ which is precisely $f(t)$, the signal in wire A. We have unintentionally broadcasted a continuous wave and an adversary has successfully received it remotely, without physically tapping into our wire. This is the source of the compromising emanations we observe - signals in wires unintentionally inducing currents in other nearby wires. Of course in the real world we don't only broadcast sine waves. The waves could be rather complex but the same principles apply since each signal could be decomposed into a series of sine tones using Fourier analysis. In the real world we also can't ignore resistance and capacitance so we need to use antennas to intercept signals. We will also have interference from other sources so recovering the original signal is a challenge but it could be done using signal processing techniques.
+Let's imagine that an adversary puts a wire B lying parallel to wire A. The changing magnetic field from wire A will generate changing current in wire B. The adversary can measure the current in wire B as a function of time $\hat{f}(t)$. If we think about the ideal case and ignore resistance and capacitance, we would get perfect coupling, i.e. the adversary will measure $\hat{f}(t) = I \cdot sin(2\pi f_{c} t)$ which is precisely $f(t)$, the signal in wire A. We have unintentionally broadcasted a continuous wave and an adversary has successfully received it remotely, without physically tapping into our wire. This is the source of the compromising emanations we observe - signals in wires unintentionally inducing currents in other nearby wires. Of course in the real world we don't only broadcast sine waves. The waves could be rather complex but the same principles apply since each signal could be decomposed into a series of sine tones using Fourier analysis. In the real world we also can't ignore resistance and capacitance so we need to use antennas to intercept signals. We will also have interference from other sources so recovering the original signal is a challenge but it could be done using signal processing techniques.
 
 We can apply \textbf{Fourier transform}\cite{briggs1995dft} to see how the signal spectrum will look in the frequency domain. This will decompose the function into a sum of complex $sin$ and $cos$ terms. The Fourier transform of $f(t)$ is defined as
 $$F(\omega)=\mathcal{F} \left\{ f(t) \right\} = \int_{-\infty}^{\infty} f(t) e^{-j \omega t} dt $$
@@ -197,8 +197,49 @@ To illustrate how convolution works, consider convolving a function $f(t)$ with 
 $$ f(t) \ast \delta(t-T) =  \int_{-\infty}^{\infty} f(\tau) \delta(t - \tau - T ) d \tau = \int_{-\infty}^{\infty} f(\tau) \delta( \tau - ( t -T) ) = f(t-T)$$
 Where we used the fact that the Dirac delta function has an even symmetry $\delta(t) = \delta(-t)$. This results in a new function $f(t-T)$ which is a time shifted copy of $f(t)$ with a shift of $T$. Convolving with a Dirac comb could be shown to produce infinite copies of $f(t)$ at regular intervals $T$ which are basically summed together.
 
-
 \section{IQ Sampling} 
+
+A simple analogue to digital converter will measure the voltage at a wire by producing $s$ samples per second (called \textbf{sampling rate}). This means that it will produce a new sample every $T_{\Delta} = \frac{1}{s}$ seconds. It converts an analogue signal a.k.a. continuous function $f(t)$ into a series of samples. This could be written mathematically as a multiplication with a Dirac comb:
+\begin{equation}
+\label{eq:sampling}
+\sum_{k=-\infty}^{\infty} f(t) \delta(t - kT)
+\end{equation}
+
+If we want to detect signal with frequency up to $f_{max}$, then according to the Nyquist sampling theorem, we need to sample with a sample rate $s \geq 2 f_{max}$. However, this usually gets impractical when $f_{max}$ gets large. One way of dealing with that is using a local oscillator that runs at frequency $f_{lo}$. Its generated signal can be written as $A_{lo} \cdot cos(f_{lo} t)$. The output from the local oscillator is multiplied with the incoming RF signal (a.k.a. mixing). Say our RF signal is $f(t) = A(t) cos(f_{c} t)$. For simplicity, let's put $A_{lo} = 2$. After the mixing stage, our resulting signal will be
+\begin{multline}
+\label{eq:hetero}
+f(t) \cdot A_{lo} cos(f_{lo} t) =  A(t) cos(f_{c} t) \cdot 2 cos(f_{lo} t) = \\
+=  A(t) cos\big( (f_{c} + f_{lo} \big) t\big) + A(t) cos\big( (f_{c} - f_{lo}) t \big)
+\end{multline}
+These are the combination of two signals called with frequencies called heterodyne frequencies - the sum and the difference between the local oscillator and the incoming frequency. A bandpass filter could be set up at an intermediate frequency $f_{if}$. If any of these side-bands fall within the bandpass of the filter, the signal can go for further processing.
+
+However we encounter a problem - $cos$ is an even function. If we take the $\hat{f}(t) = A(t) cos\big( (2 f_{lo} - f_{c}) t\big)$, after multiplication with our local oscillator, there would be a signal $A(t) cos\big( (f_{lo} - f_{c}) t \big)$ which is equivalent to the signal that we got by multiplying with $f(t)$ in Equation \ref{eq:hetero}. So we can't distinguish $\hat{f}(t)$ from $f(t)$ if we decide to only filter out the difference signal. This is called signal imaging. It could be shown that a signal $\tilde{f}(t) = A(t) cos\big( (- f_{c} - 2 f_{lo}) t\big)$ will in turn generate a sum $A(t) cos\big( ( - f_{lo} - f_{c}) t \big)$ which again results in imaging if we decide to keep the summation term from \ref{eq:hetero}.
+
+This method can preserve the amplitude of the wave and is widely used in AM radio reception. It is obvious that the method is not sufficient for detecting the phase of the incoming wave. A solution to this problem is to multiply the incoming RF signal with a phase shifted version of the local oscillator at an angle of 90\degree. This means multiplying by $-A_{lo} \cdot sin(f_{lo} t)$. After this secondary mixing stage, we would get
+\begin{multline}
+\label{eq:heteroq}
+- f(t) \cdot A_{lo} sin(f_{lo} t) =  -A(t) cos(f_{c} t) \cdot 2 sin(f_{lo} t) = \\
+=  - A(t) sin\big( (f_{c} + f_{lo} \big) t\big) + A(t) sin\big( (f_{c} - f_{lo}) t \big)
+\end{multline}
+Now let's put $\varphi(t) = (f_{c}-f_{lo}) t$, and we only take the terms that contain $\varphi$ in \ref{eq:hetero} and \ref{eq:heteroq}, namely the difference terms using a bandpass filter of width $\frac{s}{2}$. Then we can define
+\begin{equation}
+I(t) = A(t) cos( \varphi (t)) \,\,\,\,\, and \,\,\,\,\, Q(t) = A(t) sin( \varphi (t))
+\end{equation}
+Sampling these continuous signals with an analogue to digital converter will result in discrete values at times $T_{\Delta}$. Let's put $A_{n} = A(n T_{\Delta})$ and $\varphi_{n} = \varphi(n T_{\Delta})$. Then we can define our resulting discrete samples as:
+\begin{equation}
+I_{n} = A_{n} cos( \varphi_{n} ) \,\,\,\,\, and \,\,\,\,\, Q_{n} = A_{n} sin( \varphi _{n})
+\end{equation}
+These I and Q samples form the basic principles of software-defined radio. I and Q stand for in-phase and quadrature phase. These terms refer to the oscillator phases that are used to derive them. After the IQ samples are obtained, they are received by a PC with a sample rate of $s$ and further analysis of the phase, frequency and amplitude could be done in software allowing for any signals that fit within the bandwidth to be demodulated.
+
+The following identities could be used to obtain them for a sample $n$:
+\begin{subequations}
+\begin{align}
+A_{n} = \sqrt{I_n^2+Q_n^2} = \sqrt{A_{n}^2 \cdot (cos^2(\varphi_n) + sin^2(\varphi_n))} \\
+\varphi_{n} = tan^{-1}\left(\frac{I_{n}}{Q_{n}}\right) = tan^{-1}\left(\frac{cos(\varphi_{n})}{sin(\varphi_{n})}\right) \\
+\omega_{n} = \frac{d \varphi_{n}}{dt} = \varphi_{n} - \varphi_{n-1}
+\end{align}
+\end{subequations}
+Where $\omega_{n}$ is the frequency.
 
 \chapter{Methodology} 
 
