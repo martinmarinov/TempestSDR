@@ -64,6 +64,7 @@ local.properties
 
 JavaGUI/jni/TSDRLibraryNDK.h
 documentation/CUni3-eps-converted-to.pdf
+documentation/acs-dissertation.pdf
 
 # Java crash log files
 *.log
