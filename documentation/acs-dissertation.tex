@@ -21,7 +21,7 @@
 \def\dissertationtitle{Remote video eavesdropping using a software-defined radio platform}
 
 
-\usepackage{epsfig,graphicx,parskip,setspace,tabularx,xspace,epstopdf,amssymb,caption,subcaption,hyperref,amsmath,gensymb,verbatim} 
+\usepackage{epsfig,graphicx,parskip,setspace,tabularx,xspace,epstopdf,amssymb,caption,subcaption,hyperref,amsmath,gensymb,verbatim,listings} 
 \graphicspath{ {./images/} }
 % Define macro \wordcount for including the counts
 \def\wordcount{\verbatiminput{\jobname.sum}}
@@ -512,23 +512,60 @@ The choice for a SDR front-end for this demonstration is a USRP B200\footnote{Re
 
 \section{Architecture}
 
-\subsection{Main Library}
+The whole system consists of two parts - a library (called \textbf{TSDRLibrary}) and a host program. The library is the main deliverable of the project. It is responsible for decoding the emanated signal -- from obtaining the data from the hardware to processing it. However it can't run as a stand-alone application. It needs a host program to control it via an API (defined in \textit{TSDRLibrary.h}) and to receive the decoded video frames. The host program could be written in any programming language that can use native libraries.
 
-\subsection{JavaGUI}
+However, the package also comes with a pre-built Java based host program. The provided implementation allows for full manual control over the library via a graphical user interface (GUI). It is very useful for real-time monitoring and interacting asynchronously with the library while the processing is taking place. In practice it is a single executable that has TSDRLibrary built in. This is what the report has been referring to as ``the system'' so far -- the Java GUI combined with TSDRLibrary. An end user would never notice that there is another layer underneath the GUI. All of the examples and screen-shots given here have been obtained via the provided Java based GUI while it is controlling TSDRLibrary.
 
-\subsubsection{Multiplatform}
+\subsection{The Library}
 
-\subsubsection{Graphical Interface}
+The library relies on plugins (called \textbf{TSDRPlugin}) to provide a stream of IQ samples and means to control the SDR hardware in real time. The data sources are shared libraries that are dynamically loaded at runtime by the TSDRLirbary.
 
-\subsubsection{Visualisation}
+The host program's job is extremely simplified. In a nutshell, it sets up the library and runs it. Every time there is a new video frame available, a callback would be invoked via TSDRLibrary so that the host program could process the frame (display it, save it, etc). An expected sequence of API calls to get video data would be:
+
+\begin{enumerate}
+	\item Dynamically load the library (if it is not statically compiled with the host program) using the methods provided by the specific operating system. This will give the host program access to the TSDRLibrary APIs.
+	\item Allocate an instance of the processing pipeline with \textit{tsdr\_init}.
+	\item Set target display resolution and frame rate with \textit{tsdr\_setresolution}. This could be called interactively while the processing is running to dynamically change the parameters at runtime.
+	\item Load a pre-compiled plug-in by invoking \textit{tsdr\_loadplugin} specifying the location of the shared library that represents the plugin and any parameters that the user wants to pass to the plug-in. This plugin will talk to the hardware and provide a steam of IQ data to the library for processing.
+	\item Start the processing by running \textit{tsdr\_readasync}. The current thread would be used to start polling the hardware so it will block until processing has finished.
+	\item The \textit{tsdr\_init} and \textit{tsdr\_readasync} allow for callback functions to be registered with TSDRLibrary. The callbacks are just C functions that reside in the host program that will be called as soon as a new video frames, autocorrelation data or other messages are available. Processing data within those callbacks is not thread safe.
+	\item Call \textit{tsdr\_stop} to stop the processing and unblock the thread that originally called \textit{tsdr\_readasync}. Soon after calling \textit{tsdr\_stop}, the callbacks will stop receiving data.
+\end{enumerate}
+
+If the plug-in supports it, \textit{tsdr\_setbasefreq} can be used to set the base frequency of the hardware device. A few other API commands allow the host program to do manual position adjustment of the video frame, control the amount of lowpass applied and set the gain of the hardware device (if supported). There are some advanced features that could be turned on using the \textit{tsdr\_setparameter} API call which include the automatic frame borders detection, automatic frame rate synchronisation and a few other tweaks to the digital signal processing pipeline. It is up to the host program to use the autocorrelation to determine resolution and framerate which gives enough room for flexibility.
+
+Each API call can return an error code in case it fails. The host application can also read a verbose version of the error message using the \textit{tsdr\_getlasterrortext} API call. This allows for intuitive and simple error handling.
+
+\subsection{Data Flow}
+
+\begin{figure}[h]
+  \centering
+    \includegraphics[width=\textwidth]{systemoverview}
+    \caption{Data processing in the system using the Java GUI. Bold text represents different native threads. White background means code is written in C. Black background means code is written in Java. Gray background is for operating system related processes and external hardware. Arrows with white ends represent points where data could be dropped due to performance reasons. Arrows with black ends represent transferring full data that was processed in the previous step. The star on the Post processing stage means that the outlined sub-stages could be executed in different order depending on user preferences.}
+    \label{fig:architecture}
+\end{figure}
+
+Figure \ref{fig:architecture} outlines the data flow and data processing paths within a typical set-up of the system\footnote{If instead the data is read from a file or network, we can regard the ``Software - defined radio hardware'' as the hard drive or the network layer.}. It goes through the following steps:
+
+\begin{enumerate}
+	\item RF data is converted into IQ samples in the SDR device. These samples are sent to the PC for processing.
+	\item The hardware driver in the OS receives the samples and possibly queues them.
+	\item A TSDRPlugin either continuously polls the driver or receives a callback from it as soon as a block of data is available. It obtains the block of data and sends it to the TSDRLibrary via a callback.
+	\item The IQ data is inside TSDRLibrary. AM demodulation is done on the data. This runs in a separate thread so that the TSDRPlugin will have the chance to receive new data from the device as quickly as possible. The demodulated data is provided to the Autocorrelation thread that will calculate the autocorrelation of the incoming signal and notify the host program. If TSDRPlugin reports any dropped samples between calls, the autocorrelation is reset (we only want continuous data accumulated for autocorrelation).
+	\item The resampling logic runs in a separate thread. It matches the rate of the data from the sampling rate of the device $s$ to the expected rate of $w h f_\text{fps}$.
+	\item Here some digital signal processing is done in a separate thread to enhance the signal. The order with which the operations are applied depends on the settings that a user will supply. By default the synchronisation pulses of a video frame are detected first. If the user has selected auto tracking, the current position of the horizontal blanking interval is compared with the last one. This gives a rough estimate on whether $f_{fps}$ is off by a couple of parts per million from the real value. The process allows for keeping the picture steady on the screen. Then lowpass in the time domain is done (a.k.a. motion blur) to de-noise a weaker signal using averaging. Finally, an autogain algorithm makes sure that the full dynamic range of the signal is equally utilised for the final image.
+	\item Here the host application receives a video frame via a callback. It is up to the host application to determine what to do with it. It can take as much time as it wants since this runs in a separate thread.
+	\item The signal leaves the library and goes into the host application. In this example this is our Java GUI. A Java Native Interface (JNI) code marshals the incoming data to a Java friendly format which is then passed to the Java Virtual Machine and the particular class instance that has invoked the whole processing.
+	\item Once the data arrives at the TSDRLibrary class instance, the main GUI will receive a notification via a callback and will dispatch the bitmap to be drawn on the screen.
+\end{enumerate}
+
+The biggest problem faced was synchronising dropped samples. To illustrate the issue, imagine we are receiving samples at a rate of $50$ mega samples per second. If each sample contains two floating point values (the I and the Q component), each of which being $4$ bytes of data, then the total data rate coming from the hardware would be $8 \times 50 = 400$ megabytes per second! This is a huge amount of data. Since the configuration is running on a non-real-time operating system, the CPU might not be able to cope with such a fast stream. Furthermore there could be some hardware limits enforced as well, for example maximum throughput of the bus that is being used to transmit the data from the SDR device to the PC.
+
+This means that we will have a lot of dropped samples coming from the device. At the same time, even if we don't have any dropped samples, the CPU can still fail to process all of the desired data in real-time. This means that, in order to have the system run interactively, some samples that can't be processed in real-time should be dropped. This would allow for fresh data to be collected for processing. However having even a couple of dropped samples is a problem. This is because video is continuous. Dropping a few pixels means that the whole frame synchronization could be broken.
+
+Therefore the library employs an algorithm that allows it to drop samples only an integer multiple of $w \times h$ at a time. This means that even if a single sample was dropped before processing, the algorithm will enforce a whole batch of $w \times h$ samples to be dropped instead. This means that when the next frame arrives, it will start processing from where the previous frame had dropped samples. Therefore the picture will look seamless to the end user since the dropped samples will actually result in a lower frame-rate in the host application. This approach allows the system to run even on not so powerful configurations and still produce some output. Such synchronization points are denoted as white arrows on Figure \ref{fig:architecture}.
 
 \section{Digital Signal Processing}
-
-\subsection{Overview}
-
-\subsection{Signal Reconstruction}
-
-\subsubsection{Multithreading}
 
 \subsubsection{Demodulation}
 
@@ -542,11 +579,25 @@ The choice for a SDR front-end for this demonstration is a USRP B200\footnote{Re
 
 \subsection{Resolution Detection}
 
-\subsection{Extended Bandwidth}
+\subsubsection{Frame Synchronization}
+
+\subsection{Experimental: Extended Bandwidth}
+
+\subsection{Main Library}
+
+\subsection{JavaGUI}
+
+\subsubsection{Multiplatform}
+
+\subsubsection{Graphical Interface}
+
+\subsubsection{Visualisation}
 
 %\subsection{Testing and Benchmarking}
 
 \chapter{Summary and Conclusions} 
+
+\subsection{Encountered Issues}
 
 [Summarize results]
 
