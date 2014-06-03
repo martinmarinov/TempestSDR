@@ -233,9 +233,11 @@ Sampling these continuous signals with an analogue to digital converter will res
 \begin{equation}
 I_{n} = A_{n} \cos( \varphi_{n} ) \,\,\,\,\, \text{and} \,\,\,\,\, Q_{n} = A_{n} \sin( \varphi _{n})
 \end{equation}
-These I and Q samples form the basic principles of software-defined radio. I and Q stand for in-phase and quadrature phase\cite{kirkhorn1999introduction}. These terms refer to the $\cos$ and $-\sin$ oscillator phases used for mixing. After the IQ samples are obtained, they are received by a PC with a sample rate of $s$. Further analysis of the phase, frequency and amplitude could be done in software allowing for any signals that fit within the bandwidth to be demodulated.
+These I and Q samples form the basic principles of software-defined radio. I and Q stand for in-phase and quadrature phase\cite{kirkhorn1999introduction}. These terms refer to the $\cos$ and $-\sin$ oscillator phases used for mixing. After the IQ samples are obtained, they are received by a PC with a sample rate of $s$.
 
-The following identities could be used to obtain them for a sample $n$ ($\omega_{n}$ is the frequency):
+They allow monitoring frequencies from $-\frac{s}{2}$ to $\frac{s}{2}$. The Nyquist sampling theorem would allow a maximum frequency span from $0$ to $\frac{s}{2}$ for signals sampled with real values. This would cause the imaging we discussed before. IQ sampling improves on that using complex numbers effectively doubling the range.
+
+Once IQ samples are obtained by software, further analysis of the phase, frequency and amplitude could be done allowing for any signals that fit within the bandwidth from $-\frac{s}{2}$ to $\frac{s}{2}$. The following identities could be used to obtain them for a sample $n$ ($\omega_{n}$ is the frequency):
 \begin{subequations}
 \begin{align}
 A_{n} = \sqrt{I_n^2+Q_n^2} = \sqrt{A_{n}^2 \cdot (\cos^2(\varphi_n) + \sin^2(\varphi_n))} \\
@@ -364,6 +366,7 @@ The VESA standard specifies an allowed frequency tolerance for $f_\text{p}$ of 0
 
 It is also true that we might be able to recover a lot of information from a signal even if our receiver is not capable of sampling the full width of the video spectrum. This means we will only receive a of $g(f)$ with a bandpass filter applied to it. In this case the digital resampling could interpolate the received samples to fit into multiple pixels. Therefore it is useful to introduce a measurement $\kappa$ of how accurate we can reconstruct pixels of $g(t)$. This measurement can be the number of input samples that have gone into constructing a single output pixels. Therefore
 \begin{equation}
+\label{eq:kappa}
 \kappa = s \cdot T_{\Delta} = \frac{s}{w h f_\text{fps}}
 \end{equation}
 Where as before, $s$ is the receiver sampling rate. If $\kappa \geq 1$, then we can deconstruct individual pixels. If $\kappa < 1$ we are looking at a band-passed version of the signal and consecutive reconstructed pixels will have some interdependencies. Please refer to Figure \ref{fig:samplerates} for a visual comparison of different values of $\kappa$.
@@ -509,6 +512,65 @@ The choice for a SDR front-end for this demonstration is a USRP B200\footnote{Re
     \caption{From left to right: MSi3101, AverMedia antenna and USRP B200}
 \end{figure}
 
+There is a wide range of off-the-shelf SDR hardware front-ends that could be used with the system. An attacker can choose one depending on their requirements. A quick overview of some of the supported available hardware is outlined below.
+
+\subsection{Ettus Research USRP}
+
+\begin{tabular}{ll}
+	Maximum sampling rate: & 56 Mhz (B200) \\
+	Frequency Range: & 70 MHz - 6 GHz \\
+	Dimensions: & 97 mm $\times$ 155 mm $\times$ 15 mm (B200) \\
+	OS support: & All platforms (Windows support via ExtIO) \\
+	Dropped samples detection: & Yes (Except on Windows)
+\end{tabular}
+
+The maximum sampling rate varies between the different models as well as the dimensions. I have used the USRP B200 throughout this report.
+
+Pros:
+\begin{itemize}
+	\item A variety of models available in multiple price ranges.
+	\item High enough sampling rates for most eavesdropping scenarios.
+\end{itemize}
+
+Cons:
+\begin{itemize}
+	\item Some models need external power supply. B200 in particular does not.
+	\item May need some analogue preconditioning for good eavesdropping results.
+\end{itemize}
+
+\subsection{Mirics FlexiTV\texttrademark MSi3101}
+
+\begin{tabular}{ll}
+	Maximum sampling rate: & 8 Mhz \\
+	Frequency Range: & 64 MHz - 240 MHz and 470 MHz - 960 MHz \\
+	Dimensions: & 25 mm $\times$ 80 mm $\times$ 10 mm \\
+	OS support: & Windows only \\
+	Dropped samples detection: & Yes
+\end{tabular}
+
+It is the best low end solution but it won't achieve the receiving distance or the quality that one would get with a higher end device.
+
+Pros:
+\begin{itemize}
+	\item Portable and unsuspicious looking -- just a typical USB dongle.
+	\item Inexpensive -- under \pounds 100.
+\end{itemize}
+
+Cons:
+\begin{itemize}
+	\item Low sampling rate and low sensitivity. Good eavesdropping results would be obtained if the target screen resolution is low enough so that $\kappa$ (refer to (\ref{eq:kappa}) for definition) is reasonable and the signal is strong enough.
+	\item Tuning gap between 240 MHz and 470 Mhz. If the emanations fall within this range, the Mirics dongle will fail to pick them up.
+\end{itemize}
+
+\subsection{Windows ExtIO}
+
+The plug-in supports variety of devices. It is a standard plug-in that is used in a number of software defined radio solutions. However, it does not take into account for dropped samples. This means that if sample loss did occur, this would be very visible on the screen rendering eavesdropping practically difficult. It also only runs on Windows.
+
+\subsection{Antennas and Preconditioning}
+
+For the experiments in this report, I have used a small dual-pole antenna by AverMedia designed for digital TV reception. This showed to be enough for eavesdropping from an adjacent room to the one containing the target device. However, for impressive demos that could potentially operate from several tens of meters, Dr Kuhn recommends some additional analogue preconditioning.
+
+Kuhn experimented with a tunable band pass filter and a 30 dB antenna amplifier before the B200 to improve the noise level. He comments that the setup delivers comparable quality to the highly specialised Dynamic Sciences R1250 receiver that he used in his experiments \cite{kuhn2003compromising}. He also used a professional log-periodic antenna for improved reception.
 
 \section{Architecture}
 
