@@ -64,7 +64,7 @@ However very little research has been published into the open literature on the 
 
 \section{History}
 
-A compass needle points north when put next to a wire that has current flowing in it. Turning off the current makes the needle twitch i.e. temporary deflecting from the north direction. The same effect could be seen if the current is turned back on. This phenomenon was noticed by the Danish physicist Hans Christian \O rsted in April 1820 \cite{jelved1998selected}. It shows that a changing electric current creates a magnetic field and vice versa. Later this phenomenon was utilised to create the electrical telegraph and allow for long distance communications.
+A compass needle points north when put next to a wire that has current flowing in it. Turning off the current makes the needle twitch i.e.\  temporary deflecting from the north direction. The same effect could be seen if the current is turned back on. This phenomenon was noticed by the Danish physicist Hans Christian \O rsted in April 1820 \cite{jelved1998selected}. It shows that a changing electric current creates a magnetic field and vice versa. Later this phenomenon was utilised to create the electrical telegraph and allow for long distance communications.
 
 However, the undesired effects of this phenomenon received almost no attention for a couple of decades. British army noticed crosstalk between telephone wires during the Nile and Suakin expedition in 1884-85 \cite{nalder1958history}. The first reported exploitation of the phenomenon was in 1914 when earth leakage from telephone wires caused a lot of crosstalk. Listening posts were established in order to intercept enemy messages. Next year valve amplifiers were utilised which allowed for extended listening range \cite{anderson2008security}.
 
@@ -94,7 +94,7 @@ However, there are some problems with his implementation:
 
 \end{itemize}
 
-We can only speculate why there was no further research on this topic for decades to come. Possibly the main reason was that a modified TV receiver will no longer work with modern day video modes and commercial off-the-shelf narrowband receivers can't be used for that purpose either. As Kuhn outlines, a researcher needed to have their hands on a very special military grade wideband receivers that are expensive and have export restrictions\cite{kuhn2003compromising}. However, the project presented in this dissertation aims to solve this problem by using an affordable software-defined radio platform for receiving the emanations from video displays.
+We can only speculate why there was no further research on this topic for decades to come. Possibly the main reason was that a modified TV receiver will no longer work with modern day video modes and commercial off-the-shelf narrowband receivers can't be used for that purpose either. As Kuhn outlines, a researcher needed to have their hands on a very special military grade wideband receivers that are expensive and have export restrictions \cite{kuhn2003compromising}. However, the project presented in this dissertation aims to solve this problem by using an affordable software-defined radio platform for receiving the emanations from video displays.
  
 \subsection{Work of Markus Kuhn}
 
@@ -154,7 +154,7 @@ This report provides some background information on the physics behind the radio
 
 However, the report does not discuss ways of limiting the amount of information leaked via such compromising emanations. This is beyond the scope of the project. The system, however, could be used for further research on the topic. It could possibly aid such attempts by serving as a rapid prototyping tool.
 
-The report also does not claim that the experimental results presented are exhaustive. This is due to the fact that there is a wide range of software-defined radio front-ends that are supported, each of them having different characteristics. Therefore no attempt was done to characterise the hardware used for the experiments. The presented measurements are not provided as absolute value (i.e. voltages) but rather as relative (i.e decibels). The results will very much depend on the target video display as well. Some displays will emit strong signals that could be picked up tens of meters away, while others emit no detectable video emanations. Characterising receivers and target video displays could be also left as a further research topic.
+The report also does not claim that the experimental results presented are exhaustive. This is due to the fact that there is a wide range of software-defined radio front-ends that are supported, each of them having different characteristics. Therefore no attempt was done to characterise the hardware used for the experiments. The presented measurements are not provided as absolute value (i.e.\  voltages) but rather as relative (i.e decibels). The results will very much depend on the target video display as well. Some displays will emit strong signals that could be picked up tens of meters away, while others emit no detectable video emanations. Characterising receivers and target video displays could be also left as a further research topic.
 
 There are also some inherent notes about the system:
 \begin{itemize}
@@ -171,78 +171,80 @@ A reader should have knowledge of undergraduate level mathematics including calc
 
 \section{Signal Processing} 
 
-The fact that changing currents in a wire induce currents in another nearby wire comes straight from Maxwell's equations \cite{maxwell1881treatise}. A signal is just changing current and/or voltage in the time domain. Let's imagine we have a wire that we call wire A. We want to transmit a signal over it. We connect it to a signal generator, so that current across the wire at time $t$ could be written as $f(t) = I \cdot \sin(2\pi f_\text{RF} t)$. Where $I$ the \textbf{amplitude}, $f_\text{RF}$ is the \textbf{frequency} of the continuous tone and the whole argument of the $\sin$, namely $2\pi f_\text{RF} t$ is called the \textbf{phase} of the wave. Because of Maxwell's equations, the changing current in wire A will also generate a circular changing magnetic field around itself.
+The fact that changing currents in a wire induce currents in another nearby wire comes straight from Maxwell's equations \cite{maxwell1881treatise}. A signal is just changing current and/or voltage in the time domain. Let's imagine we have a wire that we call wire A. We want to transmit a signal over it. We connect it to a signal generator, so that current across the wire at time $t$ could be written as $x(t) = \sin(2\pi f_\text{c} t)$. Where $f_\text{c}$ is the \textbf{frequency} of the continuous tone and the whole argument of the $\sin$, namely $2\pi f_\text{c} t$ is called the \textbf{phase} of the wave. Because of Maxwell's equations, the changing current in wire A will also generate a circular changing magnetic field around itself.
 
-Let's imagine that an adversary puts a wire B lying parallel to wire A. The changing magnetic field from wire A will generate changing current in wire B. The adversary can measure the current in wire B as a function of time $\hat{f}(t)$. If we think about the ideal case and ignore resistance and capacitance, we would get perfect coupling, i.e. the adversary will measure $\hat{f}(t) = I \cdot \sin(2\pi f_\text{RF} t)$ which is precisely $f(t)$, the signal in wire A. We have unintentionally broadcasted a continuous wave and an adversary has successfully received it remotely, without physically tapping into our wire. This is the source of the compromising emanations we observe -- signals in wires unintentionally inducing currents in other nearby wires. Of course in the real world we don't only broadcast sine waves. The waves could be rather complex but the same principles apply since each signal could be decomposed into a series of sine tones using Fourier analysis. In the real world we also can't ignore resistance and capacitance so we need to use antennas and amplifiers to intercept signals. We will also have interference from other sources so recovering the original signal is a challenge but it could be done using signal processing techniques.
+Let's imagine that an adversary puts a wire B lying parallel to wire A. The changing magnetic field from wire A will generate changing current in wire B. The adversary can measure the current in wire B as a function of time $\hat{x}(t)$. They will end up with $\hat{x}(t) = \hat{I}(f_\text{c}) \cdot \sin(\varphi(t, f_\text{c}))$ where $\hat{I}(f_\text{c})$ is the peak \textbf{amplitude} and $\varphi(t, f_\text{c})$ is the phase of the signal in wire B. The exact values will depend on a number of things such as the resistance of the wires and the capacitance between them but the important bit is that they depend on $f_\text{c}$. Therefore, using some signal processing techniques and some assumptions about the signal, an adversary could potentially make an estimate about $f_\text{c}$. This is the source of the compromising emissions we observe -- signals in wires unintentionally inducing currents in nearby wires, broadcasting some information about the original signal. In practice signals are more complex than just a single $\sin$ term, however Fourier analysis can help us.
 
-We can apply \textbf{Fourier transform}\cite{briggs1995dft} to see how the signal spectrum will look in the frequency domain. This will decompose the function into a sum of complex $\sin$ and $\cos$ terms. The Fourier transform of $f(t)$ is defined as
-$$F(\omega)=\mathcal{F} \left\{ f(t) \right\} = \int_{-\infty}^{\infty} f(t) e^{-j \omega t} dt $$
+The \textbf{Fourier transform} \cite{briggs1995dft} allows us to see how the signal spectrum looks like in the frequency domain. This will decompose the function into a sum of complex $\sin$ and $\cos$ terms. The Fourier transform of $g(t)$ is defined as
+$$G(f)=\mathcal{F} \left\{ g(t) \right\} (f) = \int_{-\infty}^{\infty} g(t) \cdot e^{- 2 \pi j f t} \text{d} t $$
 and the inverse Fourier transform
-$$f(t) = \mathcal{F}^{-1} \left\{ F(\omega) \right\} = \frac{1}{2\pi} \int_{-\infty}^{\infty} F(\omega) e^{j \omega t} d\omega$$
+$$g(t) = \mathcal{F}^{-1} \left\{ G(f) \right\} (t) = \int_{-\infty}^{\infty} G(f) \cdot e^{2 \pi j f t} \text{d} f$$
 
-A sine wave of the form $f(t) = \sin(2 \pi \Omega t)$ will result in spikes $F(\omega) = \frac{1}{2 i} [\delta(\omega - \Omega) - \delta(\omega
- + \Omega)]$ at $F(-\Omega)$ and $F(\Omega)$ since $F(\omega) = 0$ everywhere else. Therefore we can see that the Fourier transform basically gives an indication of the frequency of the source signal. Note that the \textbf{Dirac delta} function is defined as
+A sine wave of the form $x(t) = \sin(2 \pi f_{c} t)$ will result in spikes $X(f) = \frac{1}{2 i} [\delta(f - f_{c}) - \delta(f
+ + f_{c})]$ at $X(-f_{c})$ and $X(f_{c})$ since $X(f) = 0$ everywhere else. Therefore we can see that the Fourier transform basically gives an indication of the frequency of the source signal. Note that the \textbf{Dirac delta} function is defined as
 $$ \delta(t) = \begin{cases} +\infty, & x = 0 \\ 0, & x \neq 0 \end{cases} $$
 
-The Dirac delta functions have the so-called ``sifting'' property so that if multiplied with a function $f(t)$, it will \textbf{sample} out only a single value, namely
-$$ \int_{-\infty}^{\infty} f(t) \delta(t - T) dt = f(T) $$
+The Dirac delta functions have the so-called ``sifting'' property so that if multiplied with a function $g(t)$, it will \textbf{sample} out only a single value, namely
+$$ \int_{-\infty}^{\infty} g(t) \delta(t - T) \text{d} t = g(t) $$
 We will also encounter the ``Dirac comb'' defined as:
 $$ \sum_{k=-\infty}^{\infty} \delta(t - kT) $$
-Which is basically an infinite number of Dirac delta functions repeating at regular intervals of $T$. We can therefore ``sample'' a function $f(t)$ at times $T$ by multiplying it with a Dirac comb. This will result in discrete samples being obtained from $f(t)$ at regular intervals of $T$ i.e. we will obtain $\dots, f(-2 T), f(-T), f(0), f(T), f(2 T), \dots$.
+Which is basically an infinite number of Dirac delta functions repeating at regular intervals of $T$. We can therefore ``sample'' a function $x(t)$ at times $T$ by multiplying it with a Dirac comb. This will result in discrete samples being obtained from $x(t)$ at regular intervals of $T$ i.e.\  we will obtain $\dots, x(-2 T), x(-T), x(0), x(t), x(2 T), \dots$.
 
-We also need to mention \textbf{convolution}, denoted by the operator $\ast$. The convolution of two functions $f(t)$ and $g(t)$ is defined as:
-$$(f \ast g)(t) = \int_{-\infty}^{\infty} f(\tau) g(t - \tau) d \tau$$
+We also need to mention \textbf{convolution}, denoted by the operator $\ast$. The convolution of two functions $x(t)$ and $g(t)$ is defined as:
+$$(f \ast g)(t) = \int_{-\infty}^{\infty} f(\tau) g(t - \tau) \text{d} \tau$$
 Note that for simplicity, in the current report, I have chosen to drop the $(t)$ so if you encounter $f \ast g$, it should read $(f \ast g)(t)$.
 
-To illustrate how convolution works, consider convolving a function $f(t)$ with a Dirac delta
-$$ f(t) \ast \delta(t-T) =  \int_{-\infty}^{\infty} f(\tau) \delta(t - \tau - T ) d \tau = \int_{-\infty}^{\infty} f(\tau) \delta( \tau - ( t -T) ) = f(t-T)$$
-Where we used the fact that the Dirac delta function has an even symmetry $\delta(t) = \delta(-t)$. This results in a new function $f(t-T)$ which is a time shifted copy of $f(t)$ with a shift of $T$. Convolving with a Dirac comb could be shown to produce infinite copies of $f(t)$ at regular intervals $T$ which are basically summed together.
+To illustrate how convolution works, consider convolving a function $x(t)$ with a Dirac delta
+$$ x(t) \ast \delta(t-T) =  \int_{-\infty}^{\infty} x(\tau) \delta(t - \tau - T ) \text{d} \tau = \int_{-\infty}^{\infty} x(\tau) \delta( \tau - ( t -T) ) \text{d} \tau = x(t-T)$$
+Where we used the fact that the Dirac delta function has an even symmetry $\delta(t) = \delta(-t)$. This results in a new function $x(t-T)$ which is a time shifted copy of $x(t)$ with a shift of $T$. Convolving with a Dirac comb could be shown to produce infinite copies of $x(t)$ at regular intervals $T$ which are basically summed together.
 
-The term \textbf{lowpass} means a lowpass filter. This is a filter that acts on a signal, and that allows components of the signal with frequencies $f \leq f_\text{max}$ to pass through, attenuating the rest to 0. \textbf{Highpass} filter allows frequencies $f \geq f_\text{min}$ to pass through intact, attenuating the rest to 0. A \textbf{bandpass} filter is a combination of a lowpass and a highpass filter, allowing only frequencies $f_\text{min} \leq f \leq f_\text{max}$, attenuating the rest to 0.
+The term \textbf{lowpass} means a lowpass filter. This is a filter that acts on a signal, and that allows components of the signal with frequencies $f \leq f_\text{max}$ to pass through, attenuating the rest to 0. \textbf{Highpass} filter allows frequencies $f \geq f_\text{min}$ to pass through intact, attenuating the rest to 0. A \textbf{bandpass} filter is a combination of a lowpass and a highpass filter, allowing only frequencies $f_\text{min} \leq f \leq f_\text{max}$, attenuating the rest to 0. A \textbf{band-limited} signal is a signal which doesn't have any frequency components $f > f_\text{max}$ or $f < f_\text{min}$. Such a signal would remain unchanged after applying a bandpass filter to it with limits $f_\text{min}$ and $f_\text{max}$. This is used for filtering out useful signals from other interferences that are not part of the band-limited signal.
 
 \section{IQ Sampling} 
 \label{sec:IQSampling}
 
-A simple analogue to digital converter will measure the voltage at a wire by producing $s$ samples per second (called \textbf{sampling rate}). This means that it will produce a new sample every $T_{\Delta} = \frac{1}{s}$ seconds. It converts an analogue signal a.k.a. continuous function $f(t)$ into a series of samples. This could be written mathematically as a multiplication with a Dirac comb:
+A simple analogue to digital converter will measure the voltage at a wire by producing $f_\text{s}$ samples per second (called \textbf{sampling rate}). This means that it will produce a new sample every $t_\text{s} = \frac{1}{f_\text{s}}$ seconds. It converts an analogue signal a.k.a. continuous function $x(t)$ into a series of samples. This could be written mathematically as a multiplication with a Dirac comb:
 \begin{equation}
 \label{eq:sampling}
-\sum_{k=-\infty}^{\infty} f(t) \delta(t - kT)
+\sum_{k=-\infty}^{\infty} x(t) \delta(t - kT)
 \end{equation}
 
-If we want to detect signal with frequency up to $f_\text{max}$, then according to the Nyquist sampling theorem, we need to sample with a sample rate $s \geq 2 f_\text{max}$. However, this usually gets impractical when $f_\text{max}$ gets large. One way of dealing with that (assuming the signal we want to receive is band limited) is using a local oscillator that runs at frequency $f_\text{LO}$. The oscillator generates a signal $A_\text{LO} \cdot \cos(f_\text{LO} t)$. The output from the local oscillator is multiplied with the incoming \textbf{RF} (radio frequency) baseband signal (a.k.a. mixing). Say the RF signal is $f(t) = A(t) \cos(f_\text{RF} t)$. It has a frequency of $f_\text{RF}$ and phase of $f_\text{RF} t$. For simplicity, let's put $A_\text{LO} = 2$. After the mixing stage, our resulting signal will be
+If we want to detect a signal containing frequency components from $0$ up to $f_\text{max}$, then according to the Nyquist sampling theorem, we need to sample with a sample rate $f_\text{s} \geq 2 f_\text{max}$. This usually gets impractical when $f_\text{max}$ gets large.
+
+However, if we are only interested in a band-limited signal that lies from $f_\text{min}$ up to $f_\text{max}$, there is another solution. We can have a local oscillator that runs at a frequency $f_\text{LO} = \frac{f_\text{min}+f_\text{max}}{2}$. The oscillator generates a signal $A_\text{LO} \cdot \cos(f_\text{LO} t)$. The output from the local oscillator is multiplied with the incoming \textbf{RF} (radio frequency) baseband signal (a.k.a. mixing). Say the RF signal is $x(t) = A(t) \cos(f_\text{c} t)$. It has a frequency of $f_\text{c}$ and phase of $f_\text{c} t$. For simplicity, let's put $A_\text{LO} = 2$. After the mixing stage, our resulting signal will be
 \begin{multline}
 \label{eq:hetero}
-f(t) \cdot A_\text{LO} \cos(f_\text{LO} t) =  A(t) \cos(f_\text{RF} t) \cdot 2 \cos(f_\text{LO} t) = \\
-=  A(t) \cos\big( (f_\text{RF} + f_\text{LO} \big) t\big) + A(t) \cos\big( (f_\text{RF} - f_\text{LO}) t \big)
+x(t) \cdot A_\text{LO} \cos(f_\text{LO} t) =  A(t) \cos(f_\text{c} t) \cdot 2 \cos(f_\text{LO} t) = \\
+=  A(t) \cos\big( (f_\text{c} + f_\text{LO} \big) t\big) + A(t) \cos\big( (f_\text{c} - f_\text{LO}) t \big)
 \end{multline}
 This results in a linear combination of two signals with frequencies called heterodyne frequencies -- the sum and the difference between the local oscillator and the incoming frequency. A bandpass filter could be set up at an \textbf{IF} (intermediate frequency) $f_\text{IF}$. If any of these heterodyne frequencies falls within the bandpass of the filter, the signal can go for further processing.
 
-However we encounter a problem -- $\cos$ is an even function. Imagine we now have another RF baseband signal, namely $\hat{f}(t) = A(t) \cos\big( (2 f_\text{LO} - f_\text{RF}) t\big)$. After mixing with the local oscillator, the resulting signal would be $A(t) \cos\big( (f_\text{LO} - f_\text{RF}) t \big)$ which is equivalent to what we obtained for $f(t)$ in Equation \ref{eq:hetero} for the difference $f_\text{LO} - f_\text{RF}$ signal. So we can't distinguish $\hat{f}(t)$ from $f(t)$ if we decide to only filter out the difference part. This is called signal imaging. It could be shown that a signal $\tilde{f}(t) = A(t) \cos\big( (- f_\text{RF} - 2 f_\text{LO}) t\big)$ will in turn generate a sum $A(t) \cos\big( ( - f_\text{LO} - f_\text{RF}) t \big)$ which again results in imaging if we decide to keep the summation term $f_\text{LO} + f_\text{RF}$ from \ref{eq:hetero}.
+However we encounter a problem -- $\cos$ is an even function. Imagine we now have another RF baseband signal, namely $\hat{x}(t) = A(t) \cos\big( (2 f_\text{LO} - f_\text{c}) t\big)$. After mixing with the local oscillator, the resulting signal would be $A(t) \cos\big( (f_\text{LO} - f_\text{c}) t \big)$ which is equivalent to what we obtained for $x(t)$ in (\ref{eq:hetero}) for the difference $f_\text{LO} - f_\text{c}$ signal. So we can't distinguish $\hat{x}(t)$ from $x(t)$ if we decide to only filter out the difference part. This is called signal imaging. It could be shown that a signal $\tilde{f}(t) = A(t) \cos\big( (- f_\text{c} - 2 f_\text{LO}) t\big)$ will in turn generate a sum $A(t) \cos\big( ( - f_\text{LO} - f_\text{c}) t \big)$ which again results in imaging if we decide to keep the summation term $f_\text{LO} + f_\text{c}$ from (\ref{eq:hetero}).
 
-This method can preserve the amplitude of the wave and is widely used in AM radio reception (in conjunction with some image rejection techniques as well). However, it is obvious from the problem outlined above that the method is not sufficient for uniquely detecting the phase of the incoming wave. A solution to this problem is to multiply the incoming RF signal with a phase shifted version of the local oscillator at an angle of 90\degree in parallel with the mixing from Equation \ref{eq:hetero}. This means multiplying by $-A_\text{LO} \cdot \sin(f_\text{LO} t)$. After this secondary mixing stage, we would get
+This method can preserve the amplitude of the wave and is widely used in AM radio reception (in conjunction with some image rejection techniques as well). However, it is obvious from the problem outlined above that the method is not sufficient for uniquely detecting the phase of the incoming wave. A solution to this problem is to multiply the incoming RF signal with a phase shifted version of the local oscillator at an angle of 90\degree\ in parallel with the mixing from (\ref{eq:hetero}). This means multiplying by $-A_\text{LO} \cdot \sin(f_\text{LO} t)$. After this secondary mixing stage, we would get
 \begin{multline}
 \label{eq:heteroq}
-- f(t) \cdot A_\text{LO} \sin(f_\text{LO} t) =  -A(t) \cos(f_\text{RF} t) \cdot 2 \sin(f_\text{LO} t) = \\
-=  - A(t) \sin\big( (f_\text{RF} + f_\text{LO} \big) t\big) + A(t) \sin\big( (f_\text{RF} - f_\text{LO}) t \big)
+- x(t) \cdot A_\text{LO} \sin(f_\text{LO} t) =  -A(t) \cos(f_\text{c} t) \cdot 2 \sin(f_\text{LO} t) = \\
+=  - A(t) \sin\big( (f_\text{c} + f_\text{LO} \big) t\big) + A(t) \sin\big( (f_\text{c} - f_\text{LO}) t \big)
 \end{multline}
-Now let's put $\varphi(t) = (f_\text{RF}-f_\text{LO}) t$, and we only take the terms that contain $\varphi$ in \ref{eq:hetero} and \ref{eq:heteroq}, namely the difference terms using a bandpass filter of width $\frac{s}{2}$. Then we can define
+Now let's put $\varphi(t) = (f_\text{c}-f_\text{LO}) t$, and we only take the terms that contain $\varphi$ in (\ref{eq:hetero}) and (\ref{eq:heteroq}), namely the difference terms using a bandpass filter of width $\frac{f_\text{s}}{2}$. Then we can define
 \begin{equation}
 I(t) = A(t) \cos( \varphi (t)) \,\,\,\,\, \text{and} \,\,\,\,\, Q(t) = A(t) \sin( \varphi (t))
 \end{equation}
-Sampling these continuous signals with an analogue to digital converter will result in discrete values at times $T_{\Delta}$. Let's put $A_{n} = A(n T_{\Delta})$ and $\varphi_{n} = \varphi(n T_{\Delta})$. Then we can define our resulting discrete samples as:
+Sampling these continuous signals with an analogue to digital converter will result in discrete values at times $t_{f_\text{s}}$. Let's put $A_{n} = A(n t_{f_\text{s}})$ and $\varphi_{n} = \varphi(n t_\text{s})$. Then we can define our resulting discrete samples as:
 \begin{equation}
 I_{n} = A_{n} \cos( \varphi_{n} ) \,\,\,\,\, \text{and} \,\,\,\,\, Q_{n} = A_{n} \sin( \varphi _{n})
 \end{equation}
-These I and Q samples form the basic principles of software-defined radio. I and Q stand for in-phase and quadrature phase\cite{kirkhorn1999introduction}. These terms refer to the $\cos$ and $-\sin$ oscillator phases used for mixing. After the IQ samples are obtained, they are received by a PC with a sample rate of $s$.
+These I and Q samples form the basic principles of software-defined radio. I and Q stand for in-phase and quadrature phase \cite{kirkhorn1999introduction}. These terms refer to the $\cos$ and $-\sin$ oscillator phases used for mixing. After the IQ samples are obtained, they are received by a PC with a sample rate of $f_\text{s}$.
 
-They allow monitoring frequencies from $-\frac{s}{2}$ to $\frac{s}{2}$. The Nyquist sampling theorem would allow a maximum frequency span from $0$ to $\frac{s}{2}$ for signals sampled with real values. This would cause the imaging we discussed before. IQ sampling improves on that using complex numbers effectively doubling the range.
+They allow monitoring frequencies from $-\frac{f_\text{s}}{2}$ to $\frac{f_\text{s}}{2}$. The Nyquist sampling theorem would allow a maximum frequency span from $0$ to $\frac{f_\text{s}}{2}$ for signals sampled with real values. This would cause the imaging we discussed before. IQ sampling improves on that using complex numbers effectively doubling the range.
 
-Once IQ samples are obtained by software, further analysis of the phase, frequency and amplitude could be done allowing for any signals that fit within the bandwidth from $-\frac{s}{2}$ to $\frac{s}{2}$. The following identities could be used to obtain them for a sample $n$ ($\omega_{n}$ is the frequency):
+Once IQ samples are obtained by software, further analysis of the phase, frequency and amplitude could be done allowing for any signals that fit within the bandwidth from $-\frac{f_\text{s}}{2}$ to $\frac{f_\text{s}}{2}$. The following identities could be used to obtain them for a sample $n$ ($\omega_{n}$ is the frequency):
 \begin{subequations}
 \begin{align}
 A_{n} = \sqrt{I_n^2+Q_n^2} = \sqrt{A_{n}^2 \cdot (\cos^2(\varphi_n) + \sin^2(\varphi_n))} \\
 \varphi_{n} = \tan^{-1}\left(\frac{Q_{n}}{I_{n}}\right) = \tan^{-1}\left(\frac{\sin(\varphi_{n})}{\cos(\varphi_{n})}\right) \\
-\omega_{n} = \frac{d \varphi_{n}}{dt} = \varphi_{n} - \varphi_{n-1}
+\omega_{n} = \frac{\text{d} \varphi_{n}}{\text{d} t} = \varphi_{n} - \varphi_{n-1}
 \end{align}
 \end{subequations}
 Refer to Figure \ref{fig:IQ} for geometrical representation of the outlined properties.
@@ -258,60 +260,60 @@ Refer to Figure \ref{fig:IQ} for geometrical representation of the outlined prop
 
 \section{Analogue Video Signals}
 
-Almost all contemporary video monitors are raster based. The image is transferred from the video controller to the display in scanlines that occur at a specific rate. Each of these scanlines contains a number of pixels which are continuously encoded as a time varying signal. This signal is generated internally in the video controller by an oscillator which runs at the pixel clock rate. The signal is thereafter multiplied by the pixel intensities at the specific time.
+Almost all contemporary video monitors are raster based. The image is transferred from the video controller to the display in scanlines that occur at a specific rate. Each of these scanlines contains a number of pixels which are continuously encoded as a time varying signal. This signal is generated internally in the video controller by an oscillator which runs at the pixel clock rate. The analogue signal is thereafter multiplied by the pixel intensities at the specific time.
 
-Let's assume that the signal started transmitting at time $t=0$, and each video frame contains $h$ scanlines, each of which contains $w$ pixels. The frequency with which frames are being generated is $f_{f}$ frames per second. The duration of transmission of each individual pixel is \begin{equation}
+Let's assume that the signal started transmitting at time $t=0$, and each video frame contains $x_\text{t}$ scanlines, each of which contains $y_\text{t}$ pixels. The frequency with which frames are being generated is $f_\text{v}$ frames per second. The duration of transmission of each individual pixel is \begin{equation}
 \label{eq:tdelta_definition}
-T_{\Delta}=\frac{1}{w h f_\text{fps}}
+t_\text{p}=\frac{1}{x_\text{t} \cdot y_\text{t} \cdot f_\text{v}}
 \end{equation}
-Note that at time $t$, frame number $n_{t}$ started transmission where 
+Note that at time $t$, frame number $n(t)$ started transmission where 
 \begin{equation}
-n_{t}=\lfloor t f_\text{fps} \rfloor
+n(t)=\lfloor t f_\text{v} \rfloor
 \end{equation}
-We can assume that the top left corner of a frame has coordinates $(0, 0)$, a pixel at position $(x, y)$ in frame $n_{t}$ will start to be transmitted at time
+We can assume that the top left corner of a frame has coordinates $(0, 0)$, a pixel at position $(x, y)$ in frame $n(t)$ will start to be transmitted at time
 \begin{equation}
-T_{(x,y)}= (y w + x + n_{t} w h) T_{\Delta}
+T_{(x,y)}= (n(t) x_\text{t} h + y x_\text{t} + x) t_\text{p}
 \end{equation}
 and will finish transmission before time 
 \begin{equation}
-T_{(x+1,y)} = T_{(x,y)} + T_{\Delta} =(y w + x + 1 + n_{t} w h) T_{\Delta}
+T_{(x+1,y)} = T_{(x,y)} + t_\text{p} =(n(t) x_\text{t} h + y x_\text{t} + x + 1) t_\text{p}
 \end{equation}
 at which the next pixel will start transmitting.
 
-In practice $w$ and $h$ are determined by the screen resolution and $f_\text{fps}$ is simply the screen refresh rate. For a typical screen resolution of $width \times height$, it is true that $w \geq width$ and $h \geq height$. The reason is that video signals tend to have additional blanking intervals. This means more pixels are transmitted than what is in the active video region. This gives opportunity for the receiving monitor to synchronise its internal clock, calibrate its colour levels or in case of CRT, allow enough time for the electron beam to return to the beginning of the next line on the screen. The synchronisation timings for personal computers have been standardised by Video Electronics Standards Association (VESA) \cite{vesa}.
+In practice $y_\text{t}$ and $x_\text{t}$ are determined by the screen resolution and $f_\text{v}$ is simply the screen refresh rate. For a typical screen resolution of $width \times height$, it is true that $x_\text{t} \geq width$ and $y_\text{t} \geq height$. The reason is that video signals tend to have additional blanking intervals. This means more pixels are transmitted than what is in the active video region. This gives opportunity for the receiving monitor to synchronise its internal clock, calibrate its colour levels or in case of CRT, allow enough time for the electron beam to return to the beginning of the next line on the screen. The synchronisation timings for personal computers have been standardised by Video Electronics Standards Association (VESA) \cite{vesa}.
 
 In order to decode an individual pixel, the receiving monitor has its own internal oscillator. It locks it to the pixel rate of the incoming signal either via an external clock source or using the blanking intervals. Once it receives the signal for an individual pixel, its amplitude (or binary content in case of digital signal) will correspond to the intensity. This allows the monitor to display the video in real time. If multiple colours are desired, they can be transmitted separately on different wires in the same fashion.
 
 \section{Generated Radio Wave}
 
 \subsection{Signal Equation}
-Let's assume the discrete pixels in a video signal have intensities $v_{i} (i \in \mathbb{Z})$ and are being transmitted for a duration of $T_{\Delta}=\frac{1}{w h f_\text{fps}}$ (from \ref{eq:tdelta_definition}). Let's also assume that the shape of the pixel is $p(t)$ where $p(t)=0$ for $|t| > \frac{T_{\Delta}}{2}$. We know that pixel $i$ starts transmitting at time $t_{i}=i T_{\Delta}$ (if we assume that that pixel 0 was transmitted at $t=0$). Also the amplitude of the signal of the transmitted pixel is linearly dependant on its intensity $v_{i}$. Then the resulting signal between time $t_{i}$ and $t_{i+1}$ will have the form $v_{i} p(t-i T_{\Delta})$. To generalise for all $i$, the resulting actual transmitted radio wave in the time domain will have the form 
+Let's assume the discrete pixels in a video signal have intensities $v_{i} (i \in \mathbb{Z})$ and are being transmitted for a duration of $t_\text{p}=\frac{1}{x_\text{t} \cdot y_\text{t} \cdot f_\text{v}}$ from (\ref{eq:tdelta_definition}). Let's also assume that the shape of the pixel is $p(t)$ where $p(t)=0$ for $|t| \gg \frac{t_\text{p}}{2}$. We know that pixel $i$ starts transmitting at time $t(i)=i t_\text{p}$ (if we assume that that pixel 0 was transmitted at $t=0$). Also the amplitude of the signal of the transmitted pixel is linearly dependant on its intensity $v_{i}$. Then the resulting actual transmitted radio wave in the time domain will have the form 
 \begin{equation}
 \label{eq:video_signal}
-\tilde{v}(t) = \sum\limits_{i=-\infty}^{\infty} v_{i} p(t-i T_{\Delta})
+\tilde{v}(t) = \sum\limits_{i=-\infty}^{\infty} v_{i} p(t-i t_\text{p})
 \end{equation}
-Which is a continuous function. Equation \ref{eq:video_signal} can be rewritten as a convolution with a Dirac delta function
+which is a continuous function. (\ref{eq:video_signal}) can be rewritten as a convolution with a Dirac delta function
 \begin{equation}
 \label{eq:vasconv}
-\tilde{v}(t) = p(t) \ast \left( \sum\limits_{i=-\infty}^{\infty} v_{i} \cdot \delta(t-i T_{\Delta}) \right) = p(t) \ast \hat{v}(t)
+\tilde{v}(t) = p(t) \ast \left( \sum\limits_{i=-\infty}^{\infty} v_{i} \cdot \delta(t-i t_\text{p}) \right) = p(t) \ast \hat{v}(t)
 \end{equation}
-Where we have put
+where
 \begin{equation}
 \label{eq:vhattdef}
-\hat{v}(t) = \sum\limits_{i=-\infty}^{\infty} v_{i} \cdot \delta(t-i T_{\Delta})
+\hat{v}(t) = \sum\limits_{i=-\infty}^{\infty} v_{i} \cdot \delta(t-i t_\text{p}) \text{.}
 \end{equation}
-Note that this results in infinitesimally short (in time) spikes at values exact integer multiples of $T_{\Delta}$ with amplitudes weighted to the pixel intensities at that time. We can view \ref{eq:vasconv} as the pixel shape being repeated at intervals of $T_{\Delta}$ modulated by $v_{i}$. 
+Note that this results in infinitesimally short (in time) spikes at values exact integer multiples of $t_\text{p}$ with amplitudes weighted to the pixel intensities at that time. We can view (\ref{eq:vasconv}) as the pixel shape being repeated at intervals of $t_\text{p}$ modulated by $v_{i}$. 
 
 \subsection{Sampling}
-We can notice that \ref{eq:vhattdef} looks like the result of a continuous signal being sampled at discrete points in time $T_{\Delta}$ apart. If we call this continuous signal $v(t)$, then we can rewrite the equation so that it reads
+We can notice that (\ref{eq:vhattdef}) looks like the result of a continuous signal being sampled at discrete points in time $t_\text{p}$ apart. If we call this hypothetical continuous signal $v(t)$, then we can rewrite the equation so that it reads
 \begin{equation}
-\hat{v}(t) = \sum\limits_{i=-\infty}^{\infty} v(t) \cdot \delta(t-i T_{\Delta}) = v(t) \sum\limits_{i=-\infty}^{\infty} \delta(t-i T_{\Delta})
+\hat{v}(t) = \sum\limits_{i=-\infty}^{\infty} v(t) \cdot \delta(t-i t_\text{p}) = v(t) \sum\limits_{i=-\infty}^{\infty} \delta(t-i t_\text{p})
 \end{equation}
-The requirement is that if $v(t)$ is sampled at discrete intervals $i T_{\Delta}$, it should be equal to the corresponding pixel values i.e. $v(0)=v_{0}$, $v(T_{\Delta})=v_{1}$, $v(2 T_{\Delta})=v_{2}$, etc. This would mean that we can precisely obtain the samples from the continuous function by applying the series of Dirac delta functions. However, now we would also like to be able to obtain the continuous signal by only having the sampled values $v_{i}$. This means that we need a unique perfect reconstruction i.e. to be able to obtain all $v_{i}$ from $v(x)$ and $v(x)$ from all $v_{i}$. This condition is satisfied by the Whittaker--Shannon interpolation formula\cite{shannon1949communication} which can give us the condition for perfect reconstruction for digitally sampled signals. It states that the continuous signal could be uniquely reconstructed using $\operatorname{sinc}$ interpolation. If we apply it to our $v_{i}$ samples, it yields
+The requirement is that if $v(t)$ is sampled at discrete intervals $i t_\text{p}$, it should be equal to the corresponding pixel values i.e.\  $v(0)=v_{0}$, $v(t_\text{p})=v_{1}$, $v(2 t_\text{p})=v_{2}$, etc. This would mean that we can precisely obtain the samples from the continuous function by applying the series of Dirac delta functions. However, now we would also like to be able to obtain the continuous signal by only having the sampled values $v_{i}$.This means that we need a unique perfect reconstruction i.e.\  to be able to obtain all $v_{i}$ from $v(x)$ and $v(x)$ from all $v_{i}$. Under the assumption that $v(t)$ is band-limited so that $\mathcal{F}\big( v(t) \big)(f) = 0$ for $|f| < \frac{t_\text{p}}{2}$, the condition is satisfied by the Whittaker--Shannon interpolation formula \cite{shannon1949communication}. It gives us the condition for perfect reconstruction for band-limited digitally sampled signals. It states that the continuous signal could be uniquely reconstructed using $\operatorname{sinc}$ interpolation. If we apply it to our $v_{i}$ samples, it yields
 \begin{equation}
-v(t) = \sum\limits_{k=-\infty}^{\infty} v_{k} \cdot \operatorname{sinc} ( \pi \left( \frac{t}{T_{\Delta}} - k \right) )
+v(t) = \sum\limits_{k=-\infty}^{\infty} v_{k} \cdot \operatorname{sinc} \Bigg( \pi \left( \frac{t}{t_\text{p}} - k \right) \Bigg)
 \end{equation}
-We can verify that when $t=i T_{\Delta}$, then $\operatorname{sinc}(\pi (i-k) )$ will always yield $0$ except for when $i = k$ in which case it will be $1$. Therefore we have proved that $v(i T_{\Delta}) = v_{i}$.
+We can verify that when $t=i t_\text{p}$, then $\operatorname{sinc}(\pi (i-k) )$ will always yield $0$ except for when $i = k$ in which case it will be $1$. Therefore we have proved that $v(i t_\text{p}) = v_{i}$.
 
 \subsection{Repetitions}
 Now let's revise some mathematical identities. According to the convolution theorem \cite{arfkenconvolution}
@@ -327,32 +329,32 @@ It could be also shown that:
 \begin{equation}
 \mathcal{F} \left\{ \sum\limits_{n=-\infty}^{\infty}  \delta(t-n k) \right\} = \frac{1}{k} \sum\limits_{n=-\infty}^{\infty}  \delta \left( t-\frac{n}{k} \right)
 \end{equation}
-Using the last three identities, we can write the Fourier transform of \ref{eq:vasconv} as
+Using the last three identities, we can write the Fourier transform of (\ref{eq:vasconv}) as
 \begin{equation} 
 \mathcal{F} \left\{ p(t) \ast \hat{v}(t) \right\} = \tilde{V}(f) =
-\left[ \frac{1}{T_{\Delta}} \cdot P(f) \cdot V(f) \right] \ast
-\left[ \sum\limits_{i=-\infty}^{\infty}  \delta \left( t-\frac{i}{T_{\Delta}} \right) \right]
+\left[ \frac{1}{t_\text{p}} \cdot P(f) \cdot V(f) \right] \ast
+\left[ \sum\limits_{i=-\infty}^{\infty}  \delta \left( t-\frac{i}{t_\text{p}} \right) \right]
 \end{equation}
 Where $P(f)$ is the Fourier transform of $p(t)$, $\tilde{V}(f)$ is the Fourier transform of $\tilde{v}(t)$ and $V(f)$ is the Fourier transform of $v(t)$. If we put 
 \begin{equation} 
 \label{eq:gfdef}
-G(f) = \frac{1}{T_{\Delta}} \cdot P(f) \cdot V(f)
+G(f) = \frac{1}{t_\text{p}} \cdot P(f) \cdot V(f)
 \end{equation}
 Then we we can arrive to our final conclusion that
 \begin{equation}
 \label{eq:vspectrum}
 \tilde{V}(f) = G(f) \ast
-\left[ \sum\limits_{i=-\infty}^{\infty}  \delta \left( t-\frac{i}{T_{\Delta}} \right) \right]
+\left[ \sum\limits_{i=-\infty}^{\infty}  \delta \left( t-\frac{i}{t_\text{p}} \right) \right]
 \end{equation}
-This simply means that the signal spectrum $G(f)$ repeats at regular intervals throughout the radio spectrum with a frequency of $\frac{1}{T_{\Delta}} = w h f_\text{fps}$.
+This simply means that the signal spectrum $G(f)$ repeats at regular intervals throughout the radio spectrum with a frequency of $\frac{1}{t_\text{p}} = x_\text{t} \cdot y_\text{t} \cdot f_\text{v}$.
 
-For example, for a resolution of $800 \times 600 $ @ $ 60$ fps (ignore blanking intervals for simplicity), we would have a frequency of $\frac{1}{T_{\Delta}} = 800 \times 600 \times 60 = 28.8$ MHz. This means that we would expect to find such a signal centred at DC, 28.8 MHz, 57.6 MHz, 86.4 MHz, etc.
+For example, for a resolution of $800 \times 600 $ @ $ 60$ fps (ignore blanking intervals for simplicity), we would have a frequency of $\frac{1}{t_\text{p}} = 800 \times 600 \times 60 = 28.8$ MHz. This means that we would expect to find such a signal centred at DC, 28.8 MHz, 57.6 MHz, 86.4 MHz, etc.
 
 \subsection{Sampling Rate}
 
-In order to obtain the full video signal, we need to know what is the minimum rate at which we need to sample the baseband. We saw from \ref{eq:vspectrum} that $G(f)$ repeats at the regular intervals. In fact we can see from \ref{eq:gfdef} that it is $G(f)$ that contains the actual video information
-$$G(f) = \frac{1}{T_{\Delta}} \cdot P(f) \cdot V(f)$$
-As a consequence from the Whittaker--Shannon interpolation formula that we used to construct $v(t)$, we know that $V(f)$ is band limited so that $V(f) = 0$ for all $|f| \geq \frac{1}{2 T_{\Delta}}$. This implies that $G(f)$ is also band limited to the same range (because of the multiplication). Therefore we need to have a receiver with a sampling rate of at least $\frac{1}{T_{\Delta}}$ in order to reconstruct $G(f)$. Note however that $g(t)$ contains the video signal convolved with the shape of the pixel $p(t)$. We can however assume $P(f)=1$ for $|f| \le \frac{1}{2 T_{\Delta}}$ and zero otherwise. Therefore $G(f) = V(f)$ which would imply a sinc shaped $p(t)$. This in fact is not the case since different video cards have different pixel shapes\cite{kuhn2003compromising}. However in practice, this is enough to obtain a good approximation of the signal.
+In order to obtain the full video signal, we need to know what is the minimum rate at which we need to sample the baseband. We saw from (\ref{eq:vspectrum}) that $G(f)$ repeats at the regular intervals. In fact we can see from (\ref{eq:gfdef}) that it is $G(f)$ that contains the actual video information
+$$G(f) = \frac{1}{t_\text{p}} \cdot P(f) \cdot V(f)$$
+As a consequence from the Whittaker--Shannon interpolation formula that we used to construct $v(t)$, we know that $V(f)$ is band limited so that $V(f) = 0$ for all $|f| \geq \frac{1}{2 t_\text{p}}$. This implies that $G(f)$ is also band limited to the same range (because of the multiplication). Therefore we need to have a receiver with a sampling rate of at least $\frac{1}{t_\text{p}}$ in order to reconstruct $G(f)$. Note however that $g(t)$ contains the video signal convolved with the shape of the pixel $p(t)$. We can however assume $P(f)=1$ for $|f| \le \frac{1}{2 t_\text{p}}$ and zero otherwise. Therefore $G(f) = V(f)$ which would imply a sinc shaped $p(t)$. This in fact is not the case since different video cards have different pixel shapes \cite{kuhn2003compromising}. However in practice, this is enough to obtain a good approximation of the signal.
 
 \section{Reception}
 
@@ -367,9 +369,9 @@ The VESA standard specifies an allowed frequency tolerance for $f_\text{p}$ of 0
 It is also true that we might be able to recover a lot of information from a signal even if our receiver is not capable of sampling the full width of the video spectrum. This means we will only receive a of $g(f)$ with a bandpass filter applied to it. In this case the digital resampling could interpolate the received samples to fit into multiple pixels. Therefore it is useful to introduce a measurement $\kappa$ of how accurate we can reconstruct pixels of $g(t)$. This measurement can be the number of input samples that have gone into constructing a single output pixels. Therefore
 \begin{equation}
 \label{eq:kappa}
-\kappa = s \cdot T_{\Delta} = \frac{s}{w h f_\text{fps}}
+\kappa = s \cdot t_\text{p} = \frac{f_\text{s}}{x_\text{t} \cdot y_\text{t} \cdot f_\text{v}}
 \end{equation}
-Where as before, $s$ is the receiver sampling rate. If $\kappa \geq 1$, then we can deconstruct individual pixels. If $\kappa < 1$ we are looking at a band-passed version of the signal and consecutive reconstructed pixels will have some interdependencies. Please refer to Figure \ref{fig:samplerates} for a visual comparison of different values of $\kappa$.
+Where as before, $f_\text{s}$ is the receiver sampling rate. If $\kappa \geq 1$, then we can deconstruct individual pixels. If $\kappa < 1$ we are looking at a band-passed version of the signal and consecutive reconstructed pixels will have some interdependencies. Please refer to Figure \ref{fig:samplerates} for a visual comparison of different values of $\kappa$.
 
 \begin{figure}[p!]
 \centering
@@ -397,26 +399,26 @@ Where as before, $s$ is the receiver sampling rate. If $\kappa \geq 1$, then we 
   \includegraphics[width=\textwidth]{sr_5MHz_at_190MHz}
   \caption{$\kappa = 0.125$}
 \end{subfigure}
-\caption{The transmitted image (a) is being sent at a pixel rate of 800x600 at 60 fps with $w = 1056$, $h = 628$ and $f_\text{fps} = 60.11$. Each of the screenshots shows the reconstructed image with the receiver (USRP B200) running at different sample rates: (b) 40 MHz, (c) 30 MHz, (d) 20 MHz, (e) 10 MHz and (f) 5 MHz}
+\caption{The transmitted image (a) is being sent at a pixel rate of 800x600 at 60 fps with $x_\text{t} = 1056$, $y_\text{t} = 628$ and $f_\text{v} = 60.11$. Each of the screenshots shows the reconstructed image with the receiver (USRP B200) running at different sample rates: (b) 40 MHz, (c) 30 MHz, (d) 20 MHz, (e) 10 MHz and (f) 5 MHz}
 \label{fig:samplerates}
 \end{figure}
 
 Another possible source of distortions is the usage of multiple wires to transmit colour information. These signals interfere with each other and the resulting pixel intensity becomes a complicated mix of the signals generated in these wires. Therefore colour information would be very difficult to obtain. Nevertheless the outlined strategy allows an eavesdropper to detect changes in colour since this would result in different signal amplitudes arriving at the receiver for each pixel.
 
-Dr Markus Kuhn has shown that the outlined procedure even works for decoding digital video signals\cite{kuhn2005electromagnetic}. If the pixel intensities are transmitted as a bit pattern rather than an analogue amplitude, the received intensity will be the average intensity in the bit pattern. The redundancy of bit patterns means that even in such case we can still receive a signal that will allow us to read text on the remote screen. 
+Dr Markus Kuhn has shown that the outlined procedure even works for decoding digital video signals \cite{kuhn2005electromagnetic}. If the pixel intensities are transmitted as a bit pattern rather than an analogue amplitude, the received intensity will be the average intensity in the bit pattern. The redundancy of bit patterns means that even in such case we can still receive a signal that will allow us to read text on the remote screen. 
 
 \section{Resolution and Framerate Detection}
 
-The outlined method for decoding the video stream relies on us having the exact values for $w$, $h$ and $f_\text{fps}$. This is not very practical for a real world attack. We would require the adversary not to have any knowledge of the target system whatsoever. Therefore we would need to infer all of these parameters remotely by exploiting some typical characteristics of a video signal. Namely the fact that the signal is periodic.
+The outlined method for decoding the video stream relies on us having the exact values for $y_\text{t}$, $x_\text{t}$ and $f_\text{v}$. This is not very practical for a real world attack. We would require the adversary not to have any knowledge of the target system whatsoever. Therefore we would need to infer all of these parameters remotely by exploiting some typical characteristics of a video signal. Namely the fact that the signal is periodic.
 
-As we have already seen, a video signal consists of video frames with width $w$ and height $h$. The speed at which such frames are transmitted is $f_\text{fps}$. However most of the time any two consecutive frames would be identical. This would be the case if the victim is looking at static text on the screen. Therefore we can regard the transmitted signal as a repeating periodic signal of a single frame. Which means if we analyse the signal for repeating patterns we should be able to spot the repeating video frames in it and use that to estimate $f_\text{fps}$.
+As we have already seen, a video signal consists of video frames with width $y_\text{t}$ and height $x_\text{t}$. The speed at which such frames are transmitted is $f_\text{v}$. However most of the time any two consecutive frames would be identical. This would be the case if the victim is looking at static text on the screen. Therefore we can regard the transmitted signal as a repeating periodic signal of a single frame. Which means if we analyse the signal for repeating patterns we should be able to spot the repeating video frames in it and use that to estimate $f_\text{v}$.
 
 \subsection{Introduction to Autocorrelation}
-A good way of doing so would be calculating the discrete autocorrelation\cite{bracewell1965autocorrelation} of the incoming signal which is defined as 
+A good way of doing so would be calculating the discrete autocorrelation \cite{bracewell1965autocorrelation} of the incoming signal which is defined as 
 $$ R_{vv}(j)=\sum\limits_{i} v_{i} \bar{v}_{i-j} $$
 Where $\bar{v}$ is the complex conjugate of $v$ and $j$ is the \textbf{samples lag}. In our case $v$ is the set of real samples, therefore $\bar{v} = v$. Basically the autocorrelation is a measure of the similarity of a signal with itself shifted by a lag. The higher the value of $R_{vv}(j)$ is, the more similar the function is at that lag. Therefore by analysing $R_{vv}(j)$, we would be able to spot any repeating patterns inside $v_{i}$.
 
-Figure \ref{fig:autocorr} shows the discrete autocorrelation of a video signal that was captured using the Mirics USB dongle at 8 MHz (i.e. $8,000,000$ samples per second) sampling rate. The vertical axis is logarithmic, containing the decibels of the autocorrelation i.e. $10 \log_{10}( R_{vv} )$. The horizontal axis contains the time lag in milliseconds. This was converted from the lag in samples $j$ by $x = \frac{j}{s}$.
+Figure \ref{fig:autocorr} shows the discrete autocorrelation of a video signal that was captured using the Mirics USB dongle at 8 MHz (i.e.\  $8,000,000$ samples per second) sampling rate. The vertical axis is logarithmic, containing the decibels of the autocorrelation i.e.\  $10 \log_{10}( R_{vv} )$. The horizontal axis contains the time lag in milliseconds. This was converted from the lag in samples $j$ by $x = \frac{j}{f_\text{s}}$.
 
 \begin{figure}[h]
 \centering
@@ -425,35 +427,35 @@ Figure \ref{fig:autocorr} shows the discrete autocorrelation of a video signal t
   \label{fig:autocorr}
 \end{figure}
 
-This particular example consists of $524,288$ samples which is $65.536$ milliseconds of recording. This allows us to estimate the autocorrelation up to half of it, namely $32.768$ milliseconds. The reason is because $R_{vv}(j)=-R_{vv}(j)$ due to symmetry. We can see a peak at $16.672$ milliseconds which corresponds to a frequency of $f_\text{fps} = \frac{1}{0.016672} = 59.98$ Hz. This is our estimate for $f_\text{fps}$. And it makes sense, $60$ Hz is a common refresh rate for contemporary video displays.
+This particular example consists of $524,288$ samples which is $65.536$ milliseconds of recording. This allows us to estimate the autocorrelation up to half of it, namely $32.768$ milliseconds. The reason is because $R_{vv}(j)=-R_{vv}(j)$ due to symmetry. We can see a peak at $16.672$ milliseconds which corresponds to a frequency of $f_\text{v} = \frac{1}{0.016672} = 59.98$ Hz. This is our estimate for $f_\text{v}$. And it makes sense, $60$ Hz is a common refresh rate for contemporary video displays.
 
 \subsection{Aliasing}
-We should be able to see the peak repeating again at $2 \times 16.672 = 33.344 ms$. This is analogous to comparing every two consecutive frames with every two other frames. However, as this falls just outside our window it would be seen as an alias at $65.536-33.344 = 32.192 ms$. The same applies for the third peak at $3 \times 16.672 = 50.016 ms$ which would be comparing each block of three consecutive frames with the next three. This will alias at $65.536 - 50.016 = 15.52 ms$. This explains the second small peak we see on the left of the main one at $16.672 ms$ but we see that the difference in its power is already several decibels lower. Therefore any further aliasing induced would be even smaller.
+We should be able to see the peak repeating again at $2 \times 16.672 = 33.344$ ms. This is analogous to comparing every two consecutive frames with every two other frames. However, as this falls just outside our window it would be seen as an alias at $65.536-33.344 = 32.192$ ms. The same applies for the third peak at $3 \times 16.672 = 50.016$ ms which would be comparing each block of three consecutive frames with the next three. This will alias at $65.536 - 50.016 = 15.52$ ms. This explains the second small peak we see on the left of the main one at $16.672$ ms but we see that the difference in its power is already several decibels lower. Therefore any further aliasing induced would be even smaller.
 
 It is therefore important to choose the number of samples to be used for the autocorrelation wisely in order to avoid aliasing. We need to have enough full frames in our data so that the autocorrelation can physically work. The minimum frequency we can get from an autocorrelation is $\frac{2 s}{N}$ where $N$ is the total number of samples that we are doing the autocorrelation on. It could be easily shown that the second alias is
 \begin{equation}
-\hat{f}_{2}(f) = \frac{1}{\frac{2}{f_\text{min}}-\frac{2}{f}} = \frac{1}{\frac{N}{s}-\frac{2}{f}}
+\hat{f}_{2}(f) = \frac{1}{\frac{2}{f_\text{min}}-\frac{2}{f}} = \frac{1}{\frac{N}{f_\text{s}}-\frac{2}{f}}
 \end{equation}
 Where $f$ is the frequency we are going to see the alias for. Therefore if we want to be able to pick up a repeating pattern of at least $f_\text{min} = 50$ Hz, we would need $\frac{2 s}{50}$ which in our case is $320,000$ samples. However having such a small number of samples if we observe a signal at 85 Hz we would discover a strong alias at $\frac{1}{\frac{320,000}{8,000,000}-\frac{2}{85} } = 60.714$ Hz which would be very misleading and will look like a legitimate signal at $60.714$ Hz. 
 
-Let us assume $f_\text{low} \leq f_\text{fps} \leq f_\text{hi}$. In order to minimise aliasing, we can try to keep the second alias $\hat{f}_{2}(f_\text{src})$ outside this range. Therefore we need to pick the number of samples so that
-$$f_\text{low} \geq \hat{f}_{2}(f_\text{low}) \equiv \frac{1}{\frac{N}{s}-\frac{2}{f_\text{low}}}  \,\,\,\,\ \text{or} \,\,\,\,\ f_\text{hi} \leq \hat{f}_{2}(f_\text{hi}) \equiv \frac{1}{\frac{N}{s}-\frac{2}{f_\text{hi}}}  $$
+Let us assume $f_\text{low} \leq f_\text{v} \leq f_\text{hi}$. In order to minimise aliasing, we can try to keep the second alias $\hat{f}_{2}(f_\text{src})$ outside this range. Therefore we need to pick the number of samples so that
+$$f_\text{low} \geq \hat{f}_{2}(f_\text{low}) \equiv \frac{1}{\frac{N}{f_\text{s}}-\frac{2}{f_\text{low}}}  \,\,\,\,\ \text{or} \,\,\,\,\ f_\text{hi} \leq \hat{f}_{2}(f_\text{hi}) \equiv \frac{1}{\frac{N}{f_\text{s}}-\frac{2}{f_\text{hi}}}  $$
 Which means that
-$$ N \geq 3 \frac{s}{f_\text{low}} \,\,\,\,\ \text{or} \,\,\,\,\ N \leq 3 \frac{s}{f_\text{hi}} $$
+$$ N \geq 3 \frac{f_\text{s}}{f_\text{low}} \,\,\,\,\ \text{or} \,\,\,\,\ N \leq 3 \frac{f_\text{s}}{f_\text{hi}} $$
 and don't forget that in the same time we have the condition
-$$N \geq 2 \frac{s}{f_\text{low}}$$
+$$N \geq 2 \frac{f_\text{s}}{f_\text{low}}$$
 so in the end, in order to eliminate the second alias in the desired region from $f_\text{low}$ to $f_\text{hi}$ in the autocorrelation, we would need to choose the number of samples to be
 \begin{equation}
 \label{eq:autocorraliasingcondition}
-N \geq 3 \frac{s}{f_\text{low}}
+N \geq 3 \frac{f_\text{s}}{f_\text{low}}
 \end{equation}
 To paraphrase this result, we will need to do the autocorrelation on at least 3 frames worth of samples for the lowest frequency in our range $f_\text{low}$ to avoid second order aliasing interfering with our plot.
 
 \subsection{Number of Lines in a Frame}
 
-We were able to estimate $f_\text{fps}$ using an autocorrelation and eliminate aliased signals in the frequency window that we are looking to detect repetitions. However, we still have not estimated neither $w$, nor $h$. As a matter of fact we might not be able to measure $w$ at all. The reason is that $w$ might be a continuous signal and could potentially contain any number of pixels. However, each line of $w$ pixels repeat $h$ times in a frame which includes the blanking intervals. Therefore we can use their repeating nature of the blanking intervals to estimate $h$ from the autocorrelation plot.
+We were able to estimate $f_\text{v}$ using an autocorrelation and eliminate aliased signals in the frequency window that we are looking to detect repetitions. However, we still have not estimated neither $y_\text{t}$, nor $x_\text{t}$. As a matter of fact we might not be able to measure $y_\text{t}$ at all. The reason is that $y_\text{t}$ might be a continuous signal and could potentially contain any number of pixels. However, each line of $y_\text{t}$ pixels repeat $x_\text{t}$ times in a frame which includes the blanking intervals. Therefore we can use their repeating nature of the blanking intervals to estimate $x_\text{t}$ from the autocorrelation plot.
 
-For this reason we need to zoom in to our plot. Refer to Figure \ref{fig:autocorr_zoomed} which is a zoomed out version of the figure we saw in the previous subsection. If we still have our allowed $f_\text{fps}$ window between $f_\text{low}$ and $f_\text{hi}$, then we can assume that $h$ also spans between $h_\text{low}$ and $h_\text{hi}$. We would therefore expect to see a peak between $\frac{1}{f_\text{hi} \cdot h_\text{hi}}$ and $\frac{1}{f_\text{low} \cdot h_\text{low}}$ milliseconds. If we detect a peak at time $t_\text{peak}$, then this would correspond to $h = \left\| \frac{1}{t_\text{peak} \cdot f_\text{fps}} \right\|$ where $\|$ represents rounding to the nearest integer. Note that we should have already estimated $f_\text{fps}$.
+For this reason we need to zoom in to our plot. Refer to Figure \ref{fig:autocorr_zoomed} which is a zoomed out version of the figure we saw in the previous subsection. If we still have our allowed $f_\text{v}$ window between $f_\text{low}$ and $f_\text{hi}$, then we can assume that $x_\text{t}$ also spans between $h_\text{low}$ and $h_\text{hi}$. We would therefore expect to see a peak between $\frac{1}{f_\text{hi} \cdot h_\text{hi}}$ and $\frac{1}{f_\text{low} \cdot h_\text{low}}$ milliseconds. If we detect a peak at time $t_\text{peak}$, then this would correspond to $y_\text{t} = \left\| \frac{1}{t_\text{peak} \cdot f_\text{v}} \right\|$ where $\|$ represents rounding to the nearest integer. Note that we should have already estimated $f_\text{v}$.
 
 \begin{figure}[h]
 \centering
@@ -462,24 +464,24 @@ For this reason we need to zoom in to our plot. Refer to Figure \ref{fig:autocor
   \label{fig:autocorr_zoomed}
 \end{figure}
 
-Our plot shows a peak at $0.017875$ milliseconds. Since we already estimated $f_\text{fps} = 59.98$ Hz, then $h = \left\| \frac{1000}{0.017875 \times 59.98} \right\| = 933$ lines. If we look at a list of VESA video modes, we can see that there is a conveniently close video mode that corresponds to $h = 933$ and $f_\text{fps} = 59.98$. It is the $1440 \times 900$ @ $60$ video mode with $w = 1904$ pixels, $h = 932$ lines and $f_\text{fps}=60$ Hz. Therefore we could use the value of $w = 1904$ for our estimate of the number of pixels in a row. This will keep the aspect ratio correct.
+Our plot shows a peak at $0.017875$ milliseconds. Since we already estimated $f_\text{v} = 59.98$ Hz, then $y_\text{t} = \left\| \frac{1000}{0.017875 \times 59.98} \right\| = 933$ lines. If we look at a list of VESA video modes, we can see that there is a conveniently close video mode that corresponds to $y_\text{t} = 933$ and $f_\text{v} = 59.98$. It is the $1440 \times 900$ @ $60$ video mode with $x_\text{t} = 1904$ pixels, $y_\text{t} = 932$ lines and $f_\text{v}=60$ Hz. Therefore we could use the value of $x_\text{t} = 1904$ for our estimate of the number of pixels in a row. This will keep the aspect ratio correct.
 
 We should not worry about aliasing since the number of samples in the autocorrelation is much bigger than our range. We can see on the plot the autocorrelation values repeating for each two lines, each three lines, etc. This results in a number of peaks repeating with the rate at which individual lines repeat in the video signal.
 
 \subsection{Errors}
 
-There is a limit on how accurately one can determine $f_\text{fps}$ and $h$ using the outlined autocorrelation method. This depends on the sampling rate of the device. The resolution of the autocorrelation is $\delta f = \frac{1}{s}$. Therefore we can only say that if there is a peak at $t_{x}$ in the autocorrelation, then we have a repeating component in the signal with a frequency $f_{x} \pm \delta f$.
+There is a limit on how accurately one can determine $f_\text{v}$ and $x_\text{t}$ using the outlined autocorrelation method. This depends on the sampling rate of the device. The resolution of the autocorrelation is $\delta f = \frac{1}{f_\text{s}}$. Therefore we can only say that if there is a peak at $t_{x}$ in the autocorrelation, then we have a repeating component in the signal with a frequency $f_{x} \pm \delta f$.
 
-The accuracy at which we can determine $h$ depends both on the accuracy of $f_\text{fps}$ and $t_\text{peak}$ and can vary. Furthermore $h$ should be rounded to an integer (we can only display an integer number of lines on a PC screen) which introduces further errors. Our definition for $h$ is
-$$h = \left\| \frac{1}{t_\text{peak} \cdot f_\text{fps}} \right\| \pm (\delta h + 0.5)$$
-Where $0.5$ comes from the rounding. Also the uncertainties in $t_\text{peak}$ and $f_\text{fps}$ are $\delta f$ since both are being read from the same autocorrelation plot in milliseconds. In order to do error propagation, we need to take the partial derivatives with respect to $f_\text{fps}$ and $t_\text{peak}$.
-$$\frac{\partial h}{\partial f_\text{fps}} = - \frac{1}{t_\text{peak} \cdot f_\text{fps}^2}
+The accuracy at which we can determine $x_\text{t}$ depends both on the accuracy of $f_\text{v}$ and $t_\text{peak}$ and can vary. Furthermore $x_\text{t}$ should be rounded to an integer (we can only display an integer number of lines on a PC screen) which introduces further errors. Our definition for $x_\text{t}$ is
+$$y_\text{t} = \left\| \frac{1}{t_\text{peak} \cdot f_\text{v}} \right\| \pm (\delta y_\text{t} + 0.5)$$
+Where $0.5$ comes from the rounding. Also the uncertainties in $t_\text{peak}$ and $f_\text{v}$ are $\delta f$ since both are being read from the same autocorrelation plot in milliseconds. In order to do error propagation, we need to take the partial derivatives with respect to $f_\text{v}$ and $t_\text{peak}$.
+$$\frac{\partial h}{\partial f_\text{v}} = - \frac{1}{t_\text{peak} \cdot f_\text{v}^2}
  \,\,\,\,\ \text{and} \,\,\,\,\ \
-\frac{\partial h}{\partial t_\text{peak}} = - \frac{1}{f_\text{fps} \cdot t_\text{peak}^2}$$
-So for the uncertainty in $h$, we have
-$$\delta h =
-\sqrt{\left( \frac{\partial h}{\partial f_\text{fps}} \delta f_\text{fps} \right)^2 + \left( \frac{\partial h}{\partial t_\text{peak}} \delta t_\text{peak} \right)^2} = 
-\sqrt{\frac{1}{f_\text{fps}^2} + \frac{1}{t_\text{peak}^2}} \times \frac{\delta f}{f_\text{fps} \cdot t_\text{peak}}$$
+\frac{\partial h}{\partial t_\text{peak}} = - \frac{1}{f_\text{v} \cdot t_\text{peak}^2}$$
+So for the uncertainty in $x_\text{t}$, we have
+$$\delta y_\text{t} =
+\sqrt{\left( \frac{\partial h}{\partial f_\text{v}} \delta f_\text{v} \right)^2 + \left( \frac{\partial h}{\partial t_\text{peak}} \delta t_\text{peak} \right)^2} = 
+\sqrt{\frac{1}{f_\text{v}^2} + \frac{1}{t_\text{peak}^2}} \times \frac{\delta f}{f_\text{v} \cdot t_\text{peak}}$$
 We can also observe that the larger the sample rate gets, the smaller $\delta f$ and $\delta t$ get.
 
 \chapter{Practical attack} 
@@ -614,7 +616,7 @@ Figure \ref{fig:architecture} outlines the data flow and data processing paths w
 	\item The hardware driver in the OS receives the samples and possibly queues them.
 	\item A TSDRPlugin either continuously polls the driver or receives a callback from it as soon as a block of data is available. It obtains the block of data and sends it to the TSDRLibrary via a callback.
 	\item The IQ data is inside TSDRLibrary. AM demodulation is done on the data. This runs in a separate thread so that the TSDRPlugin will have the chance to receive new data from the device as quickly as possible. The demodulated data is provided to the Autocorrelation thread that will calculate the autocorrelation of the incoming signal and notify the host program. If TSDRPlugin reports any dropped samples between calls, the autocorrelation is reset (we only want continuous data accumulated for autocorrelation).
-	\item The resampling logic runs in a separate thread. It matches the rate of the data from the sampling rate of the device $s$ to the expected rate of $w h f_\text{fps}$.
+	\item The resampling logic runs in a separate thread. It matches the rate of the data from the sampling rate of the device $f_\text{s}$ to the expected rate of $x_\text{t} \cdot y_\text{t} \cdot f_\text{v}$.
 	\item Here some digital signal processing is done in a separate thread to enhance the signal. The order with which the operations are applied depends on the settings that a user will supply. By default the synchronisation pulses of a video frame are detected first. If the user has selected auto tracking, the current position of the horizontal blanking interval is compared with the last one. This gives a rough estimate on whether $f_{fps}$ is off by a couple of parts per million from the real value. The process allows for keeping the picture steady on the screen. Then lowpass in the time domain is done (a.k.a. motion blur) to de-noise a weaker signal using averaging. Finally, an autogain algorithm makes sure that the full dynamic range of the signal is equally utilised for the final image.
 	\item Here the host application receives a video frame via a callback. It is up to the host application to determine what to do with it. It can take as much time as it wants since this runs in a separate thread.
 	\item The signal leaves the library and goes into the host application. In this example this is our Java GUI. A Java Native Interface (JNI) code marshals the incoming data to a Java friendly format which is then passed to the Java Virtual Machine and the particular class instance that has invoked the whole processing.
@@ -625,7 +627,7 @@ The biggest problem faced was synchronising dropped samples. To illustrate the i
 
 This means that we will have a lot of dropped samples coming from the device. At the same time, even if we don't have any dropped samples, the CPU can still fail to process all of the desired data in real-time. This means that, in order to have the system run interactively, some samples that can't be processed in real-time should be dropped. This would allow for fresh data to be collected for processing. However having even a couple of dropped samples is a problem. This is because video is continuous. Dropping a few pixels means that the whole frame synchronization could be broken.
 
-Therefore the library employs an algorithm that allows it to drop samples only an integer multiple of $w \times h$ at a time. This means that even if a single sample was dropped before processing, the algorithm will enforce a whole batch of $w \times h$ samples to be dropped instead. This means that when the next frame arrives, it will start processing from where the previous frame had dropped samples. Therefore the picture will look seamless to the end user since the dropped samples will actually result in a lower frame-rate in the host application. This approach allows the system to run even on not so powerful configurations and still produce some output. Such synchronization points are denoted as white arrows on Figure \ref{fig:architecture}.
+Therefore the library employs an algorithm that allows it to drop samples only an integer multiple of $x_\text{t} \times h$ at a time. This means that even if a single sample was dropped before processing, the algorithm will enforce a whole batch of $x_\text{t} \times h$ samples to be dropped instead. This means that when the next frame arrives, it will start processing from where the previous frame had dropped samples. Therefore the picture will look seamless to the end user since the dropped samples will actually result in a lower frame-rate in the host application. This approach allows the system to run even on not so powerful configurations and still produce some output. Such synchronization points are denoted as white arrows on Figure \ref{fig:architecture}.
 
 \section{Digital Signal Processing}
 
