@@ -3,7 +3,7 @@
 %% 
 %% Currently designed for printing two-sided, but if you prefer to 
 %% print single-sided just remove ",twoside,openright" from the 
-%% \documentclass[] line below. 
+%% \documentclass[] line below. \section{Digital Video Signals}
 %%
 %%
 %%   SMH, May 2010. 
@@ -262,7 +262,7 @@ Refer to Figure \ref{fig:IQ} for geometrical representation of the outlined prop
 
 Almost all contemporary video monitors are raster based. The image is transferred from the video controller to the display in scanlines that occur at a specific rate. Each of these scanlines contains a number of pixels which are continuously encoded as a time varying signal. This signal is generated internally in the video controller by an oscillator which runs at the pixel clock rate. The analogue signal is thereafter multiplied by the pixel intensities at the specific time.
 
-Let's assume that the signal started transmitting at time $t=0$, and each video frame contains $x_\text{t}$ scanlines, each of which contains $y_\text{t}$ pixels. The frequency with which frames are being generated is $f_\text{v}$ frames per second. The duration of transmission of each individual pixel is \begin{equation}
+Let's assume that the signal started transmitting at time $t=0$, and each video frame contains $y_\text{t}$ scanlines, each of which contains $x_\text{t}$ pixels. The frequency with which frames are being generated is $f_\text{v}$ frames per second. The duration of transmission of each individual pixel is \begin{equation}
 \label{eq:tdelta_definition}
 t_\text{p}=\frac{1}{x_\text{t} \cdot y_\text{t} \cdot f_\text{v}}
 \end{equation}
@@ -280,7 +280,7 @@ T_{(x+1,y)} = T_{(x,y)} + t_\text{p} =(n(t) x_\text{t} h + y x_\text{t} + x + 1)
 \end{equation}
 at which the next pixel will start transmitting.
 
-In practice $y_\text{t}$ and $x_\text{t}$ are determined by the screen resolution and $f_\text{v}$ is simply the screen refresh rate. For a typical screen resolution of $width \times height$, it is true that $x_\text{t} \geq width$ and $y_\text{t} \geq height$. The reason is that video signals tend to have additional blanking intervals. This means more pixels are transmitted than what is in the active video region. This gives opportunity for the receiving monitor to synchronise its internal clock, calibrate its colour levels or in case of CRT, allow enough time for the electron beam to return to the beginning of the next line on the screen. The synchronisation timings for personal computers have been standardised by Video Electronics Standards Association (VESA) \cite{vesa}.
+In practice $x_\text{t}$ and $y_\text{t}$ are determined by the screen resolution and $f_\text{v}$ is simply the screen refresh rate. For a typical screen resolution of $width \times height$, it is true that $x_\text{t} \geq width$ and $y_\text{t} \geq height$. The reason is that video signals tend to have additional blanking intervals. This means more pixels are transmitted than what is in the active video region. This gives opportunity for the receiving monitor to synchronise its internal clock, calibrate its colour levels or in case of CRT, allow enough time for the electron beam to return to the beginning of the next line on the screen. The synchronisation timings for personal computers have been standardised by Video Electronics Standards Association (VESA) \cite{vesa}.
 
 In order to decode an individual pixel, the receiving monitor has its own internal oscillator. It locks it to the pixel rate of the incoming signal either via an external clock source or using the blanking intervals. Once it receives the signal for an individual pixel, its amplitude (or binary content in case of digital signal) will correspond to the intensity. This allows the monitor to display the video in real time. If multiple colours are desired, they can be transmitted separately on different wires in the same fashion.
 
@@ -329,32 +329,25 @@ It could be also shown that:
 \begin{equation}
 \mathcal{F} \left\{ \sum\limits_{n=-\infty}^{\infty}  \delta(t-n k) \right\} = \frac{1}{k} \sum\limits_{n=-\infty}^{\infty}  \delta \left( t-\frac{n}{k} \right)
 \end{equation}
-Using the last three identities, we can write the Fourier transform of (\ref{eq:vasconv}) as
-\begin{equation} 
-\mathcal{F} \left\{ p(t) \ast \hat{v}(t) \right\} = \tilde{V}(f) =
-\left[ \frac{1}{t_\text{p}} \cdot P(f) \cdot V(f) \right] \ast
-\left[ \sum\limits_{i=-\infty}^{\infty}  \delta \left( t-\frac{i}{t_\text{p}} \right) \right]
-\end{equation}
-Where $P(f)$ is the Fourier transform of $p(t)$, $\tilde{V}(f)$ is the Fourier transform of $\tilde{v}(t)$ and $V(f)$ is the Fourier transform of $v(t)$. If we put 
-\begin{equation} 
-\label{eq:gfdef}
-G(f) = \frac{1}{t_\text{p}} \cdot P(f) \cdot V(f)
-\end{equation}
-Then we we can arrive to our final conclusion that
-\begin{equation}
+using the last three identities, we can write the Fourier transform of (\ref{eq:vasconv}) as
+\begin{multline} 
 \label{eq:vspectrum}
-\tilde{V}(f) = G(f) \ast
-\left[ \sum\limits_{i=-\infty}^{\infty}  \delta \left( t-\frac{i}{t_\text{p}} \right) \right]
-\end{equation}
-This simply means that the signal spectrum $G(f)$ repeats at regular intervals throughout the radio spectrum with a frequency of $\frac{1}{t_\text{p}} = x_\text{t} \cdot y_\text{t} \cdot f_\text{v}$.
+\mathcal{F} \left\{ p(t) \ast \hat{v}(t) \right\} = \mathcal{F} \left\{ p(t) \ast \left( \sum\limits_{i=-\infty}^{\infty} v(t) \cdot \delta(t-i t_\text{p}) \right) \right\} = \\
+\tilde{V}(f) = \frac{1}{t_\text{p}} P(f) \cdot  \left[ V(f) \ast
+\sum\limits_{i=-\infty}^{\infty}  \delta \left( t-\frac{i}{t_\text{p}} \right) \right]
+\end{multline}
+Where $P(f)$ is the Fourier transform of $p(t)$, $\tilde{V}(f)$ is the Fourier transform of $\tilde{v}(t)$ and $V(f)$ is the Fourier transform of $v(t)$. This simply means that the signal spectrum $V(f)$ repeats at regular intervals throughout the radio spectrum with a frequency of $\frac{1}{t_\text{p}} = x_\text{t} \cdot y_\text{t} \cdot f_\text{v}$. The intensities of the emission at the different frequencies is determined by the shape of the pixel $p(t)$.
 
 For example, for a resolution of $800 \times 600 $ @ $ 60$ fps (ignore blanking intervals for simplicity), we would have a frequency of $\frac{1}{t_\text{p}} = 800 \times 600 \times 60 = 28.8$ MHz. This means that we would expect to find such a signal centred at DC, 28.8 MHz, 57.6 MHz, 86.4 MHz, etc.
 
-\subsection{Sampling Rate}
+In order to obtain the full video signal, we need to know what is the minimum rate at which we need to sample the baseband. We saw from (\ref{eq:vspectrum}) that $V(f)$ repeats at the regular intervals. As a consequence from the Whittaker--Shannon interpolation formula that we used to construct $v(t)$, we know that $V(f)$ is band limited so that $V(f) = 0$ for all $|f| \geq \frac{1}{2 t_\text{p}}$. Therefore we need to have a receiver with a sampling rate of at least $\frac{1}{t_\text{p}}$.
 
-In order to obtain the full video signal, we need to know what is the minimum rate at which we need to sample the baseband. We saw from (\ref{eq:vspectrum}) that $G(f)$ repeats at the regular intervals. In fact we can see from (\ref{eq:gfdef}) that it is $G(f)$ that contains the actual video information
-$$G(f) = \frac{1}{t_\text{p}} \cdot P(f) \cdot V(f)$$
-As a consequence from the Whittaker--Shannon interpolation formula that we used to construct $v(t)$, we know that $V(f)$ is band limited so that $V(f) = 0$ for all $|f| \geq \frac{1}{2 t_\text{p}}$. This implies that $G(f)$ is also band limited to the same range (because of the multiplication). Therefore we need to have a receiver with a sampling rate of at least $\frac{1}{t_\text{p}}$ in order to reconstruct $G(f)$. Note however that $g(t)$ contains the video signal convolved with the shape of the pixel $p(t)$. We can however assume $P(f)=1$ for $|f| \le \frac{1}{2 t_\text{p}}$ and zero otherwise. Therefore $G(f) = V(f)$ which would imply a sinc shaped $p(t)$. This in fact is not the case since different video cards have different pixel shapes \cite{kuhn2003compromising}. However in practice, this is enough to obtain a good approximation of the signal.
+\section{Digital Video Signals}
+
+The outlined procedure above works successfully for analogue signals such as the ones transmitted via VGA. [TODO!]
+
+Dr Markus Kuhn has shown that the outlined procedure even works for decoding digital video signals \cite{kuhn2005electromagnetic}. If the pixel intensities are transmitted as a bit pattern rather than an analogue amplitude, the received intensity will be the average intensity in the bit pattern. The redundancy of bit patterns means that even in such case we can still receive a signal that will allow us to read text on the remote screen. 
+
 
 \section{Reception}
 
@@ -364,12 +357,12 @@ In order to receive a copy of the video signal, we will need to apply a bandpass
 However some software-defined radio receivers can provide the required bandwidth. The Ettus Research USRP B200 can provide more than 50 MHz of realtime bandwidth which covers what is required to eavesdrop most video signals. Software-defined radios provide the radio samples as a quadrature vector which angle relates to the instantaneous phase in relation to the internal hardware oscillator of the hardware. The size of the vector is proportional to the received amplitude for each sample (refer to Section \ref{sec:IQSampling} for more information). For AM reception, we do not need the phase information since the video signal is being transmitted with a constant frequency. Therefore we can make a simple AM demodulator by taking the length of the vector of each sample. When our digital sampling rate matches the pixel rate, then each sample will contain an estimate of the pixel intensity at that time.
 
 \subsection{Practice}
-The VESA standard specifies an allowed frequency tolerance for $f_\text{p}$ of 0.5\%. Therefore due to hardware limitations, we might not be able to accurately tune the receiver sampling rate with enough accuracy to match the transmitted pixel rate. This means that some resampling needs to be done in software in order to create a new digital signal that matches as close as possible the transmitted pixel rate in which each sample corresponds to a pixel.
+The VESA standard specifies an allowed frequency tolerance for $f_\text{v}$ of 0.5\%. Therefore due to hardware limitations, we might not be able to accurately tune the receiver sampling rate with enough accuracy to match the transmitted pixel rate. This means that some resampling needs to be done in software in order to create a new digital signal that matches as close as possible the transmitted pixel rate in which each sample corresponds to a pixel.
 
-It is also true that we might be able to recover a lot of information from a signal even if our receiver is not capable of sampling the full width of the video spectrum. This means we will only receive a of $g(f)$ with a bandpass filter applied to it. In this case the digital resampling could interpolate the received samples to fit into multiple pixels. Therefore it is useful to introduce a measurement $\kappa$ of how accurate we can reconstruct pixels of $g(t)$. This measurement can be the number of input samples that have gone into constructing a single output pixels. Therefore
+It is also true that we might be able to recover a lot of information from a signal even if our receiver is not capable of sampling the full width of the video spectrum. This means we will only receive a of $v(f)$ with a bandpass filter applied to it. In this case the digital resampling could interpolate the received samples to fit into multiple pixels. Therefore it is useful to introduce a measurement $\kappa$ of how accurate we can reconstruct pixels of $v(t)$. This measurement can be the number of input samples that have gone into constructing a single output pixels. Therefore
 \begin{equation}
 \label{eq:kappa}
-\kappa = s \cdot t_\text{p} = \frac{f_\text{s}}{x_\text{t} \cdot y_\text{t} \cdot f_\text{v}}
+\kappa = f_\text{s} \cdot t_\text{p} = \frac{f_\text{s}}{x_\text{t} \cdot y_\text{t} \cdot f_\text{v}}
 \end{equation}
 Where as before, $f_\text{s}$ is the receiver sampling rate. If $\kappa \geq 1$, then we can deconstruct individual pixels. If $\kappa < 1$ we are looking at a band-passed version of the signal and consecutive reconstructed pixels will have some interdependencies. Please refer to Figure \ref{fig:samplerates} for a visual comparison of different values of $\kappa$.
 
@@ -405,13 +398,11 @@ Where as before, $f_\text{s}$ is the receiver sampling rate. If $\kappa \geq 1$,
 
 Another possible source of distortions is the usage of multiple wires to transmit colour information. These signals interfere with each other and the resulting pixel intensity becomes a complicated mix of the signals generated in these wires. Therefore colour information would be very difficult to obtain. Nevertheless the outlined strategy allows an eavesdropper to detect changes in colour since this would result in different signal amplitudes arriving at the receiver for each pixel.
 
-Dr Markus Kuhn has shown that the outlined procedure even works for decoding digital video signals \cite{kuhn2005electromagnetic}. If the pixel intensities are transmitted as a bit pattern rather than an analogue amplitude, the received intensity will be the average intensity in the bit pattern. The redundancy of bit patterns means that even in such case we can still receive a signal that will allow us to read text on the remote screen. 
-
 \section{Resolution and Framerate Detection}
 
-The outlined method for decoding the video stream relies on us having the exact values for $y_\text{t}$, $x_\text{t}$ and $f_\text{v}$. This is not very practical for a real world attack. We would require the adversary not to have any knowledge of the target system whatsoever. Therefore we would need to infer all of these parameters remotely by exploiting some typical characteristics of a video signal. Namely the fact that the signal is periodic.
+The outlined method for decoding the video stream relies on us having the exact values for $x_\text{t}$, $y_\text{t}$ and $f_\text{v}$. This is not very practical for a real world attack. We would require the adversary not to have any knowledge of the target system whatsoever. Therefore we would need to infer all of these parameters remotely by exploiting some typical characteristics of a video signal. Namely the fact that the signal is periodic.
 
-As we have already seen, a video signal consists of video frames with width $y_\text{t}$ and height $x_\text{t}$. The speed at which such frames are transmitted is $f_\text{v}$. However most of the time any two consecutive frames would be identical. This would be the case if the victim is looking at static text on the screen. Therefore we can regard the transmitted signal as a repeating periodic signal of a single frame. Which means if we analyse the signal for repeating patterns we should be able to spot the repeating video frames in it and use that to estimate $f_\text{v}$.
+As we have already seen, a video signal consists of video frames with width $x_\text{t}$ and height $y_\text{t}$. The speed at which such frames are transmitted is $f_\text{v}$. However most of the time any two consecutive frames would be identical. This would be the case if the victim is looking at static text on the screen. Therefore we can regard the transmitted signal as a repeating periodic signal of a single frame. Which means if we analyse the signal for repeating patterns we should be able to spot the repeating video frames in it and use that to estimate $f_\text{v}$.
 
 \subsection{Introduction to Autocorrelation}
 A good way of doing so would be calculating the discrete autocorrelation \cite{bracewell1965autocorrelation} of the incoming signal which is defined as 
@@ -453,9 +444,9 @@ To paraphrase this result, we will need to do the autocorrelation on at least 3 
 
 \subsection{Number of Lines in a Frame}
 
-We were able to estimate $f_\text{v}$ using an autocorrelation and eliminate aliased signals in the frequency window that we are looking to detect repetitions. However, we still have not estimated neither $y_\text{t}$, nor $x_\text{t}$. As a matter of fact we might not be able to measure $y_\text{t}$ at all. The reason is that $y_\text{t}$ might be a continuous signal and could potentially contain any number of pixels. However, each line of $y_\text{t}$ pixels repeat $x_\text{t}$ times in a frame which includes the blanking intervals. Therefore we can use their repeating nature of the blanking intervals to estimate $x_\text{t}$ from the autocorrelation plot.
+We were able to estimate $f_\text{v}$ using an autocorrelation and eliminate aliased signals in the frequency window that we are looking to detect repetitions. However, we still have not estimated neither $x_\text{t}$, nor $y_\text{t}$. As a matter of fact we might not be able to measure $x_\text{t}$ at all. The reason is that $x_\text{t}$ might be a continuous signal and could potentially contain any number of pixels. However, each line of $x_\text{t}$ pixels repeat $y_\text{t}$ times in a frame which includes the blanking intervals. Therefore we can use their repeating nature of the blanking intervals to estimate $y_\text{t}$ from the autocorrelation plot.
 
-For this reason we need to zoom in to our plot. Refer to Figure \ref{fig:autocorr_zoomed} which is a zoomed out version of the figure we saw in the previous subsection. If we still have our allowed $f_\text{v}$ window between $f_\text{low}$ and $f_\text{hi}$, then we can assume that $x_\text{t}$ also spans between $h_\text{low}$ and $h_\text{hi}$. We would therefore expect to see a peak between $\frac{1}{f_\text{hi} \cdot h_\text{hi}}$ and $\frac{1}{f_\text{low} \cdot h_\text{low}}$ milliseconds. If we detect a peak at time $t_\text{peak}$, then this would correspond to $y_\text{t} = \left\| \frac{1}{t_\text{peak} \cdot f_\text{v}} \right\|$ where $\|$ represents rounding to the nearest integer. Note that we should have already estimated $f_\text{v}$.
+For this reason we need to zoom in to our plot. Refer to Figure \ref{fig:autocorr_zoomed} which is a zoomed out version of the figure we saw in the previous subsection. If we still have our allowed $f_\text{v}$ window between $f_\text{low}$ and $f_\text{hi}$, then we can assume that $y_\text{t}$ also spans between $h_\text{low}$ and $h_\text{hi}$. We would therefore expect to see a peak between $\frac{1}{f_\text{hi} \cdot h_\text{hi}}$ and $\frac{1}{f_\text{low} \cdot h_\text{low}}$ milliseconds. If we detect a peak at time $t_\text{peak}$, then this would correspond to $y_\text{t} = \left\| \frac{1}{t_\text{peak} \cdot f_\text{v}} \right\|$ where $\|$ represents rounding to the nearest integer. Note that we should have already estimated $f_\text{v}$.
 
 \begin{figure}[h]
 \centering
@@ -470,15 +461,15 @@ We should not worry about aliasing since the number of samples in the autocorrel
 
 \subsection{Errors}
 
-There is a limit on how accurately one can determine $f_\text{v}$ and $x_\text{t}$ using the outlined autocorrelation method. This depends on the sampling rate of the device. The resolution of the autocorrelation is $\delta f = \frac{1}{f_\text{s}}$. Therefore we can only say that if there is a peak at $t_{x}$ in the autocorrelation, then we have a repeating component in the signal with a frequency $f_{x} \pm \delta f$.
+There is a limit on how accurately one can determine $f_\text{v}$ and $y_\text{t}$ using the outlined autocorrelation method. This depends on the sampling rate of the device. The resolution of the autocorrelation is $\delta f = \frac{1}{f_\text{s}}$. Therefore we can only say that if there is a peak at $t_{x}$ in the autocorrelation, then we have a repeating component in the signal with a frequency $f_{x} \pm \delta f$.
 
-The accuracy at which we can determine $x_\text{t}$ depends both on the accuracy of $f_\text{v}$ and $t_\text{peak}$ and can vary. Furthermore $x_\text{t}$ should be rounded to an integer (we can only display an integer number of lines on a PC screen) which introduces further errors. Our definition for $x_\text{t}$ is
+The accuracy at which we can determine $y_\text{t}$ depends both on the accuracy of $f_\text{v}$ and $t_\text{peak}$ and can vary. Furthermore $y_\text{t}$ should be rounded to an integer (we can only display an integer number of lines on a PC screen) which introduces further errors. Our definition for $y_\text{t}$ is
 $$y_\text{t} = \left\| \frac{1}{t_\text{peak} \cdot f_\text{v}} \right\| \pm (\delta y_\text{t} + 0.5)$$
 Where $0.5$ comes from the rounding. Also the uncertainties in $t_\text{peak}$ and $f_\text{v}$ are $\delta f$ since both are being read from the same autocorrelation plot in milliseconds. In order to do error propagation, we need to take the partial derivatives with respect to $f_\text{v}$ and $t_\text{peak}$.
 $$\frac{\partial h}{\partial f_\text{v}} = - \frac{1}{t_\text{peak} \cdot f_\text{v}^2}
  \,\,\,\,\ \text{and} \,\,\,\,\ \
 \frac{\partial h}{\partial t_\text{peak}} = - \frac{1}{f_\text{v} \cdot t_\text{peak}^2}$$
-So for the uncertainty in $x_\text{t}$, we have
+So for the uncertainty in $y_\text{t}$, we have
 $$\delta y_\text{t} =
 \sqrt{\left( \frac{\partial h}{\partial f_\text{v}} \delta f_\text{v} \right)^2 + \left( \frac{\partial h}{\partial t_\text{peak}} \delta t_\text{peak} \right)^2} = 
 \sqrt{\frac{1}{f_\text{v}^2} + \frac{1}{t_\text{peak}^2}} \times \frac{\delta f}{f_\text{v} \cdot t_\text{peak}}$$
