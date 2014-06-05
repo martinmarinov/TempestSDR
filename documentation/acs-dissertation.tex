@@ -206,7 +206,7 @@ To illustrate how convolution works, consider convolving a function $x(t)$ with 
 \end{multline}
 where we used the fact that the Dirac delta function has an even symmetry $\delta(t) = \delta(-t)$. This results in a new function $x(t-T)$ which is a time shifted copy of $x(t)$ with a shift of $T$. Convolving with a Dirac comb could be shown to produce infinite copies of $x(t)$ at regular intervals $T$ which are basically summed together.
 
-The term \textbf{lowpass} means a lowpass filter. This is a filter that acts on a signal, and that allows components of the signal with frequencies $f \leq f_\text{max}$ to pass through, attenuating the rest to 0. А \textbf{Highpass} filter allows frequencies $f \geq f_\text{min}$ to pass through intact, attenuating the rest to 0. A \textbf{bandpass} filter is a combination of a lowpass and a highpass filter, allowing only frequencies $f_\text{min} \leq f \leq f_\text{max}$, attenuating the rest to 0. A \textbf{band-limited} signal is a signal which doesn't have any frequency components $f > f_\text{max}$ or $f < f_\text{min}$. Such a signal would remain unchanged after applying a bandpass filter to it with limits $f_\text{min}$ and $f_\text{max}$. This is used for filtering out useful signals from other interferences that are not part of the band-limited signal.
+The term \textbf{lowpass} means a lowpass filter. This is a filter that acts on a signal, and that allows components of the signal with frequencies $f \leq f_\text{max}$ to pass through, attenuating the rest to 0. A \textbf{Highpass} filter allows frequencies $f \geq f_\text{min}$ to pass through intact, attenuating the rest to 0. A \textbf{bandpass} filter is a combination of a lowpass and a highpass filter, allowing only frequencies $f_\text{min} \leq f \leq f_\text{max}$, attenuating the rest to 0. A \textbf{band-limited} signal is a signal which doesn't have any frequency components $f > f_\text{max}$ or $f < f_\text{min}$. Such a signal would remain unchanged after applying a bandpass filter to it with limits $f_\text{min}$ and $f_\text{max}$. This is used for filtering out useful signals from other interferences that are not part of the band-limited signal.
 
 \section{IQ Sampling} 
 \label{sec:IQSampling}
@@ -227,7 +227,7 @@ x(t) \cdot A_\text{LO} \cos(2 \pi f_\text{LO} t) =  A(t) \cos(2 \pi f_\text{c} t
 \end{multline}
 This results in a linear combination of two signals with frequencies called heterodyne frequencies -- the sum and the difference between the local oscillator and the incoming frequency. A bandpass filter could be set up at an \textbf{IF} (intermediate frequency) $f_\text{IF}$. If any of these heterodyne frequencies falls within the bandpass of the filter, the signal can go for further processing.
 
-However we encounter a problem -- $\cos$ is an even function. Imagine we now have another RF baseband signal, namely $\hat{x}(t) = A(t) \cos\big( 2 \pi (2 f_\text{LO} - f_\text{c}) t\big)$. After mixing with the local oscillator, the resulting signal would be $A(t) \cos\big( 2 \pi (f_\text{LO} - f_\text{c}) t \big)$ which is equivalent to what we obtained for $x(t)$ in (\ref{eq:hetero}) for the difference $f_\text{LO} - f_\text{c}$ signal. So we can't distinguish $\hat{x}(t)$ from $x(t)$ if we decide to only filter out the difference part. This is called signal imaging. It could be shown that a signal $\tilde{f}(t) = A(t) \cos\big( 2 \pi (- f_\text{c} - 2 f_\text{LO}) t\big)$ will in turn generate a sum $A(t) \cos\big( 2 \pi ( - f_\text{LO} - f_\text{c}) t \big)$ which again results in imaging if we decide to keep the summation term $f_\text{LO} + f_\text{c}$ from (\ref{eq:hetero}).
+However, we encounter a problem: $\cos$ is an even function. Imagine we now have another RF baseband signal, namely $\hat{x}(t) = A(t) \cos\big( 2 \pi (2 f_\text{LO} - f_\text{c}) t\big)$. After mixing with the local oscillator, the resulting signal would be $A(t) \cos\big( 2 \pi (f_\text{LO} - f_\text{c}) t \big)$ which is equivalent to what we obtained for $x(t)$ in (\ref{eq:hetero}) for the difference $f_\text{LO} - f_\text{c}$ signal. So we can't distinguish $\hat{x}(t)$ from $x(t)$ if we decide to only filter out the difference part. This is called signal imaging. It could be shown that a signal $\tilde{f}(t) = A(t) \cos\big( 2 \pi (- f_\text{c} - 2 f_\text{LO}) t\big)$ will in turn generate a sum $A(t) \cos\big( 2 \pi ( - f_\text{LO} - f_\text{c}) t \big)$ which again results in imaging if we decide to keep the summation term $f_\text{LO} + f_\text{c}$ from (\ref{eq:hetero}).
 
 This method can preserve the amplitude of the wave and is widely used in AM radio reception (in conjunction with some image rejection techniques as well). However, it is obvious from the problem outlined above that the method is not sufficient for uniquely detecting the phase of the incoming wave. A solution to this problem is to multiply the incoming RF signal with a phase shifted version of the local oscillator at an angle of 90\degree\ in parallel with the mixing from (\ref{eq:hetero}). This means multiplying by $-A_\text{LO} \cdot \sin(2 \pi f_\text{LO} t)$. After this secondary mixing stage, we would get
 \begin{multline}
@@ -295,7 +295,7 @@ In order to decode an individual pixel, the receiving monitor has its own intern
 \section{Generated Radio Wave}
 
 \subsection{Analogue Signal Equation}
-Let's assume the discrete pixels in an analogue video signal have intensities $v_{i} (i \in \mathbb{Z})$ and are being transmitted for duration $t_\text{p}=\frac{1}{x_\text{t} \cdot y_\text{t} \cdot f_\text{v}}$ from (\ref{eq:tdelta_definition}). Let's also assume that the shape of the pixel is $p(t)$ where $p(t)=0$ for $|t| \gg \frac{t_\text{p}}{2}$. We know that pixel $i$ starts transmitting at time $t_{i}=i t_\text{p}$ (if we assume that that pixel 0 was transmitted at $t=0$). Also the amplitude of the signal of the transmitted pixel is linearly dependant on its intensity $v_{i}$. Then the resulting video signal in the time domain will have the form 
+Let's assume the discrete pixels in an analogue video signal have intensities $v_{i}\ (i \in \mathbb{Z})$ and are being transmitted for duration $t_\text{p}=\frac{1}{x_\text{t} \cdot y_\text{t} \cdot f_\text{v}}$ from (\ref{eq:tdelta_definition}). Let's also assume that the shape of the pixel is $p(t)$ where $p(t)=0$ for $|t| \gg \frac{t_\text{p}}{2}$. We know that pixel $i$ starts transmitting at time $t_{i}=i t_\text{p}$ (if we assume that that pixel 0 was transmitted at $t=0$). Also the amplitude of the signal of the transmitted pixel is linearly dependant on its intensity $v_{i}$. Then the resulting video signal in the time domain will have the form 
 \begin{equation}
 \label{eq:video_signal}
 \tilde{v}(t) = \sum\limits_{i=-\infty}^{\infty} v_{i} p(t-i t_\text{p})
@@ -315,7 +315,7 @@ Note that this results in infinitesimally short (in time) spikes at values exact
 \subsection{Sampling}
 Note that (\ref{eq:vhattdef}) looks like the result of a continuous signal being sampled at discrete points in time $t_\text{p}$ apart. If we call this hypothetical continuous signal $v(t)$, then we can rewrite the equation so that it reads
 \begin{equation}
-\hat{v}(t) = \sum\limits_{i=-\infty}^{\infty} v(t) \cdot \delta(t-i t_\text{p}) = v(t) \sum\limits_{i=-\infty}^{\infty} \delta(t-i t_\text{p}) .
+\hat{v}(t) = \sum\limits_{i=-\infty}^{\infty} v(t) \cdot \delta(t-i t_\text{p}) = v(t) \sum\limits_{i=-\infty}^{\infty} \delta(t-i t_\text{p}) = v(t) \cdot \Sha_{t_{p}}(t) .
 \end{equation}
 The requirement is that if $v(t)$ is sampled at discrete intervals $i t_\text{p}$, it should be equal to the corresponding pixel values i.e.\  $v(0)=v_{0}$, $v(t_\text{p})=v_{1}$, $v(2 t_\text{p})=v_{2}$, etc. This would mean that we can precisely obtain the samples from the continuous function by applying the series of Dirac delta functions. However, now we would also like to be able to obtain the continuous signal by only having the sampled values $v_{i}$.This means that we need a unique perfect reconstruction i.e.\  to be able to obtain all $v_{i}$ from $v(x)$ and $v(x)$ from all $v_{i}$. Under the assumption that $v(t)$ is band-limited so that $\mathcal{F}\big( v(t) \big)(f) = 0$ for $|f| < \frac{t_\text{p}}{2}$, the condition is satisfied by the Whittaker--Shannon interpolation formula \cite{shannon1949communication}. It states that the continuous signal could be uniquely reconstructed using $\operatorname{sinc}$ interpolation. If we apply it to our $v_{i}$ samples, it yields
 \begin{equation}
@@ -343,9 +343,9 @@ k^{-1} \Sha_{k^{-1}}(t)
 using the last three identities, we can write the Fourier transform of (\ref{eq:vasconv}) as
 \begin{multline} 
 \label{eq:vspectrum}
-\tilde{V}(f) = \mathcal{F} \left\{ p(t) \ast \hat{v}(t) \right\} = \mathcal{F} \left\{ p(t) \ast \left( \sum\limits_{i=-\infty}^{\infty} v(t) \cdot \delta(t-i t_\text{p}) \right) \right\} = \\
+\tilde{V}(f) = \mathcal{F} \left\{ p(t) \ast \hat{v}(t) \right\} = \mathcal{F} \left\{ p(t) \ast \left( v(t) \cdot \Sha_{t_{p}}(t) \right) \right\} = \\
 \frac{1}{t_\text{p}} P(f) \cdot  \left[ V(f) \ast
-\sum\limits_{i=-\infty}^{\infty}  \delta \left( t-\frac{i}{t_\text{p}} \right) \right]
+\Sha_{t_{p}^{-1}}(f)  \right]
 \end{multline}
 where $P(f)$ is the Fourier transform of $p(t)$, $\tilde{V}(f)$ is the Fourier transform of $\tilde{v}(t)$ and $V(f)$ is the Fourier transform of $v(t)$. This simply means that the signal spectrum $V(f)$ repeats at regular intervals throughout the radio spectrum with a frequency of $\frac{1}{t_\text{p}} = x_\text{t} \cdot y_\text{t} \cdot f_\text{v}$. The intensities of the emission at the different frequencies is determined by the shape of the pixel $p(t)$.
 
@@ -357,19 +357,21 @@ In order to obtain the full video signal, we need to know what is the minimum ra
 
 The analysis above was aimed at analogue signals such as the ones transmitted via VGA. However the majority of contemporary laptops and similar devices don't simply modulate the pixel intensities as analogue voltage amplitudes. Instead, they transmit each pixel as digital bits using FPD-Link (Flat Panel Display Link) to transmit LVDS (Low-voltage differential signalling) signal. For each pixel, 7 bits are transmitted over each of the three wires that determine the resulting RGB colour.
 
-Therefore each bit is transmitted for a duration of $t_\text{b}=\frac{1}{x_\text{t} \cdot y_\text{t} \cdot f_\text{v} \cdot n_\text{b}}=\frac{t_\text{p}}{n_\text{b}}$ where $n_\text{b}$ is the number of bits per pixel which in case of FPD-Link is $n_\text{b} = 7$. This represents a bit stream of values $c_{k} (k \in \mathbb{Z})$. We defined the $k$-th value being the $(k \mod n_\text{b})$ bit of the binary number that is used to represent the analogue pixel intensity of pixel number $\left\| \frac{k}{n_\text{b}} \right\|$ (remember, the intensity of pixel number $i$ is denoted as $v_{i}$).
+Therefore each bit is transmitted for a duration of $t_\text{b}=\frac{1}{x_\text{t} \cdot y_\text{t} \cdot f_\text{v} \cdot n_\text{b}}=\frac{t_\text{p}}{n_\text{b}}$ where $n_\text{b}$ is the number of bits per pixel which in case of FPD-Link is $n_\text{b} = 7$. This represents a bit stream of values $c_{k}\ (k \in \mathbb{Z})$. We defined the $k$-th value being the $(k \mod n_\text{b})$ bit of the binary number that is used to represent the analogue pixel intensity of pixel number $\left\| \frac{k}{n_\text{b}} \right\|$ (remember, the intensity of pixel number $i$ is denoted as $v_{i}$).
 
 Therefore, we can write the resulting analogue signal as
 $$\tilde{v}(t) = \sum\limits_{k=-\infty}^{\infty} c_{k} b(t-k t_\text{b})$$
 where $b(t)$ is the shape of a digital bit where $b(t)=0$ for $|t| \gg \frac{t_\text{b}}{2}$.
 
 Now assuming $c(t)$ is the continuous version of $c_{k}$ as in the previous section, we can do the same Fourier analysis on this signal, similar to (\ref{eq:vspectrum}) to obtain
-\begin{multline} 
-\mathcal{F} \left\{ b(t) \ast \left( \sum\limits_{k=-\infty}^{\infty} c(k) \cdot \delta(t-k t_\text{b}) \right) \right\} = \\
-\frac{1}{t_\text{b}} B(f) \cdot  \left[ C(f) \ast \sum\limits_{k=-\infty}^{\infty}  \delta \left( t-\frac{k}{t_\text{b}} \right) \right] .
-\end{multline}
+\begin{equation} 
+\mathcal{F} \left\{ b(t) \ast \big( c(t) \cdot \Sha_{t_{b}} (t) \big) \right\} = \\
+\frac{1}{t_\text{b}} B(f) \cdot  \left[ C(f) \ast 
+\Sha_{t_{b}^{-1}}(f) 
+\right] .
+\end{equation}
 
-This means that we will also get repeating signal throughout the spectrum, this time repeating with a frequency of $\frac{1}{t_\text{b}} = x_\text{t} \cdot y_\text{t} \cdot f_\text{v} \cdot n_\text{b}$. This is $n_\text{b}$ higher than the calculated repetition frequency for analogue signals. For example, Markus Kuhn's laptop was running LVDS with $n_\text{b}=7$ at a video mode of $800 \times 600 $ @ $ 75$ with $x_\text{t} = 1056$ px, $y_\text{t} = 628$ lines and $f_\text{v} = 75$ Hz. He reports receiving the strongest emanations at about $350 MHz$ \cite{kuhn2005electromagnetic}. We can see that this agrees with the theoretical predictions since for his case $\frac{1}{t_\text{b}} = 1056 \cdot 628 \cdot 75 \cdot 7 \simeq 348.2$ MHz.
+This means that we will also get repeating signal throughout the spectrum, this time repeating with a frequency of $\frac{1}{t_\text{b}} = x_\text{t} \cdot y_\text{t} \cdot f_\text{v} \cdot n_\text{b}$. This is $n_\text{b}$ higher than the calculated repetition frequency for analogue signals. For example, Markus Kuhn's laptop was running LVDS with $n_\text{b}=7$ at a video mode of $800 \times 600 $ @ $ 75$ with $x_\text{t} = 1056$ px, $y_\text{t} = 628$ lines and $f_\text{v} = 75$ Hz. He reports receiving a harmonic emanation at about $350$ MHz\footnote{His actual hardware is transmitting the pixel two at a time, resulting in a factor of $\frac{1}{2}$ being applied to the end result. Therefore the first harmonic he could actually pick up lies at $175$ MHz.} \cite{kuhn2005electromagnetic}. We can see that this agrees with the theoretical predictions since for his case $\frac{1}{t_\text{b}} = 1056 \cdot 628 \cdot 75 \cdot 7 \simeq 348.2$ MHz.
 
 However, the signal is now wider. We would need a receiver that can pick up $|f| \geq \frac{1}{2 t_\text{b}} \equiv \frac{n_\text{b}}{2 t_\text{p}}$ in order to reconstruct individual bits. In practice, we can still use the same approach that we used for analogue video. We can have a receiver that can pick up $|f| \geq \frac{1}{2 t_\text{b}}$. This is essentially equivalent to applying a lowpass filter -- we will no longer be able to distinguish individual bits. Instead we will obtain an averaged out value for each pixel that depends on the underlying binary data that is used to represent its intensity. The variety of colours available with significantly different bit patterns means that we can still extract a lot of visual information from the reconstructed image.
 
