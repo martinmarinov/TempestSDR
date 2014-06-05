@@ -350,7 +350,7 @@ Therefore each bit is transmitted for a duration of $t_\text{b}=\frac{1}{x_\text
 
 Therefore, we can write the resulting analogue signal as
 $$\tilde{v}(t) = \sum\limits_{k=-\infty}^{\infty} c_{k} b(t-k t_\text{b})$$
-where $b(t)$ is the shape of the pixel where $b(t)=0$ for $|t| \gg \frac{t_\text{b}}{2}$.
+where $b(t)$ is the shape of a digital bit where $b(t)=0$ for $|t| \gg \frac{t_\text{b}}{2}$.
 
 Now assuming $c(t)$ is the continuous version of $c_{k}$ as in the previous section, we can do the same Fourier analysis on this signal, similar to (\ref{eq:vspectrum}) to obtain
 \begin{multline} 
@@ -358,7 +358,7 @@ Now assuming $c(t)$ is the continuous version of $c_{k}$ as in the previous sect
 \frac{1}{t_\text{b}} B(f) \cdot  \left[ C(f) \ast \sum\limits_{k=-\infty}^{\infty}  \delta \left( t-\frac{k}{t_\text{b}} \right) \right] .
 \end{multline}
 
-This means that we will also get repeating signal throughout the spectrum, this time repeating with a frequency of $\frac{1}{t_\text{b}} = x_\text{t} \cdot y_\text{t} \cdot f_\text{v} \cdot n_\text{b}$. This is $n_\text{b}$ higher than the calculated repetition frequency for analogue signals. For example, Markus Kuhn's laptop was running LVDS with $n_\text{b}=7$ at a video mode of $800 \times 600 $ @ $ 75$ with $x_\text{t} = 1056$ px, $x_\text{t} = 628$ lines and $f_\text{v} = 75$ Hz. He reports receiving the strongest emanations at about $350 MHz$ \cite{kuhn2005electromagnetic}. We can see that this agrees with the theoretical predictions since for his case $\frac{1}{t_\text{b}} = 1056 \cdot 628 \cdot 75 \cdot 7 \simeq 348.2$ MHz.
+This means that we will also get repeating signal throughout the spectrum, this time repeating with a frequency of $\frac{1}{t_\text{b}} = x_\text{t} \cdot y_\text{t} \cdot f_\text{v} \cdot n_\text{b}$. This is $n_\text{b}$ higher than the calculated repetition frequency for analogue signals. For example, Markus Kuhn's laptop was running LVDS with $n_\text{b}=7$ at a video mode of $800 \times 600 $ @ $ 75$ with $x_\text{t} = 1056$ px, $y_\text{t} = 628$ lines and $f_\text{v} = 75$ Hz. He reports receiving the strongest emanations at about $350 MHz$ \cite{kuhn2005electromagnetic}. We can see that this agrees with the theoretical predictions since for his case $\frac{1}{t_\text{b}} = 1056 \cdot 628 \cdot 75 \cdot 7 \simeq 348.2$ MHz.
 
 However, the signal is now wider. We would need a receiver that can pick up $|f| \geq \frac{1}{2 t_\text{b}} \equiv \frac{n_\text{b}}{2 t_\text{p}}$ in order to reconstruct individual bits. In practice, we can still use the same approach that we used for analogue video. We can have a receiver that can pick up $|f| \geq \frac{1}{2 t_\text{b}}$. This is essentially equivalent to applying a lowpass filter -- we will no longer be able to distinguish individual bits. Instead we will obtain an averaged out value for each pixel that depends on the underlying binary data that is used to represent its intensity. The variety of colours available with significantly different bit patterns means that we can still extract a lot of visual information from the reconstructed image.
 
