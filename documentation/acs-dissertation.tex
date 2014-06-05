@@ -115,7 +115,7 @@ The report also mentions possible ways of modulating hidden messages into the si
 
 Overall his real-time monitoring system improves on van Eck's one by supporting a variety of modern video modes. Thus Kuhn was able to prove that the threads outlined almost two centuries ago are still valid. In a later paper \cite{kuhn2005electromagnetic} he focuses on digital displays and explains that the same attack vector could also be used in that context.
 
-The presented project is inspired by Dr Kuhn's work. His report simplifies further research into the topic by giving a very detailed and mathematical description of the emanated signal and its properties. This was an invaluable starting point proving that a software-defined radio implementation could be viable.
+The presented project is inspired by Kuhn's work. His report simplifies further research into the topic by giving a very detailed and mathematical description of the emanated signal and its properties. This was an invaluable starting point proving that a software-defined radio implementation could be viable.
 
 \section{Achieved Goals and Motivation}
 
@@ -142,7 +142,7 @@ The system supports a plug-in architecture that allows simplified development of
 \begin{itemize}
 
   \item Pre-recorded file with raw IQ samples (Multiplatform support)
-  \item Mirics SDR (Windows support)
+  \item Mirics S(Windows support)
   \item UHD (Linux and OS X support)
   \item ExtIO (Windows support)
 
@@ -150,7 +150,7 @@ The system supports a plug-in architecture that allows simplified development of
 
 The system comes with a Java GUI but the underlying library could be used independently by any other system as a shared or statically linked library. Furthermore the core is written in C and has no additional dependencies making it portable and easy to compile.
 
-This report provides some background information on the physics behind the radio wave generation. It describes the basics of a SDR radio receiver. It then explains the properties of the emanated signal and how to reconstruct it. It goes on describing the automatic remote estimation of video parameters. A practical attack is demonstrated afterwards showing that an attacker with no prior knowledge of the target video display can receive its signal from a distance using the system. It then outlines the architectural details of the library and the implementation details. Finally, a conclusion is done with some suggestions on further research.
+This report provides some background information on the physics behind the radio wave generation. It describes the basics of a Sradio receiver. It then explains the properties of the emanated signal and how to reconstruct it. It goes on describing the automatic remote estimation of video parameters. A practical attack is demonstrated afterwards showing that an attacker with no prior knowledge of the target video display can receive its signal from a distance using the system. It then outlines the architectural details of the library and the implementation details. Finally, a conclusion is done with some suggestions on further research.
 
 However, the report does not discuss ways of limiting the amount of information leaked via such compromising emanations. This is beyond the scope of the project. The system, however, could be used for further research on the topic. It could possibly aid such attempts by serving as a rapid prototyping tool.
 
@@ -161,7 +161,7 @@ There are also some inherent notes about the system:
 
   \item The performance of the system depends on the speed of the CPU of the attacker. No GPU acceleration was implemented since it wasn't really necessary. Performance never dropped below 35 fps on an Intel Core i5 laptop without GPU acceleration.
   \item Difficult to compare its core performance to existing implementations due to the fundamental differences of the underlying architectures.
-  \item Software-defined radio receivers have a lower sensitivity and higher noise figure due to lack of high quality analogue filters compared to specialised wideband receivers. There is also interference caused by their internal IC circuits or the USB/Ethernet/Power cables that connect them to the PC. However, Dr Kuhn showed that in practice this could be greatly improved using suitable analogue preconditioning.
+  \item Software-defined radio receivers have a lower sensitivity and higher noise figure due to lack of high quality analogue filters compared to specialised wideband receivers. There is also interference caused by their internal IC circuits or the USB/Ethernet/Power cables that connect them to the PC. However, Kuhn showed that in practice this could be greatly improved using suitable analogue preconditioning.
   
 \end{itemize}
 
@@ -344,17 +344,28 @@ In order to obtain the full video signal, we need to know what is the minimum ra
 
 \section{Digital Video Signals}
 
-The outlined procedure above works successfully for analogue signals such as the ones transmitted via VGA. [TODO!]
+The analysis above was aimed at analogue signals such as the ones transmitted via VGA. However the majority of contemporary laptops and similar devices don't simply modulate the pixel intensities as analogue voltage amplitudes. Instead, they transmit each pixel as digital bits using FPD-Link (Flat Panel Display Link) to transmit LVDS (Low-voltage differential signalling) signal. For each pixel, 7 bits are transmitted over each of the three wires that determine the resulting RGB colour.
 
-Dr Markus Kuhn has shown that the outlined procedure even works for decoding digital video signals \cite{kuhn2005electromagnetic}. If the pixel intensities are transmitted as a bit pattern rather than an analogue amplitude, the received intensity will be the average intensity in the bit pattern. The redundancy of bit patterns means that even in such case we can still receive a signal that will allow us to read text on the remote screen. 
+Therefore each bit is transmitted for a duration of $t_\text{b}=\frac{1}{x_\text{t} \cdot y_\text{t} \cdot f_\text{v} \cdot n_\text{b}}=\frac{t_\text{p}}{n_\text{b}}$ where $n_\text{b}$ is the number of bits per pixel which in case of FPD-Link is $n_\text{b} = 7$. Which represents a bit stream of values $c_{k} (k \in \mathbb{Z})$. We defined the $k$-th value of being the $(k \mod n_\text{b})$ bit of the binary number that is used to represent the analogue pixel intensity of pixel number $\left\| \frac{k}{n_\text{b}} \right\|$ (remember, the intensity of pixel number $i$ is denoted as $v_{i}$).
 
+Therefore, we can write the resulting analogue signal as:
+$$\tilde{v}(t) = \sum\limits_{k=-\infty}^{\infty} c_{k} b(t-k t_\text{b})$$
+where $b(t)$ is the shape of the pixel where $b(t)=0$ for $|t| \gg \frac{t_\text{b}}{2}$.
+
+Now assuming $c(t)$ is the continuous version of $c_{k}$ as in the previous section, we can do the same Fourier analysis on this signal, similar to (\ref{eq:vspectrum}) to obtain:
+\begin{multline} 
+\mathcal{F} \left\{ b(t) \ast \left( \sum\limits_{k=-\infty}^{\infty} c(k) \cdot \delta(t-k t_\text{b}) \right) \right\} = \\
+\frac{1}{t_\text{b}} B(f) \cdot  \left[ C(f) \ast \sum\limits_{k=-\infty}^{\infty}  \delta \left( t-\frac{k}{t_\text{b}} \right) \right]
+\end{multline}
+
+This means that we will also get repeating signal throughout the spectrum, this time repeating with a frequency of $\frac{1}{t_\text{b}} = x_\text{t} \cdot y_\text{t} \cdot f_\text{v} \cdot n_\text{b}$. This is $n_\text{b}$ higher than the calculated repetition frequency for analogue signals. For example, Markus Kuhn's laptop was running LVDS with $n_\text{b}=7$ at a video mode of $800 \times 600 $ @ $ 75$ with $x_\text{t} = 1056$ px, $x_\text{t} = 628$ lines and $f_\text{v} = 75$ Hz. He reports receiving the strongest emanations at about $350 MHz$ \cite{kuhn2005electromagnetic}. We can see that this agrees with the theoretical predictions since for his case $\frac{1}{t_\text{b}} = 1056 \cdot 628 \cdot 75 \cdot 7 \simeq 348.2$ MHz.
 
 \section{Reception}
 
 \subsection{Theory}
 In order to receive a copy of the video signal, we will need to apply a bandpass filter centred at a multiple of the pixel frequency. The width of the bandpass needs to be the same as the band limited video signal we want to eavesdrop. Then we need to generate an internal clock that runs at the pixel rate and use that to obtain the estimated pixel intensities. Luckily these steps are already done in a typical AM (Amplitude Modulation) receiver. Unfortunately the signal bandwidth is much wider than what a typical off-the-shelf AM receiver can handle.
 
-However some software-defined radio receivers can provide the required bandwidth. The Ettus Research USRP B200 can provide more than 50 MHz of realtime bandwidth which covers what is required to eavesdrop most video signals. Software-defined radios provide the radio samples as a quadrature vector which angle relates to the instantaneous phase in relation to the internal hardware oscillator of the hardware. The size of the vector is proportional to the received amplitude for each sample (refer to Section \ref{sec:IQSampling} for more information). For AM reception, we do not need the phase information since the video signal is being transmitted with a constant frequency. Therefore we can make a simple AM demodulator by taking the length of the vector of each sample. When our digital sampling rate matches the pixel rate, then each sample will contain an estimate of the pixel intensity at that time.
+However some software-defined radio receivers can provide the required bandwidth. The Ettus Research USRP B200 can provide more than 50 MHz of realtime bandwidth which covers what is required to eavesdrop most video signals. Software-defined radios provide the radio samples as a quadrature vector which angle relates to the instantaneous phase in relation to the internal hardware oscillator of the hardware. The size of the vector is proportional to the received amplitude for each sample (refer to Section \ref{sec:IQSampling} for more information). For AM reception, we do not need the phase information since the video signal is being transmitted with a constant frequency. Therefore we can make a simple AM demodulator by taking the length of the vector of each sample. When our digital sampling rate matches the pixel rate, each sample will contain an estimate that relates to the average pixel intensity between time $t(i)$ and $t(i+1)$. For digital signals, it would be related to the bit pattern of the binary value (although this relation may not be unique) that represents the intensity for the current pixel.
 
 \subsection{Practice}
 The VESA standard specifies an allowed frequency tolerance for $f_\text{v}$ of 0.5\%. Therefore due to hardware limitations, we might not be able to accurately tune the receiver sampling rate with enough accuracy to match the transmitted pixel rate. This means that some resampling needs to be done in software in order to create a new digital signal that matches as close as possible the transmitted pixel rate in which each sample corresponds to a pixel.
@@ -483,7 +494,7 @@ As in the real world, we will start with no knowledge of the victim's system. We
 
 \section{The Setup}
 
-The choice for a SDR front-end for this demonstration is a USRP B200\footnote{Refer to \ref{sec:hw} Hardware for discussion on currently available SDR devices.}. Depending on the particular requirements, an attacker might prefer mobility over accuracy and choose the smaller Mirics FlexiTV\texttrademark MSi3101 SDR USB Dongle. However, for this demonstration we will attempt to obtain the highest possible resolution. Therefore we need an SDR radio that is capable of obtaining a wide bandwidth. This makes the 32 MHz of Bandwidth that the USRP provides a much better choice than the 8 MHz available from the Mirics dongle.
+The choice for a Sfront-end for this demonstration is a USRP B200\footnote{Refer to \ref{sec:hw} Hardware for discussion on currently available Sdevices.}. Depending on the particular requirements, an attacker might prefer mobility over accuracy and choose the smaller Mirics FlexiTV\texttrademark MSi3101 SUSB Dongle. However, for this demonstration we will attempt to obtain the highest possible resolution. Therefore we need an Sradio that is capable of obtaining a wide bandwidth. This makes the 32 MHz of Bandwidth that the USRP provides a much better choice than the 8 MHz available from the Mirics dongle.
 
 [Antenna]
 
@@ -505,7 +516,7 @@ The choice for a SDR front-end for this demonstration is a USRP B200\footnote{Re
     \caption{From left to right: MSi3101, AverMedia antenna and USRP B200}
 \end{figure}
 
-There is a wide range of off-the-shelf SDR hardware front-ends that could be used with the system. An attacker can choose one depending on their requirements. A quick overview of some of the supported available hardware is outlined below.
+There is a wide range of off-the-shelf Shardware front-ends that could be used with the system. An attacker can choose one depending on their requirements. A quick overview of some of the supported available hardware is outlined below.
 
 \subsection{Ettus Research USRP}
 
@@ -561,7 +572,7 @@ The plug-in supports variety of devices. It is a standard plug-in that is used i
 
 \subsection{Antennas and Preconditioning}
 
-For the experiments in this report, I have used a small dual-pole antenna by AverMedia designed for digital TV reception. This showed to be enough for eavesdropping from an adjacent room to the one containing the target device. However, for impressive demos that could potentially operate from several tens of meters, Dr Kuhn recommends some additional analogue preconditioning.
+For the experiments in this report, I have used a small dual-pole antenna by AverMedia designed for digital TV reception. This showed to be enough for eavesdropping from an adjacent room to the one containing the target device. However, for impressive demos that could potentially operate from several tens of meters, Kuhn recommends some additional analogue preconditioning.
 
 Kuhn experimented with a tunable band pass filter and a 30 dB antenna amplifier before the B200 to improve the noise level. He comments that the setup delivers comparable quality to the highly specialised Dynamic Sciences R1250 receiver that he used in his experiments \cite{kuhn2003compromising}. He also used a professional log-periodic antenna for improved reception.
 
@@ -573,7 +584,7 @@ However, the package also comes with a pre-built Java based host program. The pr
 
 \subsection{The Library}
 
-The library relies on plugins (called \textbf{TSDRPlugin}) to provide a stream of IQ samples and means to control the SDR hardware in real time. The data sources are shared libraries that are dynamically loaded at runtime by the TSDRLirbary.
+The library relies on plugins (called \textbf{TSDRPlugin}) to provide a stream of IQ samples and means to control the Shardware in real time. The data sources are shared libraries that are dynamically loaded at runtime by the TSDRLirbary.
 
 The host program's job is extremely simplified. In a nutshell, it sets up the library and runs it. Every time there is a new video frame available, a callback would be invoked via TSDRLibrary so that the host program could process the frame (display it, save it, etc). An expected sequence of API calls to get video data would be:
 
@@ -603,7 +614,7 @@ Each API call can return an error code in case it fails. The host application ca
 Figure \ref{fig:architecture} outlines the data flow and data processing paths within a typical set-up of the system\footnote{If instead the data is read from a file or network, we can regard the ``Software - defined radio hardware'' as the hard drive or the network layer.}. It goes through the following steps:
 
 \begin{enumerate}
-	\item RF data is converted into IQ samples in the SDR device. These samples are sent to the PC for processing.
+	\item RF data is converted into IQ samples in the Sdevice. These samples are sent to the PC for processing.
 	\item The hardware driver in the OS receives the samples and possibly queues them.
 	\item A TSDRPlugin either continuously polls the driver or receives a callback from it as soon as a block of data is available. It obtains the block of data and sends it to the TSDRLibrary via a callback.
 	\item The IQ data is inside TSDRLibrary. AM demodulation is done on the data. This runs in a separate thread so that the TSDRPlugin will have the chance to receive new data from the device as quickly as possible. The demodulated data is provided to the Autocorrelation thread that will calculate the autocorrelation of the incoming signal and notify the host program. If TSDRPlugin reports any dropped samples between calls, the autocorrelation is reset (we only want continuous data accumulated for autocorrelation).
@@ -614,7 +625,7 @@ Figure \ref{fig:architecture} outlines the data flow and data processing paths w
 	\item Once the data arrives at the TSDRLibrary class instance, the main GUI will receive a notification via a callback and will dispatch the bitmap to be drawn on the screen.
 \end{enumerate}
 
-The biggest problem faced was synchronising dropped samples. To illustrate the issue, imagine we are receiving samples at a rate of $50$ mega samples per second. If each sample contains two floating point values (the I and the Q component), each of which being $4$ bytes of data, then the total data rate coming from the hardware would be $8 \times 50 = 400$ megabytes per second! This is a huge amount of data. Since the configuration is running on a non-real-time operating system, the CPU might not be able to cope with such a fast stream. Furthermore there could be some hardware limits enforced as well, for example maximum throughput of the bus that is being used to transmit the data from the SDR device to the PC.
+The biggest problem faced was synchronising dropped samples. To illustrate the issue, imagine we are receiving samples at a rate of $50$ mega samples per second. If each sample contains two floating point values (the I and the Q component), each of which being $4$ bytes of data, then the total data rate coming from the hardware would be $8 \times 50 = 400$ megabytes per second! This is a huge amount of data. Since the configuration is running on a non-real-time operating system, the CPU might not be able to cope with such a fast stream. Furthermore there could be some hardware limits enforced as well, for example maximum throughput of the bus that is being used to transmit the data from the Sdevice to the PC.
 
 This means that we will have a lot of dropped samples coming from the device. At the same time, even if we don't have any dropped samples, the CPU can still fail to process all of the desired data in real-time. This means that, in order to have the system run interactively, some samples that can't be processed in real-time should be dropped. This would allow for fresh data to be collected for processing. However having even a couple of dropped samples is a problem. This is because video is continuous. Dropping a few pixels means that the whole frame synchronization could be broken.
 
