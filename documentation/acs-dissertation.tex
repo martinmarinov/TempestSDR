@@ -505,19 +505,98 @@ We can also observe that the larger the sample rate gets, the smaller $\delta f$
 
 Before explaining how the software works internally, let's present a demonstration of a practical video eavesdropping attack. Its main aim is to show the ease with which such an attack could happen. In the meantime this will give an opportunity to explain the characteristics of the received signal and how they are exploited.
 
-As in the real world, we will start with no knowledge of the victim's system. We will estimate the frequency at which the emission strength has the best Signal to Noise Ratio (SNR). We will then analyse the signal to detect the resolution and refresh rate of the screen. We will afterwards lock onto the signal and try to recover the original video. We will also discuss some techniques that could be utilized to improve the quality of the image.
+The demonstration is undertaken in controlled conditions. However, in order to make it as similar to a real-world attack as possible, we will assume the adversary has no knowledge of the victim's system. We will estimate the frequency at which the emission strength has the best strength. We will then analyse the signal to detect the resolution and refresh rate of the screen. We will afterwards lock onto the signal and try to recover the original video.
 
 \section{The Setup}
 
-The choice for a Sfront-end for this demonstration is a USRP B200\footnote{Refer to \ref{sec:hw} Hardware for discussion on currently available Sdevices.}. Depending on the particular requirements, an attacker might prefer mobility over accuracy and choose the smaller Mirics FlexiTV\texttrademark MSi3101 SUSB Dongle. However, for this demonstration we will attempt to obtain the highest possible resolution. Therefore we need an Sradio that is capable of obtaining a wide bandwidth. This makes the 32 MHz of Bandwidth that the USRP provides a much better choice than the 8 MHz available from the Mirics dongle.
+The choice for a front-end for this demonstration is a USRP B200\footnote{Refer to \ref{sec:hw} Hardware for discussion on currently available devices.}. Depending on the particular requirements, an attacker might prefer mobility over accuracy and choose the smaller Mirics FlexiTV\texttrademark MSi3101 SUSB Dongle. However, for this demonstration we will attempt to obtain the highest possible resolution. Therefore we need an radio that is capable of obtaining a wide bandwidth. This makes the 32 MHz of Bandwidth that the USRP provides a much better choice than the 8 MHz available from the Mirics dongle.
 
-[Antenna]
+For an antenna, we will choose the portable MaxView active TV antenna. It is designed for digital television reception and has a built-in amplification. This is very useful for lifting signals above the USRP B200 noise floor. For better reception from longer distance, a suitable log-periodic antenna, an amplifier and a bandpass filter could be used for preconditioning. However, this makes the system less portable. However, the MaxView antenna is a cheaper choice and in the end did the required job.
 
-[Location of victim]
+\begin{figure}[p]
+\label{fig:practicalattack}
+\captionsetup[subfigure]{labelformat=empty}
+  \centering
+\begin{minipage}[c][6cm][t]{.39\textwidth}
+  \vspace*{\fill}
+  \centering
+  \includegraphics[width=\textwidth]{demo_floorplan}
+  \subcaption{The floor plan}
+\end{minipage}\par\vfill
+\begin{minipage}[c][9cm][t]{.39\textwidth}
+  \vspace*{\fill}
+  \centering
+  \includegraphics[width=\textwidth]{demo_hall}
+  \subcaption{The hallway (triangle)}
+\end{minipage}\hspace{0.5cm}
+\begin{minipage}[c][9cm][t]{.45\textwidth}
+  \vspace*{\fill}
+  \centering
+  \includegraphics[width=\textwidth]{demo_target}
+  \subcaption{Target (T)}
+  \label{fig:test2}\par\vfill
+  \includegraphics[width=\textwidth]{demo_adversary}
+  \subcaption{Adversary (A)}
+\end{minipage}
+\caption{The figure represents the set-up of the attack. The floor plan shows the position of the attacker and the target. The distance between them is $7$ m and the signal passes through two solid walls. The target is a standard PC, connected to a normal VGA monitor. The adversary uses a laptop, a USRP B200 and a MaxView TV antenna. All is inexpensive off-the-shelf equipment. The set-up also allows for great mobility. }
+\end{figure}
 
-[Victim's fonts]
+You can view the equipment used by the adversary, the target and their mutual position on Figure \ref{fig:practicalattack}. We now take the place of the adversary that has set up their system, connected the UHD to the laptop and the antenna to the UHD and has launched the \textit{JTempest.jar} executable.
 
-\section{Preparation}
+\section{The Attack}
+
+\begin{figure}[h]
+\centering
+  \includegraphics[width=0.96\textwidth]{demo_interface}
+  \caption{The interface of the program. The ``A'' button will enable the frame-rate tracking feature. The ``Auto'' button will attempt to detect synchronisation regions. The ``AUT'' button will try to automatically detect the resolution and line rate (video height). The scale on the right of the video shows in real-time the grey-scale values that map to a particular sample intensity.}
+  \label{fig:demoiface}
+\end{figure}
+
+We should now see the GUI as in Figure \ref{fig:demoiface}. In order to start the USRP B200, we need to go to \textit{File} and choose \textit{Load USRP (via UHD)}. We can enter the command \textit{--rate=8000000 } which will set the sampling rate to $8$ MHz. If no errors occur, we will see the ``Start'' button becoming active. Once we press on the button, the system will start processing the data sampled by the USRP.
+
+If we knew the resolution, frame-rate and the frequency at which the emanations from the target occur, we could enter them directly into the GUI and the story would end here. However, since we don't, we need to estimate them. That's why we started with a low sampling rate ($8$ MHz). Such mode will not be good for actual eavesdropping since it will not provide the full resolution, however this will allow for improved interactivity and for faster autocorrelation results.
+
+First, we should estimate what is the frequency at which the target is broadcasting with highest power. To do that we need to keep an eye on the autocorrelation plot and keep changing the frequency until a promising signal appears. There would be a lot of background signals so this would be challenging. However, most video displays run at known refresh rates of $60$ Hz, $75$ Hz or $71$ Hz. If we spot a signal near these values, then we know we are on to something. Figure \ref{fig:demofirst} shows that there might be a possible signal onto the current frequency of $125$ MHz.
+
+\begin{figure}[h]
+\centering
+  \includegraphics[width=0.96\textwidth]{demo_firstdetection}
+  \caption{We can see two spikes in the top autocorrelation plot around $60$ fps that is responsible for the target refresh rate.}
+  \label{fig:demofirst}
+\end{figure}
+
+In order to set the video parameters to the frequencies in those spikes, we just need to click with the mouse on top of them. We can inspect the frequency at a certain position by hovering the mouse on top. Once we select the best candidate for the refresh rate, we can now choose the best candidate for the line rate as well. This defines the height of the video frame. Note that we can try the ``AUT'' button which will simply choose the highest values of the two plots. However, when the signal to noise ratio is low, other repeating signals on the same frequency may be more prominent so manual adjustment would be required. The autocorrelation plots are interactive and the user can zoom with the mouse wheel and pan around for choosing small details in the plots. Now we click on the $60.3$ fps spike on the top plot and the $628$ px spike on the bottom one.
+
+\begin{figure}[h]
+\centering
+  \includegraphics[width=0.96\textwidth]{demo_receivingimage}
+  \caption{We can see two spikes in the top autocorrelation plot around $60$ fps that is responsible for the target refresh rate.}
+  \label{fig:demoreception}
+\end{figure}
+
+If we turn on the ``Lpass'' averaging, we will get rid of most of the noise and improve the signal to noise ratio bringing up the weak video signal (Figure \ref{fig:demoreception}). We can clearly see the synchronisation pulses. We are also only seeing rapid changes in colours, so we know this is an analogue signal. Digital signals will also show activity in regions that have constant intensities. That's why digital signals could be eavesdropped easier -- they emit more energy because of the sharp edges of the individual bits. However, we are apparently dealing with a VGA signal with resolution $800 \times 600$ @ $60$. Note that the system auto-detected it (it shows up in the least below the ``Stop'' button) just from our mouse clicks.
+
+We see another autocorrelation peak at $61$ Hz. This is aliasing due to the two strong synchronisation lines that appear in the video (you can see them on the left). By clicking on the other peak, we can indeed confirm our suspicion that it is just aliasing. Now that we have a signal, we can try to improve it. Since the signal is strongly polarized, changing the antenna angle and position can have a dramatic effect on the end result. 
+
+\section{Conclusion}
+
+If we obtain a good enough signal, we can reconstruct text from the screen. Compare on Figure \ref{fig:demobest} the actual image shown on the target screen and the best estimate obtained from the hallway just outside the room with the target. We can in fact clearly read the text in the text editor.
+
+\begin{figure}[p!]
+\centering
+\begin{subfigure}[b]{0.9\textwidth}
+  \includegraphics[width=\textwidth]{demo_actual}
+  \caption{Screenshot of the target monitor.}
+\end{subfigure}
+\begin{subfigure}[b]{0.9\textwidth}
+  \includegraphics[width=\textwidth]{demo_bestresult}
+  \caption{Best result (blanking cropped out).}
+\end{subfigure}
+  \caption{}
+  \label{fig:demobest}
+\end{figure}
+
+This shows that a practical attack is possible even from an adversary on a low budget with very little knowledge of the DSP. We also demonstrated that we can deduce the video parameters of a screen remotely in a real-world environment. A more sophisticated attacker, could use better equipment with a lower noise floor and higher antenna gain to undertake such an attack from an even further distance. This should open the discussion about what could be done to prevent compromising emanations leaking from cables.
 
 \chapter{Implementation} 
 
@@ -677,6 +756,8 @@ Therefore the library employs an algorithm that allows it to drop samples only a
 %\subsection{Testing and Benchmarking}
 
 \chapter{Summary and Conclusions} 
+
+[Polling machines]
 
 \subsection{Encountered Issues}
 

@@ -19,11 +19,11 @@ public class ParametersToggleButton extends JToggleButton {
 	private void notifyCallback(final boolean selected) {
 		if (callback != null)
 			callback.onSetParam(param, selected ? 1 : 0);
-		prefs.putBoolean(prefname, selected);
+		if (prefs != null) prefs.putBoolean(prefname, selected);
 	}
 	
 	public ParametersToggleButton(final TSDRLibrary.PARAM param, final String text, final Preferences prefs, final boolean defaultvalue) {
-		super(text, prefs.getBoolean("PARAM"+param, defaultvalue));
+		super(text, (prefs != null)  ? prefs.getBoolean("PARAM"+param, defaultvalue) : defaultvalue);
 		this.param = param;
 		this.prefs = prefs;
 		prefname = "PARAM"+param;

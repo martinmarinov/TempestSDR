@@ -588,7 +588,7 @@ public class Main implements TSDRLibrary.FrameReadyCallback, TSDRLibrary.Incomin
 				btnAutoResolution.setBounds(749, 571, 41, 22);
 				frmTempestSdr.getContentPane().add(btnAutoResolution);
 				
-				tglbtnSuperBandwidth = new ParametersToggleButton(PARAM.SUPERRESOLUTION, "T", prefs, true);
+				tglbtnSuperBandwidth = new ParametersToggleButton(PARAM.SUPERRESOLUTION, "T", null, false);
 				tglbtnSuperBandwidth.setText("SB");
 				tglbtnSuperBandwidth.setToolTipText("Simulate bandwidth several times bigger than what the device can offer");
 				tglbtnSuperBandwidth.setMargin(new Insets(0, 0, 0, 0));
