@@ -418,7 +418,7 @@ where as before, $f_\text{s}$ is the receiver sampling rate. If $\kappa \geq 1$,
   \includegraphics[width=\textwidth]{sr_5MHz_at_190MHz}
   \caption{$\kappa = 0.125$}
 \end{subfigure}
-\caption{The transmitted image (a) is sent over a VGA cable from an HDMI to VGA converter. The resolution is $800 \times 600 $ @ $ 60$ with $x_\text{t} = 1056$, $y_\text{t} = 628$ and $f_\text{v} = 60.11$. Each of the following screenshots represent an eavesdropped version from a distance of $1$ m with the receiver (USRP B200) running at different sample rates: (b) 40 MHz, (c) 30 MHz, (d) 20 MHz, (e) 10 MHz and (f) 5 MHz}
+\caption{The transmitted image (a) is sent via a standard HDMI to VGA converter. The emanations are coming from the digital video signal. The resolution is $800 \times 600 $ @ $ 60$ with $x_\text{t} = 1056$, $y_\text{t} = 628$ and $f_\text{v} = 60.11$. Each of the following screenshots represent an eavesdropped version from a distance of $1$ m with the receiver (USRP B200) running at different sample rates: (b) 40 MHz, (c) 30 MHz, (d) 20 MHz, (e) 10 MHz and (f) 5 MHz}
 \label{fig:samplerates}
 \end{figure}
 
@@ -727,21 +727,79 @@ Therefore the library employs an algorithm that allows it to drop samples only a
 
 \section{Digital Signal Processing}
 
-\subsubsection{Demodulation}
-
 \subsubsection{Re-sampling}
+
+Digital re-sampling is used as the processing step that synchronises the incoming sample rate $f_\text{s} = t_\text{s}^{-1}$ to the desired pixel rate $f_\text{p} = t_\text{p}^{-1}$. This means that if each incoming sample contains information about a fraction of a pixel, after the re-sampling, each output sample will contain the combined information from the correct number of incoming samples so that it only contains the information about a single pixel. Alternatively if several pixels are contained in an incoming sample, the re-sampling will try to extract them into the correct number of output samples so that each of the output samples represents a single pixel intensity.
+
+Mathematically, it sees a stream of samples coming at a rate $f_\text{s}$, interpolating their rate with $f_\text{p}$ and then decimating the resulting stream of sampling rate $f_\text{s} \cdot f_\text{p} $  by a factor of $f_\text{s}$. This results in an output stream of rate $f_\text{p} = t_\text{p}^{-1}$. Each sample then will relate to a pixel value at that time. In mathematical terms,
+$$ v[n] = x\left[f_\text{s} \cdot \frac{n}{f_\text{p}} \right],$$
+where $(n \in \mathbb{Z})$ and  $v[n]$ are the output pixel intensities and 
+$$x[n] = \sqrt{I_{n} \cdot I_{n} + Q_{n} \cdot Q_{n}}$$
+are the incoming sample intensities. If this algorithm is implemented straight away, it would be called \textbf{nearest neighbour} re-sampling. Unless $x[n]$ is band limited to $\min (f_\text{p}, f_\text{s})$, $v[n]$ \footnote{Note that the notation $v[n]$ is equivalent to previously used $v_{n}$.} will contain aliasing artefacts. Therefore, as a pre-processing step, we can apply a low pass filter to $x[n]$ with a cut-off frequency $\min (f_\text{p}, f_\text{s})$ as an anti-aliasing filter.
+
+In practice this is an expensive operation since it involves an additional digital filtering step. Luckily, there is a good way of approximating a low pass filter while doing the re-sampling. It uses linear interpolation between two consecutive samples instead of the perfect $\operatorname{sinc}$ interpolation. In practice $\operatorname{sinc}$ interpolation is not achievable anyway since $\operatorname{sinc}$ is an infinite function in the time domain. The linear interpolation reduces the aliasing components. The actual implemented re-sampling algorithm in the project utilises the Brasenham's line algorithm\cite{bresenham1965algorithm}.
+
+There is another trick that is done to improve the anti-aliasing quality and possibly performance. Since the $x_\text{t}$ of an image is only used to maintain the aspect ratio, the library assumes that $x_{t} = \lceil \frac{f_\text{s}}{f_\text{v} \cdot y_\text{t}} \rceil$. This allows the host program to use whatever algorithm they desire to re-sample the output image to any resolution. Since the host program can use GUI acceleration for the re-sampling process, it can afford more expensive algorithms that result in less aliasing artefacts. Furthermore, when $f_\text{p} > f_\text{s}$ as in most real-world eavesdropping scenarios, the CPU will have to handle less data resulting in improved performance.
 
 \subsubsection{Auto Gain}
 
-\subsubsection{Low-pass}
+The auto gain step ensures that the image uses the full dynamic output range. For example, if demodulated pixels $v[n]$ have the property $v_\text{min} \leq v[n] \leq v_\text{max}$ then we can construct a new stream of pixels $v^{\prime}[n]$ such that
+$$v^{\prime}[n] = \frac{v[n] - v_\text{min}}{v_\text{max} - v_\text{min}}$$
+which now means that $0 \leq v^{\prime}[n] \leq 1$.
 
-\subsection{Frame Synchronization}
+\subsubsection{Frame Averaging}
 
-\subsection{Resolution Detection}
+The time averaging applies an infinite impulse response (IIR) low pass filter to given a stream of input pixels $v[n]$ to produce a stream of output pixels $v^{\prime}[n]$ such that
+$$v^{\prime}[n] =  \alpha \cdot v[n] + (1 - \alpha) \cdot v^{\prime}[n].$$
+This does inter-frame averaging sometimes known as motion blur. It removes random noise between consecutive frames, allowing only constant signal to come through. The weight of the filter could be adjusted by changing $\alpha$ from $0$ to $1$.
 
-\subsubsection{Frame Synchronization}
+\subsection{Synchronization Detection}
 
-\subsection{Experimental: Extended Bandwidth}
+In order to detect the blanking intervals in a frame, a few assumptions need to be done. What is characteristic about the intervals is that they do not contain any activity compared to the video region. This means that usually they are seen as a band of solid colour (see Figure \ref{fig:syncing}). They either contain more energy than the video region or contain less energy. Therefore we can assume that the average energy of the blanking interval is very different from the average energy in the video region.
+
+\begin{figure}[h]
+\centering
+\begin{subfigure}[b]{0.6\textwidth}
+  \includegraphics[width=\textwidth]{sync_black}
+\end{subfigure} \vspace{0.5cm}\vfill
+\begin{subfigure}[b]{0.6\textwidth}
+  \includegraphics[width=\textwidth]{sync_gray}
+\end{subfigure}
+\caption{Compare the blanking interval of the same digital signal, obtained at two different frequencies of the spectrum. One of hem looks dark while the other is lighter and has some bands. The similarity is that they are very smooth and do not contain high frequency intensity changes.}
+\label{fig:syncing}
+\end{figure}
+
+In order to detect the intervals, for performance reasons, we can decouple them into two 1 dimensional strips. We produce two strips -- a vertical one, containing the average of all of the lines and a horizontal one, containing the average of all of the columns in an image. Then we can do a circular low pass filter in order to get rid of any high frequency noise (such as text lines). Figure \ref{fig:syncing} shows how the averaged vertical and horizontal bands are derived and how they look after the lowpass filter.
+
+\begin{figure}[h]
+\centering
+\includegraphics[width=0.95\textwidth]{framedetection}
+\caption{In order to detect blanking regions, first an average of the vertical and the horizontal pixels is taken. Then this average is blurred using a low pass filter with a Gaussian kernel.}
+\label{fig:syncingavg}
+\end{figure}
+
+Now we can use the assumed property that the synch bands have the most different average energy compared to video regions. Let's say a band has $n$ elements $b[n]$. We now need to partition the two bands into two regions with width $2w$ and $n-2w$, centred at $c$ and $n-c$. Then the value of the average per pixel difference would be:
+$$ \beta (w, c) =  \left[
+\sum_{k=c-w}^{c+w} \frac{b[k \mod n]}{2w} -
+\sum_{k=2w-c}^{2(n-w)-c} \frac{b[k \mod n]}{2n-4w}
+\right] ^ 2$$
+We need to choose $2w$ and $c$ so to maximise $\beta$. Since the constraint is $0 \leq 2w < n$ and $0 \leq c < n$, we can in fact calculate $\beta$ for each possible input and find the parameters that maximise it. This is an algorithm complexity of $O(n^2)$ which explains why we decided to do that on two 1D arrays rather than on the whole 2D image.
+
+However that algorithm won't always do the job. If the video signal has a strong horizontal or vertical component with a very short width or height, the algorithm will assume that this instead is the region of maximum difference since this will actually maximise $\beta$. We therefore need some realistic constraints about how small a blanking region can become. By observing a several video emanations, I came up with some arbitrary numbers of $5$\% of the width for horizontal blanking and $1$\% of the height for vertical blanking. These number can be adjusted (in the source code) depending on the judgement of the eavesdropper, but so far they have shown to perform well.
+
+We can't easily change the asymptotical growth of the algorithm. However, we can reduce its execution time by putting some additional constraints. If we assume that the blanking region is always smaller than the video region, if we assume that the blanking region always has a width of $2w$, then we know that $2w < n-2w$, therefore we have an upper bound for the value of $2w < \frac{n}{2}$. Having the lower bound for $2w$ as well means that now the algorithm can run in real time for both strips. Figure \ref{fig:syncexplained} shows how such a strip ends up being partitioned by the algorithm which determines $c$ - the position of the synchronisation region in a frame. This allows us to use this information in order to center the frame in the video window. The same approach is used for the vertical detection.
+
+\begin{figure}[h]
+\centering
+\includegraphics[width=0.95\textwidth]{detectionexplained}
+\caption{Visualising the relationship between $c$, $w$ and $n$. The figure shows the value that give the maximum value of $\beta$ for the frame.}
+\label{fig:syncexplained}
+\end{figure}
+
+\subsection{Tracking the Frame Rate}
+
+
+\subsection{Autocorrelation}
 
 \subsection{Main Library}
 
