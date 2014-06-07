@@ -778,11 +778,11 @@ In order to detect the intervals, for performance reasons, we can decouple them 
 \label{fig:syncingavg}
 \end{figure}
 
-Now we can use the assumed property that the synch bands have the most different average energy compared to video regions. Let's say a band has $n$ elements $b[n]$. We now need to partition the two bands into two regions with width $2w$ and $n-2w$, centred at $c$ and $n-c$. Then the value of the average per pixel difference would be:
+Now we can use the assumed property that the synch bands have the most different average energy compared to video regions. Let's say a band has $n$ elements $b[n]$. We now need to partition the two bands into two regions with width $2w$ and $n-2w$, centred at $c$ and $n-c$. Then the value of the average per pixel difference would be
 $$ \beta (w, c) =  \left[
 \sum_{k=c-w}^{c+w} \frac{b[k \mod n]}{2w} -
 \sum_{k=2w-c}^{2(n-w)-c} \frac{b[k \mod n]}{2n-4w}
-\right] ^ 2$$
+\right] ^ 2 .$$
 We need to choose $2w$ and $c$ so to maximise $\beta$. Since the constraint is $0 \leq 2w < n$ and $0 \leq c < n$, we can in fact calculate $\beta$ for each possible input and find the parameters that maximise it. This is an algorithm complexity of $O(n^2)$ which explains why we decided to do that on two 1D arrays rather than on the whole 2D image.
 
 However that algorithm won't always do the job. If the video signal has a strong horizontal or vertical component with a very short width or height, the algorithm will assume that this instead is the region of maximum difference since this will actually maximise $\beta$. We therefore need some realistic constraints about how small a blanking region can become. By observing a several video emanations, I came up with some arbitrary numbers of $5$\% of the width for horizontal blanking and $1$\% of the height for vertical blanking. These number can be adjusted (in the source code) depending on the judgement of the eavesdropper, but so far they have shown to perform well.
@@ -792,12 +792,20 @@ We can't easily change the asymptotical growth of the algorithm. However, we can
 \begin{figure}[h]
 \centering
 \includegraphics[width=0.95\textwidth]{detectionexplained}
-\caption{Visualising the relationship between $c$, $w$ and $n$. The figure shows the value that give the maximum value of $\beta$ for the frame.}
+\caption{Visualising the relationship between $c$, $w$ and $n$. The figure shows the values for $w$ and $c$ that give the maximum value of $\beta$ for the frame.}
 \label{fig:syncexplained}
 \end{figure}
 
 \subsection{Tracking the Frame Rate}
 
+The drift between the local oscillator and the pixel clock of the target will cause the image to accelerate slowly over time. This could be automatically compensated. It only works once we have a stable video image and we can reliably estimate $c$. If we say that the value of $c$ for frame number $n$ is $c[n]$, then we can take the speed with which the synchronisation frame is moving across the screen which is simply
+$$\frac{\text{d} c[n]}{\text{d} n} = v_\text{c}[n] = c[n] - c[n-1] .$$
+
+If $v_\text{c}[n] > 0$ then we know that our estimate  $\hat{f}_\text{v}$for $f_\text{v}$ is $\hat{f}_\text{v} > f_\text{v}$ and if $v_\text{c}[n] > 0$, then $\hat{f}_\text{v} < f_\text{v}$. Since we don't know the true value $f_\text{v}$, we can try to approximate it by adjusting our estimate $\hat{f}_\text{v}$ with a function $a[v_\text{c}]$. Therefore at each frame we can change our estimate to be
+$$\hat{f}_\text{v} = \hat{f}_\text{v} - \operatorname{sgn}(v_\text{c}) \cdot a[v_\text{c}] $$
+where $\operatorname{sgn}(x)$ is the sign function, that returns $+1$ if $x \geq 0$ and $-1$ if $x < 0$. We should not that $a[v_\text{c}]$ will depend on the particular heuristics used. My implementation uses two-speed modes, having a low speed for slow moving drift for accuracy and a high speed for fast moving frames. The output of my implementation of $a[v_\text{c}]$ is also proportional to the magnitude of the speed itself.
+
+This generates a self-correcting feedback loop. Any perturbation will cause the system to adjust itself and lock. However, $a[v_\text{c}]$ needs to be chosen carefully to avoid oscillations. The latency of the processing also increases the chances of obtaining oscillations since the change in $\hat{f}_\text{v}$ will not be propagated immediately to the next frame $n+1$. The exact values I have used do cause oscillations in some scenarios so it would be a nice research attempt to find a good value for them. This was a minor issue that was left outside the scope of the project.
 
 \subsection{Autocorrelation}
 
