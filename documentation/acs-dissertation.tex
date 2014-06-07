@@ -576,11 +576,11 @@ In order to set the video parameters to the frequencies in those spikes, we just
 
 If we turn on the ``Lpass'' averaging, we will get rid of most of the noise and improve the signal to noise ratio bringing up the weak video signal (Figure \ref{fig:demoreception}). We can clearly see the synchronisation pulses. We are also only seeing rapid changes in colours, so we know this is an analogue signal. Digital signals will also show activity in regions that have constant intensities. That's why digital signals could be eavesdropped easier -- they emit more energy because of the sharp edges of the individual bits. However, we are apparently dealing with a VGA signal with resolution $800 \times 600$ @ $60$. Note that the system auto-detected it (it shows up in the least below the ``Stop'' button) just from our mouse clicks.
 
-We see another autocorrelation peak at $61$ Hz. This is aliasing due to the two strong synchronisation lines that appear in the video (you can see them on the left). By clicking on the other peak, we can indeed confirm our suspicion that it is just aliasing. Now that we have a signal, we can try to improve it. Since the signal is strongly polarized, changing the antenna angle and position can have a dramatic effect on the end result. 
+We see another autocorrelation peak at $61$ Hz. This is aliasing due to the two strong synchronisation lines that appear in the video (you can see them on the left). By clicking on the other peak, we can indeed confirm our suspicion that it is just aliasing. Now that we have a signal, we can try to improve it. Since the signal is strongly polarized, changing the antenna angle and position can have a dramatic effect on the end result. Now we can increase the sampling rate of the USRP to improve the resolution of the obtained image.
 
 \section{Conclusion}
 
-If we obtain a good enough signal, we can reconstruct text from the screen. Compare on Figure \ref{fig:demobest} the actual image shown on the target screen and the best estimate obtained from the hallway just outside the room with the target. We can in fact clearly read the text in the text editor.
+If we obtain a good enough signal, we can reconstruct text from the screen. Compare on Figure \ref{fig:demobest} the actual image shown on the target screen and the best estimate obtained from the hallway just outside the room with the target with $32$ MHz sampling rate. We can in fact clearly read the text in the text editor.
 
 \begin{figure}[p!]
 \centering
