@@ -45,6 +45,17 @@
 \singlespacing
 \input{abstract}
 
+\newpage
+{\Huge \bf Acknowledgements}
+\vspace{24pt} 
+
+
+I would like to thank my supervisor, Dr Markus Kuhn for providing me with the inspiration for the project. He also lent me his USRP 2 software-defined radio device to start my research with before I acquired my own USRP B200. His help with shaping my understanding of the emanated signals and their nature allowed me to come up with the algorithms and implementations that are described in this project. He also tested the early iterations of the system giving me feedback about its performance and user friendliness. He was also able to come up with an analogue preconditioning procedure to improve the signal to noise ratio of the USRP B200 hardware.
+
+
+\newpage
+\vspace*{\fill}
+
 \pagenumbering{roman}
 \setcounter{page}{0}
 \pagestyle{plain}
@@ -432,10 +443,13 @@ As we have already seen, a video signal consists of video frames with width $x_\
 
 \subsection{Introduction to Autocorrelation}
 A good way of doing so would be calculating the discrete autocorrelation \cite{bracewell1965autocorrelation} of the incoming signal which is defined as 
-$$ R_{vv}(j)=\sum\limits_{i=-\infty}^{\infty} v_{i} \bar{v}_{i-j} $$
+\begin{equation}
+\label{eq:autocorrelationdef}
+R_{vv}(j)=\sum\limits_{i=-\infty}^{\infty} v_{i} \bar{v}_{i-j}
+\end{equation}
 where $\bar{v}$ is the complex conjugate of $v$ and $j$ is the \textbf{samples lag}. In our case $v$ is the set of real samples, therefore $\bar{v} = v$. Basically the autocorrelation is a measure of the similarity of a signal with itself shifted by a lag. The higher the value of $R_{vv}(j)$ is, the more similar the function is at that lag. Therefore by analysing $R_{vv}(j)$, we would be able to spot any repeating patterns inside $v_{i}$.
 
-Figure \ref{fig:autocorr} shows the discrete autocorrelation of a video signal that was captured using the Mirics USB dongle at 8 MHz (i.e.\  $8,000,000$ samples per second) sampling rate. The vertical axis is logarithmic, containing the decibels of the autocorrelation i.e.\  $10 \log_{10}( R_{vv} )$. The horizontal axis contains the time lag in milliseconds. This was converted from the lag in samples $j$ by $x = \frac{j}{f_\text{s}}$.
+Figure \ref{fig:autocorr} shows the discrete autocorrelation $R_{vv}(j)$ of a video signal that was captured using the Mirics USB dongle at 8 MHz (i.e.\  $8,000,000$ samples per second) sampling rate. The vertical axis is logarithmic, containing the decibels of the autocorrelation i.e.\  $10 \log_{10}( R_{vv} )$. The horizontal axis contains the time lag in milliseconds. This was converted from the lag in samples $j$ by $x = \frac{j}{f_\text{s}}$.
 
 \begin{figure}[h]
 \centering
@@ -610,7 +624,7 @@ This shows that a practical attack is possible even from an adversary on a low b
     \caption{From left to right: MSi3101, AverMedia antenna and USRP B200}
 \end{figure}
 
-There is a wide range of off-the-shelf Shardware front-ends that could be used with the system. An attacker can choose one depending on their requirements. A quick overview of some of the supported available hardware is outlined below.
+There is a wide range of off-the-shelf hardware front-ends that could be used with the system. An attacker can choose one depending on their requirements. A quick overview of some of the supported available hardware is outlined below.
 
 \subsection{Ettus Research USRP}
 
@@ -809,27 +823,128 @@ This generates a self-correcting feedback loop. Any perturbation will cause the 
 
 \subsection{Autocorrelation}
 
-\subsection{Main Library}
+We can remind ourselves that the autocorrelation was defined in (\ref{eq:autocorrelationdef}). However, in practice we only have a finite number of samples $n$, so we can rewrite the formula so that it reads
+$$R_{vv}(\tau)=\sum\limits_{i=0}^{n-1} v_{i} \bar{v}_{i-\tau} .$$
+We need to recalculate $R_{vv}(\tau)$ for every value of $\tau$ from $0$ to $n-1$ and this will give us our autocorrelation plot. If we naively implement this, we would see that the performance of the algorithm is $O(n^2)$. This means that the real-time performance will be problematic.
 
-\subsection{JavaGUI}
+The Wiener-Khintchine theorem \cite{wiener1964} allows for another definition of $R_{vv}(\tau)$ using Fourier transforms
+\begin{equation}
+	\begin{aligned}
+	V_{k} & = \mathcal{F} \left\{ v_{i} \right\} \\
+	S_{k} & = V_{k} \bar{V_{k}} \\
+	R_{vv}(\tau) & = \mathcal{F}^{-1} \left\{ S_{k} \right\}
+	\end{aligned}
+\end{equation}
+where $\bar{V_{k}}$ is the complex conjugate of $V_{k}$ and $\mathcal{F} \left\{ v_{i} \right\}$ is the discrete Fourier transform that is equal to
+$$V_{k}=\mathcal{F} \left\{ v_{i} \right\} (k) = \sum_{i = 0}^{n-1} v_{i} \cdot e^{- j 2 \pi k \frac{i}{n}} $$
+and $\mathcal{F}^{-1} \left\{ S_{k} \right\}$ is the inverse discrete Fourier transform defined as
+$$R_{vv}(\tau)=\mathcal{F}^{-1} \left\{ S_{k} \right\} (\tau) = \frac{1}{n} \sum_{k = 0}^{n-1} S_{k} \cdot e^{j 2 \pi \tau \frac{k}{n}}. $$
+Since there the discrete Fourier transform could be computed in $O(n \log(n))$ using an algorithm called Fast Fourier Transform, then we have a way of computing the autocorrelation with complexity $O(n \log(n))$.
 
-\subsubsection{Multiplatform}
+When we compute the autocorrelation, we will have a large number of data to visualise. We can therefore assume some limits about the refresh rates of modern displays and their line rates and use that to limit the amount of data shown interactively on the screen. This not only improves performance, but also simplifies the user's task of understanding the autocorrelation plot since now, rather than showing the plot in terms of milliseconds or frequency, we can display it in ``frames per second'' and ``pixels''. Refer to Figure \ref{fig:autocorr_gui} to how the actual value of $R_{vv}(\tau)$ is displayed in a user friendly way onto the GUI.
 
-\subsubsection{Graphical Interface}
+\begin{figure}[h]
+\centering
+\includegraphics[width=1\textwidth]{autocorr_compare}
+\caption{We can see how the autocorrelation is displayed on the screen. The green part is used to determine the framerate $f_\text{v}$ and is displayed to the user in units of frames per second. The red part is a zoomed-in version around $\tau = 0$ and it describes the repeating nature of the lines so it can be used for displaying the line rate $y_\text{t}$ or the height of the image which is displayed in pixels.}
+\label{fig:autocorr_gui}
+\end{figure}
 
-\subsubsection{Visualisation}
+In order to display the data in a user-friendly manner, we need to make some assumptions about the possible values of $f_\text{v}$ and $y_\text{t}$. The assumption is that videos displays framerates are constraint to being between $f_\text{min}$ fps and $f_\text{min}$ fps, therefore we can safely chose $f_\text{min} \leq f_\text{v} \leq f_\text{max}$. There also constraints about the maximum and minimum height of the image $y_\text{t}$, so we can choose $y_\text{min} \leq y_\text{t} \leq y_\text{max}$.
 
-%\subsection{Testing and Benchmarking}
+The autocorrelation $\tau$ has units of milliseconds and $\tau^(-1)$ has units of Hz. This will match the units of $f_\text{v}$ exactly, so for displaying the information about the refresh rate, we can use values of $\tau$ for which $f^{-1}_\text{max} \leq \tau \leq f^{-1}_\text{min}$ (the green region in Figure \ref{fig:autocorr_gui}). For a line rate of $y_\text{t}$, the corresponding $\tau$ value would be
+$$ \tau = \frac{1}{y_\text{t} \cdot f_{v}} .$$
+However, since we don't know what the value of $f_{v}$ is, we can safely say that for displaying the line rate on the GUI we can use values of $\tau$ for which $\left( f_\text{max} y_\text{max} \right)^{-1} \leq \tau \leq \left( f_\text{min} y_\text{min} \right)^{-1}$ (the red region in Figure \ref{fig:autocorr_gui}). 
+
+Now when the user clicks on a point in the plot, the system calculates the value of the framerate or the line rate and uses that to update the video parameters interactively. The user can also ``zoom'' into the plots with the mouse wheel. Moving the mouse over the plot will show the value of $R_{vv}(\tau)$ at that position in dB and $\tau$ expressed either as frames per second or pixels depending on the plot that the user is currently interacting with. 
+
+\subsection{Multithreading}
+
+The multi-threading itself relies on a multiplatform library that I have written to work on Linux, Windows and OS X. It provides abstractions about thread synchronisation primitives and allows starting and controlling threads on all of the platforms. However, the most interesting aspect is the way the threads share the data they are processing. This is handled by a thread safe circular buffer which has been unit tested. Each pair of interconnected threads share a different instance of the circular buffer structure.
+
+This structure allows for a thread to request some input data for processing. It asks the circular buffer structure that connects the itself with the previous thread. The call will block until data is available or a time-out has occurred. This ensures that threads are not constantly polling, rather they are using OS level thread synchronisation techniques to sleep when they are processing data faster than real time.
+
+When the thread finishes processing the data it received, it needs to pass the output to the next thread. This is done via the circular buffer that connects the current thread with the next one. The difference here is that this call may fail if the circular buffer is full. This indicates that the output data was actually dropped. The circular buffer can be used to drop additional samples so a full frame containing $x_\text{t} \times y_\text{t}$ will end up being dropped. This allows for taking into account dropped samples that occur in the hardware level as well as dropped samples due to CPU not being able to handle the data in real-time.
+
+There are a few other performance tweaks. The circular buffer can grow if it sees that such drops occur. There is a limit that the buffer can grow to in order to ensure that only near real-time data is being processed. The size of the circular buffer correlates to the latency in the system -- the longer the buffer is, the more latency the system will see. However if the system is fast enough, this mechanism ensures as little latency as possible (and as little memory being used). If the system is slower and can't handle real-time, the latency is increased to allow for additional stages to have more time to process the data. This will result in dropped frames but ensure an interactive system. This is basically a method to relieve the ``back pressure'' on the system. 
+
+\section{Observations}
+
+However, there were some interesting observations that were obtained about the various video emanations that could be picked up during some of my experiments that I think are worth sharing. The results are not representative since they are related to the equipment I used, but since no screen-shots of some of the signals are available in the open literature, they can serve as a reference for further research.
+
+VGA signals can be eavesdropped as we saw in Figure \ref{fig:demobest}. However, the smooth nature of the analogue signal does not radiate enough power in low contrast regions, leaving only rapid colour transitions visible. This means that the signal carries less energy and is more difficult to detect and eavesdrop. We can see the contrast changing in the horizontal direction but no change could be observed in the vertical. This is due to the fact that pixels are transmitted from left to right.
+
+Digital signals are a bigger thread since individual bits contain more sharp edges. Even solid colours will show up because they contain a bit pattern. This could be seen in Figure \ref{fig:samplerates} where the eavesdropped signal is very likely the HDMI cable of the HDMI to VGA converter that is being eavesdropped. Here the relationship between transmitted pixel colour and observed pixel intensity is highly non-linear but there are some colours that maximise the contrast.
+
+Similar results are obtained via the LVDS links that modern laptops have. In fact, it turned out the LCD monitor I was using was emitting its own signal in addition to the VGA signal it is receiving. This could be seen in Figure \ref{fig:antialiseonoff} and Figure \ref{fig:screenlvds}. The emission has more linear relation between colour changes than the HDMI example. This phenomenon was described by Markus Kuhn \cite{kuhn2011compromising}. He noted that the vertical blanking interval is not an integer multiple of the line rate, causing a horizontal ``jump'' after each frame. The emissions, however are only receivable at very close distances to the monitor (within about a meter).
+
+\begin{figure}[h!]
+\centering
+\begin{subfigure}[b]{0.45\textwidth}
+  \includegraphics[width=\textwidth]{screen_lvds_screenshot}
+  \caption{Screenshot of the target monitor.}
+\end{subfigure} ~
+\begin{subfigure}[b]{0.45\textwidth}
+  \includegraphics[width=\textwidth]{screen_lvds}
+  \caption{LVDS emanation.}
+\end{subfigure}
+  \caption{}
+  \label{fig:screenlvds}
+\end{figure}
+
+Font aliasing plays an important role in the sharpness of the eavesdropped signal. Markus Kuhn discussed that in detail and even proposed font smoothing as a way to protect from eavesdropping attacks \cite{kuhn2003compromising}. In Figure \ref{fig:antialiseonoff} we can see a comparison of the HDMI signal from \ref{fig:samplerates} with font anti-aliasing turned on and off. We can see that it is considerably more difficult to read the text if the font is anti-aliased.
+
+\begin{figure}[h!]
+\centering
+\begin{subfigure}[b]{0.9\textwidth}
+  \includegraphics[width=\textwidth]{antialise_on}
+  \caption{Font anti-aliasing disabled}
+\end{subfigure} ~
+\begin{subfigure}[b]{0.9\textwidth}
+  \includegraphics[width=\textwidth]{antialise_off}
+  \caption{Font anti-aliasing enabled}
+\end{subfigure}
+  \caption{}
+  \label{fig:antialiseonoff}
+\end{figure}
 
 \chapter{Summary and Conclusions} 
 
-[Polling machines]
+\section{Further Research}
 
-\subsection{Encountered Issues}
+An idea that proved promising was to try to ``extend'' the available bandwidth of the software-defined radio front-end. My best attempts in Figure \ref{fig:superresolution} show that there is slight improvement. The idea is that we can take $n$ Fourier transforms of the signal, containing at least one frame in several consecutive bands of width $f_\text{s}$ and ``stick'' the recordings together, creating in a new signal that has a bandwidth of $n \cdot f_\text{s}$. The requirement is, however that the signals need to be taken at the exact same time. This is impossible with a single receiver of bandwidth $f_\text{s}$. If we, however, assume that the $n$ recordings we have contain the same exact frames, we can align them using cross correlation. However, my experiments show that the aligning is very difficult. Since this was out of the scope of the project, I did abandon the idea. However, further research in the area can mean that eavesdropping could be done even with ultra-cheap SDR devices like the RTL2832U based TV dongles that usually only provide only about $2$ MHz of bandwidth which is highly insufficient for eavesdropping.
 
-[Summarize results]
+\begin{figure}[h!]
+\centering
+\begin{subfigure}[t]{0.3\textwidth}
+  \includegraphics[width=\textwidth]{sup_res_test}
+  \caption{Transmitted test image.}
+\end{subfigure} ~
+\begin{subfigure}[t]{0.3\textwidth}
+  \includegraphics[width=\textwidth]{sup_res_off}
+  \caption{5 MHz sampling rate.}
+\end{subfigure} ~
+\begin{subfigure}[t]{0.3\textwidth}
+  \includegraphics[width=\textwidth]{sup_res_on}
+  \caption{5 MHz sampling rate with extended resolution enabled.}
+\end{subfigure}
+  \caption{}
+  \label{fig:superresolution}
+\end{figure}
 
-[potential future work]
+There were no attempts to compare the quality of the obtained results with existing implementations such as the FPGA based implementation of Markus Kuhn. The reason being the range of different hardware front-ends available for software-defined radio. It is difficult to get hold of some more expensive models that provide a better noise figure and higher signal-to-noise ratio than the USRP B200. Therefore the output of the system could look entirely differently using such devices. The USRP B200 is not a good for a benchmark. Some research into how to use the system to characterise emanations and measure the exact strength would be very useful. This could be even extended with actually characterizing the different sorts of emissions.
+
+Some research into the GUI design that would suit such a system could be also done. This will make it even more user friendly. There might even be two modes -- an advanced mode for professionals and a simplified mode for end users that can try to measure the amount of radiation their own devices emit.
+
+However, the main aim of the project is to raise the awareness of the issue and demonstrate that it is practically possible. It also serves a tool for quick prototyping and significantly lowers the costs and efforts related to further research in the area. This would hopefully allow more efforts to be put in discovering methods for reducing the amount of useful information that is emanated from video screens. A nice research topic would be to extend the font smoothing methods that Markus Kuhn proposes \cite{kuhn2003compromising} as a measure against eavesdropping.
+
+\section{Conclusion}
+
+The current project has demonstrated that it is practically possible to interactively eavesdrop contemporary video monitors from a considerable distance in real-time. The method outlined in this project improves on previous implementations by allowing the attacker to use low cost, off-the shelf mobile equipment. It also allows for automatic detection of video parameters from a distance and does not require specialised skills to operate. The addition of time averaging and automatic gain control is used to improve the image that could be obtained.
+
+The system was tested on an Intel Core i5 laptop and can run real-time with more than 40 fps with a sampling rate of 25 MHz and RAM usage of less than 256 MB (including the Java runtime). A frame-rate of more than 20 fps can be achieved on a standard desktop Intel Core 2 CPU. This ensures it can run on any modern hardware with sufficient interactivity. Therefore the performance since matches the interactivity criteria.
+
+A sophisticated attacker could have already used the vulnerability to steal valuable information without being detected, circumventing sound cryptographic and physical security. Such an attack can have serious consequences: imagine an adversary eavesdropping a monitor of a bank employee or a voter that is using an electronic voting machine. This report has demonstrated that such an attack is feasible from another room in the same building.
 
 \appendix
 \singlespacing
