@@ -316,8 +316,9 @@ In order to decode an individual pixel, the receiving monitor has its own intern
 
 \section{Generated Radio Wave}
 
-\subsection{Analogue Signal Equation}
-Let's assume the discrete pixels in an analogue video signal have intensities $v_{i}\ (i \in \mathbb{Z})$ and are being transmitted for duration $t_\text{p}=\frac{1}{x_\text{t} \cdot y_\text{t} \cdot f_\text{v}}$ from (\ref{eq:tdelta_definition}). Let's also assume that the shape of the pixel is $p(t)$ where $p(t)=0$ for $|t| \gg \frac{t_\text{p}}{2}$. We know that pixel $i$ starts transmitting at time $t_{i}=i t_\text{p}$ (if we assume that that pixel 0 was transmitted at $t=0$). Also the amplitude of the signal of the transmitted pixel is linearly dependant on its intensity $v_{i}$. Then the resulting video signal in the time domain will have the form 
+\subsection{Analogue Video Signal Equation}
+
+Let's assume the discrete pixels in an analogue video signal have intensities $v_{i}\ (i \in \mathbb{Z})$ and are being transmitted for duration $t_\text{p}=\frac{1}{x_\text{t} \cdot y_\text{t} \cdot f_\text{v}}$ from (\ref{eq:tdelta_definition}). Let's also assume that the shape of the pixel is $p(t)$ where $p(t)=0$ for $|t| \gg \frac{t_\text{p}}{2}$. We know that pixel $i$ starts transmitting at time $t_{i}=i t_\text{p}$ (if we assume that that pixel $0$ was transmitted at $t=0$). Also the amplitude of the signal of the transmitted pixel is linearly dependant on its intensity $v_{i}$. Then the resulting video signal in the time domain will have the form 
 \begin{equation}
 \label{eq:video_signal}
 \tilde{v}(t) = \sum\limits_{i=-\infty}^{\infty} v_{i} p(t-i t_\text{p})
@@ -345,7 +346,6 @@ v(t) = \sum\limits_{k=-\infty}^{\infty} v_{k} \cdot \operatorname{sinc} \left( \
 \end{equation}
 where we use the definition $ \operatorname{sinc}(x) = \frac{\sin(\pi x)}{\pi x}$ .We can verify that when $t=i t_\text{p}$, then $\operatorname{sinc}(i-k)$ will always yield $0$ except for when $i = k$ in which case it will be $1$. Therefore we have proved that $v(i t_\text{p}) = v_{i}$.
 
-\subsection{Repetitions}
 Now let's revise some mathematical identities. According to the convolution theorem \cite{arfkenconvolution}
 \begin{equation}
 \mathcal{F} \left\{ g \cdot h \right\} = \mathcal{F} \left\{ g \right\} \ast  \mathcal{F} \left\{ h \right\}
@@ -375,7 +375,9 @@ For example, for a resolution of $800 \times 600 $ @ $ 75$ fps with $x_\text{t} 
 
 In order to obtain the full video signal, we need to know what is the minimum rate at which we need to sample the baseband. We saw from (\ref{eq:vspectrum}) that $V(f)$ repeats at the regular intervals. As a consequence from the Whittaker--Shannon interpolation formula that we used to construct $v(t)$, we know that $V(f)$ is band limited so that $V(f) = 0$ for all $|f| \geq \frac{1}{2 t_\text{p}}$. Therefore we need to have a receiver with a sampling rate of at least $\frac{1}{t_\text{p}}$.
 
-\subsection{Digital Video Signals}
+These findings agree with the results that Markus Kuhn obtained in his analysis of the emanated signal who used a slightly different approach to derive them \cite{kuhn2003compromising}.
+
+\subsection{Digital Video Signal Equation}
 
 The analysis above was aimed at analogue signals such as the ones transmitted via VGA. However the majority of contemporary laptops and similar devices don't simply modulate the pixel intensities as analogue voltage amplitudes. Instead, they send each pixel as digital bits using FPD-Link (Flat Panel Display Link) to transmit LVDS (Low-voltage differential signalling). For each pixel, 7 bits are transmitted over each of the three wires that determine the resulting RGB colour.
 
@@ -875,6 +877,8 @@ $$ \tau = \frac{1}{y_\text{t} \cdot f_{v}} .$$
 However, since we don't know what the value of $f_{v}$ is, we can safely say that for displaying the line rate on the GUI we can use values of $\tau$ for which $\left( f_\text{max} y_\text{max} \right)^{-1} \leq \tau \leq \left( f_\text{min} y_\text{min} \right)^{-1}$ (the red region in Figure \ref{fig:autocorr_gui}). 
 
 Now when the user clicks on a point in the plot, the system calculates the value of the frame rate or the line rate and uses that to update the video parameters interactively. The user can also ``zoom'' into the plots with the mouse wheel. Moving the mouse over the plot will show the value of $R_{vv}(\tau)$ at that position in dB and $\tau$ expressed either as frames per second or pixels depending on the plot that the user is currently interacting with. 
+
+The value of $x_\text{t}$, as discussed before, cannot be easily deduced from the autocorrelation plot. However, given $y_\text{t}$ and $f_\text{v}$, we can find the closest mode that matches those values in a list of potential video modes (such as the one provided by VESA \cite{vesa}). The $x_\text{t}$ value for that particular mode can be used to provide the aspect ratio of a video frame. The estimation of the three parameters $y_\text{t}$, $f_\text{v}$ and $x_\text{t}$ allows for the fully automatic video mode detection implemented in the project.
 
 \subsection{Multithreading}
 
