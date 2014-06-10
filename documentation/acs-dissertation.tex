@@ -120,7 +120,7 @@ However, there are some limitations of Kuhn's real-time monitoring system:
 \begin{itemize}
 
   \item A researcher will need access to very expensive, export restricted equipment in order to repeat his experiments. This equipment also often lacks the mobility required for a practical attack.
-  \item As with van Ecks' system, Kuhn's solution still requires manual synchronisation.
+  \item As with van Eck system, Kuhn's solution still requires manual synchronisation.
   \item Digital signal processing for improving reception of weak signals (like time averaging) was not attempted in real time.
   \item An attacker will need to know the exact video parameters of the target or will need to guess them.
 
@@ -128,7 +128,7 @@ However, there are some limitations of Kuhn's real-time monitoring system:
 
 The report also mentions possible ways of modulating hidden messages into the signal. Kuhn discusses ways of defending against such attacks using hardware and software solutions. He demonstrates automatic character recognitions. The report includes experiments with optical eavesdropping of CRT displays.
 
-Overall his real-time monitoring system improves on van Eck's one by supporting a variety of modern video modes. Kuhn was able to prove that the threads outlined almost two centuries ago are still valid. This sparked fresh interest in the topic, resulting in a couple of additional related works to be published afterwards. In a later paper \cite{kuhn2005electromagnetic}, Kuhn focuses on digital displays and explains that the same attack vector could also be used in that context. In \cite{kuhn2011compromising} he analyses high frequency emissions from flat-panel LCD TV displays.
+Overall his real-time monitoring system improves on van Eck one by supporting a variety of modern video modes. Kuhn was able to prove that the threads outlined almost two centuries ago are still valid. This sparked fresh interest in the topic, resulting in a couple of additional related works to be published afterwards. In a later paper \cite{kuhn2005electromagnetic}, Kuhn focuses on digital displays and explains that the same attack vector could also be used in that context. In \cite{kuhn2011compromising} he analyses high frequency emissions from flat-panel LCD TV displays.
 
 \subsection{Work of Elibol et al.}
 
@@ -162,14 +162,14 @@ The system builds on top of the existing research by having achieved the followi
 
 \end{itemize}
 
-The source code and the latest pre-compiled binaries could be obtained from \href{https://github.com/martinmarinov/TempestSDR}{github.com/martinmarinov/TempestSDR}. If user's computer is running OS X, Windows or Linux, a multiplatform statically precompiled Java jar file is available for starting up the system in a couple of clicks.
+The source code and the latest pre-compiled binaries could be obtained from \href{https://github.com/martinmarinov/TempestSDR}{github.com/martinmarinov/TempestSDR}. If user's computer is running OS X, Windows or Linux, a multi-platform statically pre-compiled Java jar file is available for starting up the system in a couple of clicks.
 \footnote{Some device drivers might not be available on all operating systems. At time of writing the OS X binaries need to be compiled manually. Refer to the README for more information.}
 
-The system supports a plug-in architecture that allows simplified development of device drivers for any software-defined radio frontend. Currently supported plug-ins:
+The system supports a plug-in architecture that allows simplified development of device drivers for any software-defined radio front-end. Currently supported plug-ins:
 
 \begin{itemize}
 
-  \item Pre-recorded file with raw IQ samples (Multiplatform support)
+  \item Pre-recorded file with raw IQ samples (multi-platform support)
   \item Mirics SDR (Windows support)
   \item UHD (Linux and OS X support)
   \item ExtIO (Windows support)
@@ -228,7 +228,7 @@ To illustrate how convolution works, consider convolving a function $x(t)$ with 
 \end{multline}
 where we used the fact that the Dirac delta function has an even symmetry $\delta(t) = \delta(-t)$. This results in a new function $x(t-T)$ which is a time shifted copy of $x(t)$ with a shift of $T$. Convolving with a Dirac comb could be shown to produce infinite copies of $x(t)$ at regular intervals $T$ which are basically summed together.
 
-The term \textbf{lowpass} means a lowpass filter. This is a filter that acts on a signal, and that allows components of the signal with frequencies $f \leq f_\text{max}$ to pass through, attenuating the rest to 0. A \textbf{Highpass} filter allows frequencies $f \geq f_\text{min}$ to pass through intact, attenuating the rest to 0. A \textbf{bandpass} filter is a combination of a lowpass and a highpass filter, allowing only frequencies $f_\text{min} \leq f \leq f_\text{max}$, attenuating the rest to 0. A \textbf{band-limited} signal is a signal which doesn't have any frequency components $f > f_\text{max}$ or $f < f_\text{min}$. Such a signal would remain unchanged after applying a bandpass filter to it with limits $f_\text{min}$ and $f_\text{max}$. This is used for filtering out useful signals from other interferences that are not part of the band-limited signal.
+The term \textbf{low pass} means a low pass filter. This is a filter that acts on a signal, and that allows components of the signal with frequencies $f \leq f_\text{max}$ to pass through, attenuating the rest to 0. A \textbf{High pass} filter allows frequencies $f \geq f_\text{min}$ to pass through intact, attenuating the rest to 0. A \textbf{bandpass} filter is a combination of a low pass and a high pass filter, allowing only frequencies $f_\text{min} \leq f \leq f_\text{max}$, attenuating the rest to 0. A \textbf{band-limited} signal is a signal which doesn't have any frequency components $f > f_\text{max}$ or $f < f_\text{min}$. Such a signal would remain unchanged after applying a bandpass filter to it with limits $f_\text{min}$ and $f_\text{max}$. This is used for filtering out useful signals from other interferences that are not part of the band-limited signal.
 
 \section{IQ Sampling} 
 \label{sec:IQSampling}
@@ -290,7 +290,7 @@ Refer to Figure \ref{fig:IQ} for geometrical representation of the outlined prop
 
 \section{Analogue Video Signals}
 
-Almost all contemporary video monitors are raster based. The image is transferred from the video controller to the display in scanlines that occur at a specific rate. Each of these scanlines contains a number of pixels which are continuously encoded as a time varying signal. This signal is generated internally in the video controller by an oscillator which runs at the pixel clock rate. The analogue signal is thereafter multiplied by the pixel intensities at the specific time.
+Almost all contemporary video monitors are raster based. The image is transferred from the video controller to the display in scan lines that occur at a specific rate. Each of these scan lines contains a number of pixels which are continuously encoded as a time varying signal. This signal is generated internally in the video controller by an oscillator which runs at the pixel clock rate. The analogue signal is thereafter multiplied by the pixel intensities at the specific time.
 
 Let's assume that the signal started transmitting at time $t=0$, and each video frame contains $y_\text{t}$ scanlines, each of which contains $x_\text{t}$ pixels. The frequency with which frames are being generated is $f_\text{v}$ frames per second. The duration of transmission of each individual pixel is \begin{equation}
 \label{eq:tdelta_definition}
@@ -395,14 +395,14 @@ Now assuming $c(t)$ is the continuous version of $c_{k}$ as in the previous sect
 
 This means that we will also get repeating signal throughout the spectrum, this time repeating with a frequency of $\frac{1}{t_\text{b}} = x_\text{t} \cdot y_\text{t} \cdot f_\text{v} \cdot n_\text{b}$. This is $n_\text{b}$ higher than the calculated repetition frequency for analogue signals. For example, Markus Kuhn's laptop was running LVDS with $n_\text{b}=7$ at a video mode of $800 \times 600 $ @ $ 75$ with $x_\text{t} = 1056$ px, $y_\text{t} = 628$ lines and $f_\text{v} = 75$ Hz. He reports receiving a harmonic emanation at about $350$ MHz\footnote{His actual hardware is transmitting two pixels at a time, resulting in a factor of $\frac{1}{2}$ being applied to the end result. Therefore the first harmonic he could actually pick up lies at $175$ MHz.} \cite{kuhn2005electromagnetic}. We can see that this agrees with the theoretical predictions since for his case $\frac{1}{t_\text{b}} = 1056 \cdot 628 \cdot 75 \cdot 7 \simeq 348.2$ MHz.
 
-However, the signal is now wider. We would need a receiver that can pick up $|f| \geq \frac{1}{2 t_\text{b}} \equiv \frac{n_\text{b}}{2 t_\text{p}}$ in order to reconstruct individual bits. In practice, we can still use the same approach that we used for analogue video. We can have a receiver that can pick up $|f| \geq \frac{1}{2 t_\text{b}}$. This is essentially equivalent to applying a lowpass filter -- we will no longer be able to distinguish individual bits. Instead we will obtain an averaged out value for each pixel that depends on the underlying binary data that is used to represent its intensity. The variety of colours available with significantly different bit patterns means that we can still extract a lot of visual information from the reconstructed image.
+However, the signal is now wider. We would need a receiver that can pick up $|f| \geq \frac{1}{2 t_\text{b}} \equiv \frac{n_\text{b}}{2 t_\text{p}}$ in order to reconstruct individual bits. In practice, we can still use the same approach that we used for analogue video. We can have a receiver that can pick up $|f| \geq \frac{1}{2 t_\text{b}}$. This is essentially equivalent to applying a low pass filter -- we will no longer be able to distinguish individual bits. Instead we will obtain an averaged out value for each pixel that depends on the underlying binary data that is used to represent its intensity. The variety of colours available with significantly different bit patterns means that we can still extract a lot of visual information from the reconstructed image.
 
 \section{Reception}
 
 \subsection{Theory}
 In order to receive a copy of the video signal, we will need to apply a bandpass filter centred at a multiple of the pixel frequency. The width of the bandpass needs to be the same as the band limited video signal we want to eavesdrop. Then we need to generate an internal clock that runs at the pixel rate and use that to obtain the estimated pixel intensities. Luckily these steps are already done in a typical AM (Amplitude Modulation) receiver. Unfortunately the signal bandwidth is much wider than what a typical off-the-shelf AM receiver can handle.
 
-However some software-defined radio receivers can provide the required bandwidth. The Ettus Research USRP B200 can provide more than 50 MHz of realtime bandwidth which covers what is required to eavesdrop most video signals. Software-defined radios provide the radio samples as a quadrature vector which angle relates to the instantaneous phase in relation to the internal hardware oscillator of the hardware. The size of the vector is proportional to the received amplitude for each sample (refer to Section \ref{sec:IQSampling} for more information). For AM reception, we do not need the phase information since the video signal is being transmitted with a constant frequency. Therefore we can make a simple AM demodulator by taking the length of the vector of each sample. When our digital sampling rate matches the pixel rate, each sample will contain an estimate that relates to the average pixel intensity between time $t_{i}$ and $t_{i+1}$. For digital signals, it would be related to the bit pattern of the binary value (although this relation may not be unique) that represents the intensity for the current pixel.
+However some software-defined radio receivers can provide the required bandwidth. The Ettus Research USRP B200 can provide more than 50 MHz of real-time bandwidth which covers what is required to eavesdrop most video signals. Software-defined radios provide the radio samples as a quadrature vector which angle relates to the instantaneous phase in relation to the internal hardware oscillator of the hardware. The size of the vector is proportional to the received amplitude for each sample (refer to Section \ref{sec:IQSampling} for more information). For AM reception, we do not need the phase information since the video signal is being transmitted with a constant frequency. Therefore we can make a simple AM demodulator by taking the length of the vector of each sample. When our digital sampling rate matches the pixel rate, each sample will contain an estimate that relates to the average pixel intensity between time $t_{i}$ and $t_{i+1}$. For digital signals, it would be related to the bit pattern of the binary value (although this relation may not be unique) that represents the intensity for the current pixel.
 
 \subsection{Practice}
 The VESA standard specifies an allowed frequency tolerance for $f_\text{v}$ of 0.5\%. Therefore due to hardware limitations, we might not be able to accurately tune the receiver sampling rate with enough accuracy to match the transmitted pixel rate. This means that some re-sampling needs to be done in software in order to create a new digital signal that matches as close as possible the transmitted pixel rate in which each sample corresponds to a pixel.
@@ -440,13 +440,13 @@ where as before, $f_\text{s}$ is the receiver sampling rate. If $\kappa \geq 1$,
   \includegraphics[width=\textwidth]{sr_5MHz_at_190MHz}
   \caption{$\kappa = 0.125$}
 \end{subfigure}
-\caption{The transmitted image (a) is sent via a standard HDMI to VGA converter. The emanations are coming from the digital video signal. The resolution is $800 \times 600 $ @ $ 60$ with $x_\text{t} = 1056$, $y_\text{t} = 628$ and $f_\text{v} = 60.11$. Each of the following screenshots represent an eavesdropped version from a distance of $1$ m with the receiver (USRP B200) running at different sample rates: (b) 40 MHz, (c) 30 MHz, (d) 20 MHz, (e) 10 MHz and (f) 5 MHz}
+\caption{The transmitted image (a) is sent via a standard HDMI to VGA converter. The emanations are coming from the digital video signal. The resolution is $800 \times 600 $ @ $ 60$ with $x_\text{t} = 1056$, $y_\text{t} = 628$ and $f_\text{v} = 60.11$. Each of the following screen shots represent an eavesdropped version from a distance of $1$ m with the receiver (USRP B200) running at different sample rates: (b) 40 MHz, (c) 30 MHz, (d) 20 MHz, (e) 10 MHz and (f) 5 MHz}
 \label{fig:samplerates}
 \end{figure}
 
 Another possible source of distortions is the usage of multiple wires to transmit colour information. These signals interfere with each other and the resulting pixel intensity becomes a complicated mix of the signals generated in these wires. Therefore colour information would be very difficult to obtain. Nevertheless the outlined strategy allows an eavesdropper to detect changes in colour since this would result in different signal amplitudes arriving at the receiver for each pixel.
 
-\section{Resolution and Framerate Detection}
+\section{Resolution and Frame rate Detection}
 
 The outlined method for decoding the video stream relies on us having the exact values for $x_\text{t}$, $y_\text{t}$ and $f_\text{v}$. This is not very practical for a real world attack. We would require the adversary not to have any knowledge of the target system whatsoever. Therefore we would need to infer all of these parameters remotely by exploiting some typical characteristics of a video signal. Namely the fact that the signal is periodic.
 
@@ -532,7 +532,7 @@ Before explaining how the software works internally, let's present a demonstrati
 
 The demonstration is undertaken in controlled conditions. However, in order to make it as similar to a real-world attack as possible, we will assume the adversary has no knowledge of the victim's system. We will estimate the frequency at which the emission strength peaks. We will then analyse the signal to detect the resolution and refresh rate of the screen. We will afterwards lock onto the signal and try to recover the original video.
 
-\section{The Setup}
+\section{The Set-up}
 
 The choice for a front-end for this demonstration is a USRP B200\footnote{Refer to \ref{sec:hw} Hardware for discussion on currently available devices.}. Depending on the particular requirements, an attacker might prefer mobility over accuracy and choose the smaller Mirics FlexiTV\texttrademark MSi3101 SUSB Dongle. However, for this demonstration we will attempt to obtain the highest possible resolution. Therefore we need a radio that is capable of obtaining a wide bandwidth. This makes the 32 MHz of Bandwidth that the USRP provides a much better choice than the 8 MHz available from the Mirics dongle.
 
@@ -611,7 +611,7 @@ If we obtain a good enough signal, we can reconstruct text from the screen. Comp
 \centering
 \begin{subfigure}[b]{0.9\textwidth}
   \includegraphics[width=\textwidth]{demo_actual}
-  \caption{Screenshot of the target monitor.}
+  \caption{Screen shot of the target monitor.}
 \end{subfigure}
 \begin{subfigure}[b]{0.9\textwidth}
   \includegraphics[width=\textwidth]{demo_bestresult}
@@ -640,7 +640,7 @@ There is a wide range of off-the-shelf hardware front-ends that could be used wi
 \subsection{Ettus Research USRP}
 
 \begin{tabular}{ll}
-	Maximum sampling rate: & 56 Mhz (B200) \\
+	Maximum sampling rate: & 56 MHz (B200) \\
 	Frequency Range: & 70 MHz - 6 GHz \\
 	Dimensions: & 97 mm $\times$ 155 mm $\times$ 15 mm (B200) \\
 	OS support: & All platforms (Windows support via ExtIO) \\
@@ -664,7 +664,7 @@ Cons:
 \subsection{Mirics FlexiTV\texttrademark MSi3101}
 
 \begin{tabular}{ll}
-	Maximum sampling rate: & 8 Mhz \\
+	Maximum sampling rate: & 8 MHz \\
 	Frequency Range: & 64 MHz - 240 MHz and 470 MHz - 960 MHz \\
 	Dimensions: & 25 mm $\times$ 80 mm $\times$ 10 mm \\
 	OS support: & Windows only \\
@@ -682,7 +682,7 @@ Pros:
 Cons:
 \begin{itemize}
 	\item Low sampling rate and low sensitivity. Good eavesdropping results would be obtained if the target screen resolution is low enough so that $\kappa$ (refer to (\ref{eq:kappa}) for definition) is reasonable and the signal is strong enough.
-	\item Tuning gap between 240 MHz and 470 Mhz. If the emanations fall within this range, the Mirics dongle will fail to pick them up.
+	\item Tuning gap between 240 MHz and 470 MHz. If the emanations fall within this range, the Mirics dongle will fail to pick them up.
 \end{itemize}
 
 \subsection{Windows ExtIO}
@@ -693,7 +693,7 @@ The plug-in supports variety of devices. It is a standard plug-in that is used i
 
 For the experiments in this report, I have used a small dual-pole antenna by AverMedia designed for digital TV reception. This showed to be enough for eavesdropping from an adjacent room to the one containing the target device. However, for impressive demos that could potentially operate from several tens of meters, Kuhn recommends some additional analogue preconditioning.
 
-Kuhn experimented with a tunable band pass filter and a 30 dB antenna amplifier before the B200 to improve the noise level. He comments that the setup delivers comparable quality to the highly specialised Dynamic Sciences R1250 receiver that he used in his experiments \cite{kuhn2003compromising}. He also used a professional log-periodic antenna for improved reception.
+Kuhn experimented with a tunable band pass filter and a 30 dB antenna amplifier before the B200 to improve the noise level. He comments that the set-up delivers comparable quality to the highly specialised Dynamic Sciences R1250 receiver that he used in his experiments \cite{kuhn2003compromising}. He also used a professional log-periodic antenna for improved reception.
 
 \section{Architecture}
 
@@ -703,7 +703,7 @@ However, the package also comes with a pre-built Java based host program. The pr
 
 \subsection{The Library}
 
-The library relies on plugins (called \textbf{TSDRPlugin}) to provide a stream of IQ samples and means to control the hardware in real time. The data sources are shared libraries that are dynamically loaded at runtime by the TSDRLirbary.
+The library relies on plug-ins (called \textbf{TSDRPlugin}) to provide a stream of IQ samples and means to control the hardware in real time. The data sources are shared libraries that are dynamically loaded at runtime by the TSDRLirbary.
 
 The host program's job is extremely simplified. In a nutshell, it sets up the library and runs it. Every time there is a new video frame available, a callback would be invoked via TSDRLibrary so that the host program could process the frame (display it, save it, etc). An expected sequence of API calls to get video data would be:
 
@@ -711,13 +711,13 @@ The host program's job is extremely simplified. In a nutshell, it sets up the li
 	\item Dynamically load the library (if it is not statically compiled with the host program) using the methods provided by the specific operating system. This will give the host program access to the TSDRLibrary APIs.
 	\item Allocate an instance of the processing pipeline with \textit{tsdr\_init}.
 	\item Set target display resolution and frame rate with \textit{tsdr\_setresolution}. This could be called interactively while the processing is running to dynamically change the parameters at runtime.
-	\item Load a pre-compiled plug-in by invoking \textit{tsdr\_loadplugin} specifying the location of the shared library that represents the plugin and any parameters that the user wants to pass to the plug-in. This plugin will talk to the hardware and provide a steam of IQ data to the library for processing.
+	\item Load a pre-compiled plug-in by invoking \textit{tsdr\_loadplugin} specifying the location of the shared library that represents the plug-in and any parameters that the user wants to pass to the plug-in. This plug-in will talk to the hardware and provide a steam of IQ data to the library for processing.
 	\item Start the processing by running \textit{tsdr\_readasync}. The current thread would be used to start polling the hardware so it will block until processing has finished.
 	\item The \textit{tsdr\_init} and \textit{tsdr\_readasync} allow for callback functions to be registered with TSDRLibrary. The callbacks are just C functions that reside in the host program that will be called as soon as a new video frames, autocorrelation data or other messages are available. Processing data within those callbacks is not thread safe.
 	\item Call \textit{tsdr\_stop} to stop the processing and unblock the thread that originally called \textit{tsdr\_readasync}. Soon after calling \textit{tsdr\_stop}, the callbacks will stop receiving data.
 \end{enumerate}
 
-If the plug-in supports it, \textit{tsdr\_setbasefreq} can be used to set the base frequency of the hardware device. A few other API commands allow the host program to do manual position adjustment of the video frame, control the amount of lowpass applied and set the gain of the hardware device (if supported). There are some advanced features that could be turned on using the \textit{tsdr\_setparameter} API call which include the automatic frame borders detection, automatic frame rate synchronisation and a few other tweaks to the digital signal processing pipeline. It is up to the host program to use the autocorrelation to determine resolution and framerate which gives enough room for flexibility.
+If the plug-in supports it, \textit{tsdr\_setbasefreq} can be used to set the base frequency of the hardware device. A few other API commands allow the host program to do manual position adjustment of the video frame, control the amount of low pass applied and set the gain of the hardware device (if supported). There are some advanced features that could be turned on using the \textit{tsdr\_setparameter} API call which include the automatic frame borders detection, automatic frame rate synchronisation and a few other tweaks to the digital signal processing pipeline. It is up to the host program to use the autocorrelation to determine resolution and frame rate which gives enough room for flexibility.
 
 Each API call can return an error code in case it fails. The host application can also read a verbose version of the error message using the \textit{tsdr\_getlasterrortext} API call. This allows for intuitive and simple error handling.
 
@@ -733,12 +733,12 @@ Each API call can return an error code in case it fails. The host application ca
 Figure \ref{fig:architecture} outlines the data flow and data processing paths within a typical set-up of the system\footnote{If instead the data is read from a file or network, we can regard the ``Software - defined radio hardware'' as the hard drive or the network layer.}. It goes through the following steps:
 
 \begin{enumerate}
-	\item RF data is converted into IQ samples in the Sdevice. These samples are sent to the PC for processing.
+	\item RF data is converted into IQ samples in the SDR Device. These samples are sent to the PC for processing.
 	\item The hardware driver in the OS receives the samples and possibly queues them.
 	\item A TSDRPlugin either continuously polls the driver or receives a callback from it as soon as a block of data is available. It obtains the block of data and sends it to the TSDRLibrary via a callback.
 	\item The IQ data is inside TSDRLibrary. AM demodulation is done on the data. This runs in a separate thread so that the TSDRPlugin will have the chance to receive new data from the device as quickly as possible. The demodulated data is provided to the Autocorrelation thread that will calculate the autocorrelation of the incoming signal and notify the host program. If TSDRPlugin reports any dropped samples between calls, the autocorrelation is reset (we only want continuous data accumulated for autocorrelation).
 	\item The re-sampling logic runs in a separate thread. It matches the rate of the data from the sampling rate of the device $f_\text{s}$ to the expected rate of $x_\text{t} \cdot y_\text{t} \cdot f_\text{v}$.
-	\item Here some digital signal processing is done in a separate thread to enhance the signal. The order with which the operations are applied depends on the settings that a user will supply. By default the synchronisation pulses of a video frame are detected first. If the user has selected auto tracking, the current position of the horizontal blanking interval is compared with the last one. This gives a rough estimate on whether $f_{fps}$ is off by a couple of parts per million from the real value. The process allows for keeping the picture steady on the screen. Then lowpass in the time domain is done (a.k.a. motion blur) to de-noise a weaker signal using averaging. Finally, an autogain algorithm makes sure that the full dynamic range of the signal is equally utilised for the final image.
+	\item Here some digital signal processing is done in a separate thread to enhance the signal. The order with which the operations are applied depends on the settings that a user will supply. By default the synchronisation pulses of a video frame are detected first. If the user has selected auto tracking, the current position of the horizontal blanking interval is compared with the last one. This gives a rough estimate on whether $f_{fps}$ is off by a couple of parts per million from the real value. The process allows for keeping the picture steady on the screen. Then low pass in the time domain is done (a.k.a. motion blur) to de-noise a weaker signal using averaging. Finally, an auto gain algorithm makes sure that the full dynamic range of the signal is equally utilised for the final image.
 	\item Here the host application receives a video frame via a callback. It is up to the host application to determine what to do with it. It can take as much time as it wants since this runs in a separate thread.
 	\item The signal leaves the library and goes into the host application. In this example this is our Java GUI. A Java Native Interface (JNI) code marshals the incoming data to a Java friendly format which is then passed to the Java Virtual Machine and the particular class instance that has invoked the whole processing.
 	\item Once the data arrives at the TSDRLibrary class instance, the main GUI will receive a notification via a callback and will dispatch the bitmap to be drawn on the screen.
@@ -794,7 +794,7 @@ In order to detect the blanking intervals in a frame, a few assumptions need to 
 \label{fig:syncing}
 \end{figure}
 
-In order to detect the intervals, for performance reasons, we can decouple them into two 1 dimensional strips. We produce two strips -- a vertical one, containing the average of all of the lines and a horizontal one, containing the average of all of the columns in an image. Then we can do a circular low pass filter in order to get rid of any high frequency noise (such as text lines). Figure \ref{fig:syncing} shows how the averaged vertical and horizontal bands are derived and how they look after the lowpass filter.
+In order to detect the intervals, for performance reasons, we can decouple them into two 1 dimensional strips. We produce two strips -- a vertical one, containing the average of all of the lines and a horizontal one, containing the average of all of the columns in an image. Then we can do a circular low pass filter in order to get rid of any high frequency noise (such as text lines). Figure \ref{fig:syncing} shows how the averaged vertical and horizontal bands are derived and how they look after the low pass filter.
 
 \begin{figure}[h]
 \centering
@@ -864,21 +864,21 @@ When we compute the autocorrelation, we will have a large number of data to visu
 \begin{figure}[h]
 \centering
 \includegraphics[width=1\textwidth]{autocorr_compare}
-\caption{We can see how the autocorrelation is displayed on the screen. The green part is used to determine the framerate $f_\text{v}$ and is displayed to the user in units of frames per second. The red part is a zoomed-in version around $\tau = 0$ and it describes the repeating nature of the lines so it can be used for displaying the line rate $y_\text{t}$ or the height of the image which is displayed in pixels.}
+\caption{We can see how the autocorrelation is displayed on the screen. The green part is used to determine the frame rate $f_\text{v}$ and is displayed to the user in units of frames per second. The red part is a zoomed-in version around $\tau = 0$ and it describes the repeating nature of the lines so it can be used for displaying the line rate $y_\text{t}$ or the height of the image which is displayed in pixels.}
 \label{fig:autocorr_gui}
 \end{figure}
 
-In order to display the data in a user-friendly manner, we need to make some assumptions about the possible values of $f_\text{v}$ and $y_\text{t}$. The assumption is that videos displays framerates are constraint to being between $f_\text{min}$ fps and $f_\text{min}$ fps, therefore we can safely chose $f_\text{min} \leq f_\text{v} \leq f_\text{max}$. There also constraints about the maximum and minimum height of the image $y_\text{t}$, so we can choose $y_\text{min} \leq y_\text{t} \leq y_\text{max}$.
+In order to display the data in a user-friendly manner, we need to make some assumptions about the possible values of $f_\text{v}$ and $y_\text{t}$. The assumption is that videos displays frame rates are constraint to being between $f_\text{min}$ fps and $f_\text{min}$ fps, therefore we can safely chose $f_\text{min} \leq f_\text{v} \leq f_\text{max}$. There also constraints about the maximum and minimum height of the image $y_\text{t}$, so we can choose $y_\text{min} \leq y_\text{t} \leq y_\text{max}$.
 
 The autocorrelation $\tau$ has units of milliseconds and $\tau^{-1}$ has units of Hz. This will match the units of $f_\text{v}$ exactly, so for displaying the information about the refresh rate, we can use values of $\tau$ for which $f^{-1}_\text{max} \leq \tau \leq f^{-1}_\text{min}$ (the green region in Figure \ref{fig:autocorr_gui}). For a line rate of $y_\text{t}$, the corresponding $\tau$ value would be
 $$ \tau = \frac{1}{y_\text{t} \cdot f_{v}} .$$
 However, since we don't know what the value of $f_{v}$ is, we can safely say that for displaying the line rate on the GUI we can use values of $\tau$ for which $\left( f_\text{max} y_\text{max} \right)^{-1} \leq \tau \leq \left( f_\text{min} y_\text{min} \right)^{-1}$ (the red region in Figure \ref{fig:autocorr_gui}). 
 
-Now when the user clicks on a point in the plot, the system calculates the value of the framerate or the line rate and uses that to update the video parameters interactively. The user can also ``zoom'' into the plots with the mouse wheel. Moving the mouse over the plot will show the value of $R_{vv}(\tau)$ at that position in dB and $\tau$ expressed either as frames per second or pixels depending on the plot that the user is currently interacting with. 
+Now when the user clicks on a point in the plot, the system calculates the value of the frame rate or the line rate and uses that to update the video parameters interactively. The user can also ``zoom'' into the plots with the mouse wheel. Moving the mouse over the plot will show the value of $R_{vv}(\tau)$ at that position in dB and $\tau$ expressed either as frames per second or pixels depending on the plot that the user is currently interacting with. 
 
 \subsection{Multithreading}
 
-The multi-threading itself relies on a multiplatform library that I have written to work on Linux, Windows and OS X. It provides abstractions about thread synchronisation primitives and allows starting and controlling threads on all of the platforms. However, the most interesting aspect is the way the threads share the data they are processing. This is handled by a thread safe circular buffer which has been unit tested. Each pair of interconnected threads share a different instance of the circular buffer structure.
+The multi-threading itself relies on a multi-platform library that I have written to work on Linux, Windows and OS X. It provides abstractions about thread synchronisation primitives and allows starting and controlling threads on all of the platforms. However, the most interesting aspect is the way the threads share the data they are processing. This is handled by a thread safe circular buffer which has been unit tested. Each pair of interconnected threads share a different instance of the circular buffer structure.
 
 A thread requests some input data for processing by asking the circular buffer structure that connects it with the previous thread. The call will block until data is available or a time-out has occurred. This ensures that threads are not constantly polling, rather they are using OS level thread synchronisation techniques to sleep when they are processing data faster than real time.
 
