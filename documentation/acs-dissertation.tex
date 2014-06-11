@@ -113,7 +113,7 @@ We can only speculate why there was no further research on this topic for decade
  
 \subsection{Work of Markus Kuhn}
 
-Markus Kuhn was able to improve on the results achieved by van Eck with his \textit{Compromising emanations: eavesdropping risks of computer displays} \cite{kuhn2003compromising}. In the technical report, Kuhn analyses the properties of the emitted waves and the possible emitting circuitry. He describes the possible equipment an attacker may need in order to intercept and process the signal. He conducts experiments and constructs a system for real time monitoring using an FPGA board, a specialised wideband AM radio receiver and an off-the shelf VGA video monitor. 
+Markus Kuhn was able to improve on the results achieved by van Eck with his \textit{Compromising emanations: eavesdropping risks of computer displays} \cite{kuhn2003compromising}. In the technical report, Kuhn analyses the properties of the emitted waves and the possible emitting circuitry. He describes equipment an attacker may need in order to intercept and process the signal. He conducts experiments and constructs a system for real time monitoring using an FPGA board, a specialised wideband AM radio receiver and an off-the shelf VGA video monitor. 
 
 However, there are some limitations of Kuhn's real-time monitoring system:
 
@@ -153,7 +153,7 @@ The system builds on top of the existing research by having achieved the followi
 
 \begin{itemize}
 
-  \item Uses an affordable \footnote{Costing only a couple of hundred pounds \cite{ettusb200}.}, unmodified off-the-shelf equipment portable enough to simplify practical attacks.
+  \item Uses an affordable \footnote{Costing only several hundred pounds \cite{ettusb200}.}, unmodified off-the-shelf equipment portable enough to simplify practical attacks.
   \item Almost no specialised experience is necessary to operate the system.
   \item No prior knowledge of the target machine video parameters is required. The system can automatically estimate them remotely in real time.
   \item Reception of weaker signals is possible due to additional digital signal processing.
@@ -178,7 +178,7 @@ The system supports a plug-in architecture that allows simplified development of
 
 The system comes with a Java GUI but the underlying library could be used independently by any other system as a shared or statically linked library. Furthermore the core is written in C and has no additional dependencies making it portable and easy to compile.
 
-This report provides some background information on the physics behind the radio wave generation process. It describes the basics of an SDR radio receiver. It then explains the properties of the emanated signal and how to reconstruct it. It goes on describing the automatic remote estimation of video parameters. A practical attack is demonstrated afterwards, showing that an attacker, with no prior knowledge of the target video display, can use the system to receive the compromising emanations from a distance. It then outlines the architecture of the library and the implementation details. Finally, a conclusion is done with some suggestions on further research.
+Chapter \ref{chap:background} provides some background information on the physics behind the radio wave generation process. It describes the basics of an SDR radio receiver. Chapter \ref{chap:methodology} explains the properties of the emanated signal and how to reconstruct it. It goes on describing the automatic remote estimation of video parameters. Chapter \ref{chap:practical} demonstrates a practical attack, showing that an attacker, with no prior knowledge of the target video display, can use the system to receive the compromising emanations from a distance. Chapter \ref{chap:implementation} outlines the architecture of the library and the implementation details. Finally, in chapter \ref{chap:summary}, a conclusion is done with some suggestions on further research.
 
 However, the report does not discuss ways of limiting the amount of information leaked via such compromising emanations. This is beyond the scope of the project. The system could assist further research on the topic serving as a rapid prototyping tool.
 
@@ -194,6 +194,7 @@ There are also some inherent notes about the system:
 \end{itemize}
 
 \chapter{Background}
+\label{chap:background}
 
 A reader should have knowledge of undergraduate level mathematics including calculus. Some of the equations and theorems are simply stated and then used. If the reader wants to learn more about their derivations, they need to look at a relevant textbook. Furthermore, it is assumed that the reader has a computer science background and understands the basic concepts behind object oriented programming and procedural programming. Familiarity with the C programming language and some basic knowledge of Java would be helpful as well. Understanding the basics of signal processing and Fourier theory is also desirable but not strictly required.
 
@@ -216,7 +217,7 @@ The Dirac delta functions have the so-called ``sifting'' property so that if mul
 $$ \int_{-\infty}^{\infty} g(t) \delta(t - T) \text{d} t = g(T) .$$
 We will also encounter the ``Dirac comb'' defined as:
 $$ \Sha_{T}(t) = \sum_{k=-\infty}^{\infty} \delta(t - kT) = \frac{1}{T} \Sha \left( \frac{t}{T} \right) $$
-which is basically an infinite number of Dirac delta functions repeating at regular intervals of $T$. We can therefore ``sample'' a function $x(t)$ at times $T$ by multiplying it with a Dirac comb. This will result in discrete samples being obtained from $x(t)$ at regular intervals of $T$ i.e.\  we will obtain $\dots, x(-2 T), x(-T), x(0), x(t), x(2 T), \dots$.
+which is basically an infinite number of Dirac delta functions repeating at regular intervals of $T$. We can therefore ``sample'' a function $x(t)$ at times $T$ by multiplying it with a Dirac comb. This will result in discrete samples being obtained from $x(t)$ at regular intervals of $T$ i.e.\  we will obtain $\dots, x(-2 T), x(-T), x(0), x(T), x(2 T), \dots$.
 
 We also need to mention \textbf{convolution}, denoted by the operator $\ast$. The convolution of two functions $x(t)$ and $g(t)$ is defined as
 $$(f \ast g)(t) = \int_{-\infty}^{\infty} f(\tau) g(t - \tau) \text{d} \tau .$$
@@ -228,7 +229,7 @@ To illustrate how convolution works, consider convolving a function $x(t)$ with 
 \end{multline}
 where we used the fact that the Dirac delta function has an even symmetry $\delta(t) = \delta(-t)$. This results in a new function $x(t-T)$ which is a time shifted copy of $x(t)$ with a shift of $T$. Convolving with a Dirac comb could be shown to produce infinite copies of $x(t)$ at regular intervals $T$ which are basically summed together.
 
-The term \textbf{low pass} means a low pass filter. This is a filter that acts on a signal, and that allows components of the signal with frequencies $f \leq f_\text{max}$ to pass through, attenuating the rest to 0. A \textbf{High pass} filter allows frequencies $f \geq f_\text{min}$ to pass through intact, attenuating the rest to 0. A \textbf{bandpass} filter is a combination of a low pass and a high pass filter, allowing only frequencies $f_\text{min} \leq f \leq f_\text{max}$, attenuating the rest to 0. A \textbf{band-limited} signal is a signal which doesn't have any frequency components $f > f_\text{max}$ or $f < f_\text{min}$. Such a signal would remain unchanged after applying a bandpass filter to it with limits $f_\text{min}$ and $f_\text{max}$. This is used for filtering out useful signals from other interferences that are not part of the band-limited signal.
+The term \textbf{low-pass} means a low-pass filter. This is a filter that acts on a signal, and that allows components of the signal with frequencies $f \leq f_\text{max}$ to pass through, attenuating the rest to 0. A \textbf{high-pass} filter allows frequencies $f \geq f_\text{min}$ to pass through intact, attenuating the rest to 0. A \textbf{band-pass} filter is a combination of a low-pass and a high-pass filter, allowing only frequencies $f_\text{min} \leq f \leq f_\text{max}$, attenuating the rest to 0. A \textbf{band-limited} signal is a signal which doesn't have any frequency components $f > f_\text{max}$ or $f < f_\text{min}$. Such a signal would remain unchanged after applying a band-pass filter to it with limits $f_\text{min}$ and $f_\text{max}$. This is used for filtering out useful signals from other interferences that are not part of the band-limited signal.
 
 \section{IQ Sampling} 
 \label{sec:IQSampling}
@@ -247,7 +248,7 @@ However, if we are only interested in a band-limited signal that lies from $f_\t
 x(t) \cdot A_\text{LO} \cos(2 \pi f_\text{LO} t) =  A(t) \cos(2 \pi f_\text{c} t) \cdot 2 \cos(2 \pi f_\text{LO} t) = \\
 =  A(t) \cos\big( 2 \pi (f_\text{c} + f_\text{LO} \big) t\big) + A(t) \cos\big( 2 \pi (f_\text{c} - f_\text{LO}) t \big) .
 \end{multline}
-This results in a linear combination of two signals with frequencies called heterodyne frequencies -- the sum and the difference between the local oscillator and the incoming frequency. A bandpass filter could be set up at an \textbf{IF} (intermediate frequency) $f_\text{IF}$. If any of these heterodyne frequencies falls within the bandpass of the filter, the signal can go for further processing.
+This results in a linear combination of two signals with frequencies called heterodyne frequencies -- the sum and the difference between the local oscillator and the incoming frequency. A band-pass filter could be set up at an \textbf{IF} (intermediate frequency) $f_\text{IF}$. If any of these heterodyne frequencies falls within the band-pass of the filter, the signal can go for further processing.
 
 However, we encounter a problem: $\cos$ is an even function. Imagine we now have another RF baseband signal, namely $\hat{x}(t) = A(t) \cos\big( 2 \pi (2 f_\text{LO} - f_\text{c}) t\big)$. After mixing with the local oscillator, the resulting signal would be $A(t) \cos\big( 2 \pi (f_\text{LO} - f_\text{c}) t \big)$ which is equivalent to what we obtained for $x(t)$ in (\ref{eq:hetero}) for the difference $f_\text{LO} - f_\text{c}$ signal. So we can't distinguish $\hat{x}(t)$ from $x(t)$ if we decide to only filter out the difference part. This is called signal imaging. It could be shown that a signal $\tilde{x}(t) = A(t) \cos\big( 2 \pi (- f_\text{c} - 2 f_\text{LO}) t\big)$ will in turn generate a sum $A(t) \cos\big( 2 \pi ( - f_\text{LO} - f_\text{c}) t \big)$ which again results in imaging if we decide to keep the summation term $f_\text{LO} + f_\text{c}$ from (\ref{eq:hetero}).
 
@@ -257,11 +258,11 @@ This method can preserve the amplitude of the wave and is widely used in AM radi
 - x(t) \cdot A_\text{LO} \sin(2 \pi f_\text{LO} t) =  -A(t) \cos(2 \pi f_\text{c} t) \cdot 2 \sin(2 \pi f_\text{LO} t) = \\
 =  - A(t) \sin\big( 2 \pi  (f_\text{c} + f_\text{LO} \big) t\big) + A(t) \sin\big( 2 \pi (f_\text{c} - f_\text{LO}) t \big) .
 \end{multline}
-Now let's put $\varphi(t) = 2 \pi (f_\text{c}-f_\text{LO}) t$, and we only take the terms that contain $\varphi$ in (\ref{eq:hetero}) and (\ref{eq:heteroq}), namely the difference terms using a bandpass filter of width $\frac{f_\text{s}}{2}$. Then we can define
+Now let's put $\varphi(t) = 2 \pi (f_\text{c}-f_\text{LO}) t$, and we only take the terms that contain $\varphi$ in (\ref{eq:hetero}) and (\ref{eq:heteroq}), namely the difference terms using a band-pass filter of width $\frac{f_\text{s}}{2}$. Then we can define
 \begin{equation}
 I(t) = A(t) \cos( \varphi (t)) \,\,\,\,\, \text{and} \,\,\,\,\, Q(t) = A(t) \sin( \varphi (t)) .
 \end{equation}
-Sampling these continuous signals with an analogue to digital converter will result in discrete values at times $t_{f_\text{s}}$. Let's put $A_{n} = A(n t_{f_\text{s}})$ and $\varphi_{n} = \varphi(n t_\text{s})$. Then we can define our resulting discrete samples as
+Sampling these continuous signals with an analogue to digital converter will result in discrete values at times $t_{f_\text{s}}$. Let's put $A_{n} = A(n t_\text{s})$ and $\varphi_{n} = \varphi(n t_\text{s})$. Then we can define our resulting discrete samples as
 \begin{equation}
 I_{n} = A_{n} \cos( \varphi_{n} ) \,\,\,\,\, \text{and} \,\,\,\,\, Q_{n} = A_{n} \sin( \varphi _{n}) .
 \end{equation}
@@ -269,7 +270,7 @@ These I and Q samples form the basic principles of software-defined radio. I and
 
 IQ sampling allows monitoring frequencies from $-\frac{f_\text{s}}{2}$ to $\frac{f_\text{s}}{2}$. To compare, normal sampling would only allow a maximum frequency span from $0$ to $\frac{f_\text{s}}{2}$ since signals are only sampled with real values (Nyquist theorem). This would cause the imaging we discussed before. IQ sampling improves on the simple Nyquist sampling using complex numbers -- effectively doubling the range.
 
-Once IQ samples are obtained by software, further analysis of the phase, frequency and amplitude could be done, allowing for any signals that fit within the bandwidth from $-\frac{f_\text{s}}{2}$ to $\frac{f_\text{s}}{2}$. The following identities could be used to obtain them for a sample $n$ ($\omega_{n}$ is the frequency)
+Once IQ samples are obtained by software, further analysis of their phase, frequency and amplitude could be done. This would allow any signal that is band-limited from $-\frac{f_\text{s}}{2}$ to $\frac{f_\text{s}}{2}$ to be represented without aliasing. The following identities relate the amplitude $A_{n}$, frequency $\omega_{n}$, and phase $\varphi_{n}$ of a sample $n$
 \begin{subequations}
 \begin{align}
 A_{n} = \sqrt{I_n^2+Q_n^2} = \sqrt{A_{n}^2 \cdot (\cos^2(\varphi_n) + \sin^2(\varphi_n))} \\
@@ -287,6 +288,7 @@ Refer to Figure \ref{fig:IQ} for geometrical representation of the outlined prop
 \end{figure}
 
 \chapter{Methodology} 
+\label{chap:methodology}
 
 \section{Analogue Video Signals}
 
@@ -310,7 +312,7 @@ T_{(x+1,y)} = T_{(x,y)} + t_\text{p} =(n(t) x_\text{t} y_\text{t} + y x_\text{t}
 \end{equation}
 at which the next pixel will start transmitting.
 
-In practice $x_\text{t}$ and $y_\text{t}$ are determined by the screen resolution and $f_\text{v}$ is simply the screen refresh rate. For a typical screen resolution of $width \times height$, it is true that $x_\text{t} \geq width$ and $y_\text{t} \geq height$. The reason is that video signals tend to have additional blanking intervals. This means more pixels are transmitted than what is in the active video region. This gives opportunity for the receiving monitor to synchronise its internal oscillator, calibrate its colour levels or in case of CRT, allow enough time for the electron beam to return to the beginning of the next line on the screen. The synchronisation timings for personal computers have been standardised by Video Electronics Standards Association (VESA) \cite{vesa}.
+In practice $x_\text{t}$ and $y_\text{t}$ are determined by the screen resolution and $f_\text{v}$ is simply the screen refresh rate. For a typical screen resolution of $width \times height$, it is true that $x_\text{t} \geq width$ and $y_\text{t} \geq height$. The reason is that video signals tend to have additional blanking intervals. This means more pixels are transmitted than what is in the active video region. This gives opportunity for the receiving monitor to synchronise its internal oscillator, calibrate its colour levels, or in case of CRT, allow enough time for the electron beam to return to the beginning of the next line on the screen. The synchronisation timings for personal computers have been standardised by Video Electronics Standards Association (VESA) \cite{vesa}.
 
 In order to decode an individual pixel, the receiving monitor has its own internal oscillator. It locks it to the pixel rate of the incoming signal either via an external clock source or using the blanking intervals. Once it receives the signal for an individual pixel, its amplitude (or binary content in case of digital signal) will correspond to the intensity. This allows the monitor to display the video in real time. If multiple colours are desired, they can be transmitted separately on different wires in the same fashion.
 
@@ -346,6 +348,7 @@ v(t) = \sum\limits_{k=-\infty}^{\infty} v_{k} \cdot \operatorname{sinc} \left( \
 \end{equation}
 where we use the definition $ \operatorname{sinc}(x) = \frac{\sin(\pi x)}{\pi x}$ .We can verify that when $t=i t_\text{p}$, then $\operatorname{sinc}(i-k)$ will always yield $0$ except for when $i = k$ in which case it will be $1$. Therefore we have proved that $v(i t_\text{p}) = v_{i}$.
 
+\subsection{Spectrum Repetitions}
 Now let's revise some mathematical identities. According to the convolution theorem \cite{arfkenconvolution}
 \begin{equation}
 \mathcal{F} \left\{ g \cdot h \right\} = \mathcal{F} \left\{ g \right\} \ast  \mathcal{F} \left\{ h \right\}
@@ -395,21 +398,21 @@ Now assuming $c(t)$ is the continuous version of $c_{k}$ as in the previous sect
 \right] .
 \end{equation}
 
-This means that we will also get repeating signal throughout the spectrum, this time repeating with a frequency of $\frac{1}{t_\text{b}} = x_\text{t} \cdot y_\text{t} \cdot f_\text{v} \cdot n_\text{b}$. This is $n_\text{b}$ higher than the calculated repetition frequency for analogue signals. For example, Markus Kuhn's laptop was running LVDS with $n_\text{b}=7$ at a video mode of $800 \times 600 $ @ $ 75$ with $x_\text{t} = 1056$ px, $y_\text{t} = 628$ lines and $f_\text{v} = 75$ Hz. He reports receiving a harmonic emanation at about $350$ MHz\footnote{His actual hardware is transmitting two pixels at a time, resulting in a factor of $\frac{1}{2}$ being applied to the end result. Therefore the first harmonic he could actually pick up lies at $175$ MHz.} \cite{kuhn2005electromagnetic}. We can see that this agrees with the theoretical predictions since for his case $\frac{1}{t_\text{b}} = 1056 \cdot 628 \cdot 75 \cdot 7 \simeq 348.2$ MHz.
+This means that we will also get repeating signal throughout the spectrum, this time repeating with a frequency of $\frac{1}{t_\text{b}} = x_\text{t} \cdot y_\text{t} \cdot f_\text{v} \cdot n_\text{b}$. This is $n_\text{b}$ times higher than the calculated repetition frequency for analogue signals. For example, Markus Kuhn's laptop was running LVDS with $n_\text{b}=7$ at a video mode of $800 \times 600 $ @ $ 75$ with $x_\text{t} = 1056$ px, $y_\text{t} = 628$ lines and $f_\text{v} = 75$ Hz. He reports receiving a harmonic emanation at about $350$ MHz\footnote{His actual hardware is transmitting two pixels at a time, resulting in a factor of $\frac{1}{2}$ being applied to the end result. Therefore the first harmonic he could actually pick up lies at $175$ MHz.} \cite{kuhn2005electromagnetic}. We can see that this agrees with the theoretical predictions since for his case $\frac{1}{t_\text{b}} = 1056 \cdot 628 \cdot 75 \cdot 7 \simeq 348.2$ MHz.
 
-However, the signal is now wider. We would need a receiver that can pick up $|f| \geq \frac{1}{2 t_\text{b}} \equiv \frac{n_\text{b}}{2 t_\text{p}}$ in order to reconstruct individual bits. In practice, we can still use the same approach that we used for analogue video. We can have a receiver that can pick up $|f| \geq \frac{1}{2 t_\text{b}}$. This is essentially equivalent to applying a low pass filter -- we will no longer be able to distinguish individual bits. Instead we will obtain an averaged out value for each pixel that depends on the underlying binary data that is used to represent its intensity. The variety of colours available with significantly different bit patterns means that we can still extract a lot of visual information from the reconstructed image.
+However, the signal is now wider. We would need a receiver that can pick up $|f| \geq \frac{1}{2 t_\text{b}} \equiv \frac{n_\text{b}}{2 t_\text{p}}$ in order to reconstruct individual bits. In practice, we can still use the same approach that we used for analogue video. We can have a receiver that can pick up $|f| \geq \frac{1}{2 t_\text{b}}$. This is essentially equivalent to applying a low-pass filter -- we will no longer be able to distinguish individual bits. Instead we will obtain an averaged out value for each pixel that depends on the underlying binary data that is used to represent its intensity. The variety of colours available with significantly different bit patterns means that we can still extract a lot of visual information from the reconstructed image.
 
 \section{Reception}
 
 \subsection{Theory}
-In order to receive a copy of the video signal, we will need to apply a bandpass filter centred at a multiple of the pixel frequency. The width of the bandpass needs to be the same as the band limited video signal we want to eavesdrop. Then we need to generate an internal clock that runs at the pixel rate and use that to obtain the estimated pixel intensities. Luckily these steps are already done in a typical AM (Amplitude Modulation) receiver. Unfortunately the signal bandwidth is much wider than what a typical off-the-shelf AM receiver can handle.
+Firstly, in order to receive a copy of the video signal, we will need to apply a band-pass filter centred at a multiple of the pixel frequency. The width of the band-pass needs to be the same as the band limited video signal we want to eavesdrop. Secondly, we need to generate an internal clock that runs at the pixel rate and use that to obtain the estimated pixel intensities. Luckily the first step can done by an AM (Amplitude Modulation) receiver. Unfortunately the signal bandwidth is much wider than what a typical off-the-shelf AM receiver can handle.
 
 However some software-defined radio receivers can provide the required bandwidth. The Ettus Research USRP B200 can provide more than 50 MHz of real-time bandwidth which covers what is required to eavesdrop most video signals. Software-defined radios provide the radio samples as a quadrature vector which angle relates to the instantaneous phase in relation to the internal hardware oscillator of the hardware. The size of the vector is proportional to the received amplitude for each sample (refer to Section \ref{sec:IQSampling} for more information). For AM reception, we do not need the phase information since the video signal is being transmitted with a constant frequency. Therefore we can make a simple AM demodulator by taking the length of the vector of each sample. When our digital sampling rate matches the pixel rate, each sample will contain an estimate that relates to the average pixel intensity between time $t_{i}$ and $t_{i+1}$. For digital signals, it would be related to the bit pattern of the binary value (although this relation may not be unique) that represents the intensity for the current pixel.
 
 \subsection{Practice}
 The VESA standard specifies an allowed frequency tolerance for $f_\text{v}$ of 0.5\%. Therefore due to hardware limitations, we might not be able to accurately tune the receiver sampling rate with enough accuracy to match the transmitted pixel rate. This means that some re-sampling needs to be done in software in order to create a new digital signal that matches as close as possible the transmitted pixel rate in which each sample corresponds to a pixel.
 
-It is also true that we might be able to recover a lot of information from a signal even if our receiver is not capable of sampling the full width of the video spectrum. This means we will only receive a of $v(f)$ with a bandpass filter applied to it. In this case the digital re-sampling could interpolate the received samples to fit into multiple pixels. Therefore it is useful to introduce a measurement $\kappa$ of how accurate we can reconstruct pixels of $v(t)$. This measurement can be the number of input samples that have gone into constructing a single output pixels. Therefore
+It is also true that we might be able to recover a lot of information from a signal even if our receiver is not capable of sampling the full width of the video spectrum. This means we will only receive $v(f)$ with a band-pass filter applied to it. In this case the digital re-sampling could interpolate the received samples to fit into multiple pixels. Therefore it is useful to introduce a measurement $\kappa$ of how accurate we can reconstruct pixels of $v(t)$. This measurement can be the number of input samples that have gone into constructing a single output pixels. Therefore
 \begin{equation}
 \label{eq:kappa}
 \kappa = f_\text{s} \cdot t_\text{p} = \frac{f_\text{s}}{x_\text{t} \cdot y_\text{t} \cdot f_\text{v}}
@@ -448,14 +451,14 @@ where as before, $f_\text{s}$ is the receiver sampling rate. If $\kappa \geq 1$,
 
 Another possible source of distortions is the usage of multiple wires to transmit colour information. These signals interfere with each other and the resulting pixel intensity becomes a complicated mix of the signals generated in these wires. Therefore colour information would be very difficult to obtain. Nevertheless the outlined strategy allows an eavesdropper to detect changes in colour since this would result in different signal amplitudes arriving at the receiver for each pixel.
 
-\section{Resolution and Frame rate Detection}
+\section{Resolution and Frame Rate Detection}
 
 The outlined method for decoding the video stream relies on us having the exact values for $x_\text{t}$, $y_\text{t}$ and $f_\text{v}$. This is not very practical for a real world attack. We would require the adversary not to have any knowledge of the target system whatsoever. Therefore we would need to infer all of these parameters remotely by exploiting some typical characteristics of a video signal. Namely the fact that the signal is periodic.
 
 As we have already seen, a video signal consists of video frames with width $x_\text{t}$ and height $y_\text{t}$. The speed at which such frames are transmitted is $f_\text{v}$. However most of the time any two consecutive frames would be identical. This would be the case if the victim is looking at static text on the screen. Therefore we can regard the transmitted signal as a repeating periodic signal of a single frame. Which means if we analyse the signal for repeating patterns we should be able to spot the repeating video frames in it and use that to estimate $f_\text{v}$.
 
 \subsection{Introduction to Autocorrelation}
-A good way of doing so would be calculating the discrete autocorrelation \cite{bracewell1965autocorrelation} of the incoming signal which is defined as 
+A good way of estimating $f_\text{v}$, would be by calculating the discrete autocorrelation \cite{bracewell1965autocorrelation} of the incoming signal which is defined as 
 \begin{equation}
 \label{eq:autocorrelationdef}
 R_{vv}(j)=\sum\limits_{i=-\infty}^{\infty} v_{i} \bar{v}_{i-j}
@@ -474,7 +477,7 @@ Figure \ref{fig:autocorr} shows the discrete autocorrelation $R_{vv}(j)$ of a vi
 This particular example consists of $524,288$ samples which is $65.536$ milliseconds of recording. This allows us to estimate the autocorrelation up to half of it, namely $32.768$ milliseconds. The reason is because $R_{vv}(j)=-R_{vv}(j)$ due to symmetry. We can see a peak at $16.672$ milliseconds which corresponds to a frequency of $f_\text{v} = \frac{1}{0.016672} = 59.98$ Hz. This is our estimate for $f_\text{v}$. And it makes sense, $60$ Hz is a common refresh rate for contemporary video displays.
 
 \subsection{Aliasing}
-We should be able to see the peak repeating again at $2 \times 16.672 = 33.344$ ms. This is analogous to comparing every two consecutive frames with every two other frames. However, as this falls just outside our window it would be seen as an alias at $65.536-33.344 = 32.192$ ms. The same applies for the third peak at $3 \times 16.672 = 50.016$ ms which would be comparing each block of three consecutive frames with the next three. This will alias at $65.536 - 50.016 = 15.52$ ms. This explains the second small peak we see on the left of the main one at $16.672$ ms but we see that the difference in its power is already several decibels lower. Therefore any further aliasing induced would be even smaller.
+We should be able to see the peak repeating again at $2 \times 16.672 = 33.344$ ms. This is analogous to comparing every two consecutive frames with every two other frames. However, as this falls just outside our window, $33.344 > 32.768$, it would be seen as an alias at $65.536-33.344 = 32.192$ ms. The same applies for the third peak at $3 \times 16.672 = 50.016$ ms which would be comparing each block of three consecutive frames with the next three. This will alias at $65.536 - 50.016 = 15.52$ ms. This explains the second small peak we see on the left of the main one at $16.672$ ms but we see that the difference in its power is already several decibels lower. Therefore any further aliasing induced would be even smaller.
 
 It is therefore important to choose the number of samples to be used for the autocorrelation wisely in order to avoid aliasing. We need to have enough full frames in our data so that the autocorrelation can physically work. The minimum frequency we can get from an autocorrelation is $\frac{2 s}{N}$ where $N$ is the total number of samples that we are doing the autocorrelation on. It could be easily shown that the second alias is
 \begin{equation}
@@ -497,7 +500,7 @@ To paraphrase this result, we will need to do the autocorrelation on at least 3 
 
 \subsection{Number of Lines in a Frame}
 
-We were able to estimate $f_\text{v}$ using an autocorrelation and eliminate aliased signals in the frequency window that we are looking to detect repetitions. However, we still have not estimated neither $x_\text{t}$, nor $y_\text{t}$. As a matter of fact we might not be able to measure $x_\text{t}$ at all. The reason is that $x_\text{t}$ might be a continuous signal and could potentially contain any number of pixels. However, each line of $x_\text{t}$ pixels repeat $y_\text{t}$ times in a frame which includes the blanking intervals. Therefore we can use their repeating nature of the blanking intervals to estimate $y_\text{t}$ from the autocorrelation plot.
+We were able to estimate $f_\text{v}$ using an autocorrelation and eliminate aliased signals in the frequency window that we are looking to detect repetitions. However, we still have not estimated neither $x_\text{t}$, nor $y_\text{t}$. As a matter of fact we might not be able to measure $x_\text{t}$ at all. The reason is that $x_\text{t}$ might be a continuous signal and could potentially contain any number of pixels. However, each line of $x_\text{t}$ pixels repeat $y_\text{t}$ times in a frame which includes the blanking intervals. Therefore we can use the repeating nature of the blanking intervals to estimate $y_\text{t}$ from the autocorrelation plot.
 
 For this reason we need to zoom in to our plot. Refer to Figure \ref{fig:autocorr_zoomed} which is a zoomed out version of the figure we saw in the previous subsection. If we still have our allowed $f_\text{v}$ window between $f_\text{low}$ and $f_\text{hi}$, then we can assume that $y_\text{t}$ also spans between $h_\text{low}$ and $h_\text{hi}$. We would therefore expect to see a peak between $\frac{1}{f_\text{hi} \cdot h_\text{hi}}$ and $\frac{1}{f_\text{low} \cdot h_\text{low}}$ milliseconds. If we detect a peak at time $t_\text{peak}$, then this would correspond to $y_\text{t} = \left\| \frac{1}{t_\text{peak} \cdot f_\text{v}} \right\|$ where $\|$ represents rounding to the nearest integer. Note that we should have already estimated $f_\text{v}$.
 
@@ -529,6 +532,7 @@ $$\delta y_\text{t} =
 We can also observe that the larger the sample rate gets, the smaller $\delta f$ and $\delta t$ get.
 
 \chapter{Practical attack} 
+\label{chap:practical}
 
 Before explaining how the software works internally, let's present a demonstration of a practical video eavesdropping attack. Its main aim is to show the ease with which such an attack could happen. In the meantime this will give an opportunity to explain the characteristics of the received signal and how they are exploited.
 
@@ -536,9 +540,9 @@ The demonstration is undertaken in controlled conditions. However, in order to m
 
 \section{The Set-up}
 
-The choice for a front-end for this demonstration is a USRP B200\footnote{Refer to \ref{sec:hw} Hardware for discussion on currently available devices.}. Depending on the particular requirements, an attacker might prefer mobility over accuracy and choose the smaller Mirics FlexiTV\texttrademark MSi3101 SUSB Dongle. However, for this demonstration we will attempt to obtain the highest possible resolution. Therefore we need a radio that is capable of obtaining a wide bandwidth. This makes the 32 MHz of Bandwidth that the USRP provides a much better choice than the 8 MHz available from the Mirics dongle.
+The choice for a front-end for this demonstration is a USRP B200\footnote{Refer to \ref{sec:hw} Hardware for discussion on currently available devices.}. Depending on the particular requirements, an attacker might prefer mobility over accuracy and choose the smaller Mirics FlexiTV\texttrademark MSi3101 USB Dongle. However, for this demonstration we will attempt to obtain the highest possible resolution. Therefore we need a radio that is capable of obtaining a wide bandwidth. This makes the 32 MHz of bandwidth that the USRP provides a much better choice than the 8 MHz available from the Mirics dongle.
 
-For an antenna, we will choose the portable MaxView active TV antenna. It is designed for digital television reception and has a built-in amplification. This is very useful for lifting signals above the USRP B200 noise floor. For better reception from longer distance, a suitable log-periodic antenna, an amplifier and a bandpass filter could be used for preconditioning. However, this makes the system less portable. However, the MaxView antenna is a cheaper choice and in the end did the required job.
+For an antenna, we will choose the portable MaxView active TV antenna. It is designed for digital television reception and has a built-in amplification. This is very useful for lifting signals above the USRP B200 noise floor. For better reception from longer distance, a suitable log-periodic antenna, an amplifier and a band-pass filter could be used for preconditioning. This can make the system less portable. However, the MaxView antenna is a cheaper choice and in the end did the required job.
 
 \begin{figure}[p]
 \captionsetup[subfigure]{labelformat=empty}
@@ -592,7 +596,7 @@ First, we need to estimate the frequency at which the emanations from the target
   \label{fig:demofirst}
 \end{figure}
 
-In order to set the video parameters to the frequencies in those spikes, we just need to click with the mouse on top of them. We can inspect the frequency at a certain position by hovering the mouse on top. Once we select the best candidate for the refresh rate, we can now choose the best candidate for the line rate as well. This defines the height of the video frame. Note that we can try the ``AUT'' button which will simply choose the highest values of the two plots. However, when the signal to noise ratio is low, other repeating signals on the same frequency may be more prominent so manual adjustment would be required. The autocorrelation plots are interactive and the user can zoom with the mouse wheel and pan around for choosing small details in the plots. Now we click on the $60.3$ fps spike on the top plot and the $628$ px spike on the bottom one.
+In order to set the video parameters to the frequencies in those spikes, we just need to click with the mouse on top of them. We can inspect the frequency at a certain position by hovering the mouse on top. Once we select the best candidate for the refresh rate, we can now choose the best candidate for the line rate as well. This defines the height of the video frame. Note that we can try the ``AUT'' button which will simply choose the highest values of the two plots. However, when the signal-to-noise ratio is low, other repeating signals on the same frequency may be more prominent so manual adjustment would be required. The autocorrelation plots are interactive and the user can zoom with the mouse wheel and pan around for choosing small details in the plots. Now we click on the $60.3$ fps spike on the top plot and the $628$ px spike on the bottom one.
 
 \begin{figure}[h]
 \centering
@@ -601,7 +605,7 @@ In order to set the video parameters to the frequencies in those spikes, we just
   \label{fig:demoreception}
 \end{figure}
 
-If we turn on the ``Lpass'' averaging, we will get rid of most of the noise and improve the signal to noise ratio bringing up the weak video signal (Figure \ref{fig:demoreception}). We can clearly see the synchronisation pulses. We are also only seeing rapid changes in colours, so we know this is an analogue signal. Digital signals will also show activity in regions that have constant intensities. That's why digital signals could be eavesdropped easier -- they emit more energy because of the sharp edges of the individual bits. However, we are apparently dealing with a VGA signal with resolution $800 \times 600$ @ $60$. Note that the system auto-detected it (it shows up in the least below the ``Stop'' button) just from our mouse clicks.
+If we turn on the ``Lpass'' averaging, we will get rid of most of the noise and improve the signal-to-noise ratio bringing up the weak video signal (Figure \ref{fig:demoreception}). We can clearly see the synchronisation pulses. We are also only seeing rapid changes in colours, so we know this is an analogue signal. Digital signals will also show activity in regions that have constant intensities. That's why digital signals could be eavesdropped easier -- they emit more energy because of the sharp edges of the individual bits. However, we are apparently dealing with a VGA signal with resolution $800 \times 600$ @ $60$. Note that the system auto-detected it (it shows up in the list underneath the ``Stop'' button).
 
 We see another autocorrelation peak at $61$ Hz. This is aliasing due to the two strong synchronisation lines that appear in the video (you can see them on the left). By clicking on the other peak, we can indeed confirm our suspicion that it is just aliasing. Now that we have a signal, we can try to improve it. Since the signal is strongly polarized, changing the antenna angle and position can have a dramatic effect on the end result. Now we can increase the sampling rate of the USRP to improve the resolution of the obtained image.
 
@@ -626,6 +630,7 @@ If we obtain a good enough signal, we can reconstruct text from the screen. Comp
 This shows that a practical attack is possible even from an adversary on a low budget with very little knowledge of the DSP. We also demonstrated that we can deduce the video parameters of a screen remotely in a real-world environment. A more sophisticated attacker, could use better equipment with a lower noise floor and higher antenna gain to undertake such an attack from an even further distance. This should open the discussion about what could be done to prevent compromising emanations leaking from cables.
 
 \chapter{Implementation} 
+\label{chap:implementation}
 
 \section{Hardware}
 \label{sec:hw} 
@@ -642,9 +647,9 @@ There is a wide range of off-the-shelf hardware front-ends that could be used wi
 \subsection{Ettus Research USRP}
 
 \begin{tabular}{ll}
-	Maximum sampling rate: & 56 MHz (B200) \\
+	Maximum sampling rate: & 56 MHz (for B200) \\
 	Frequency Range: & 70 MHz - 6 GHz \\
-	Dimensions: & 97 mm $\times$ 155 mm $\times$ 15 mm (B200) \\
+	Dimensions: & 97 mm $\times$ 155 mm $\times$ 15 mm (for B200) \\
 	OS support: & All platforms (Windows support via ExtIO) \\
 	Dropped samples detection: & Yes (Except on Windows)
 \end{tabular}
@@ -693,7 +698,7 @@ The plug-in supports variety of devices. It is a standard plug-in that is used i
 
 \subsection{Antennas and Preconditioning}
 
-For the experiments in this report, I have used a small dual-pole antenna by AverMedia designed for digital TV reception. This showed to be enough for eavesdropping from an adjacent room to the one containing the target device. However, for impressive demos that could potentially operate from several tens of meters, Kuhn recommends some additional analogue preconditioning.
+For the experiments in this report, I have either used a small, dual-pole antenna by AverMedia, or an active antenna by MaxView, both designed for digital TV reception. This showed to be enough for eavesdropping from an adjacent room to the one containing the target device. However, for impressive demos that could potentially operate from several tens of meters, some additional analogue preconditioning and professional antennas need to be used.
 
 Kuhn experimented with a tunable band pass filter and a 30 dB antenna amplifier before the B200 to improve the noise level. He comments that the set-up delivers comparable quality to the highly specialised Dynamic Sciences R1250 receiver that he used in his experiments \cite{kuhn2003compromising}. He also used a professional log-periodic antenna for improved reception.
 
@@ -702,6 +707,8 @@ Kuhn experimented with a tunable band pass filter and a 30 dB antenna amplifier 
 The whole system consists of two parts - a library (called \textbf{TSDRLibrary}) and a host program. The library is the main deliverable of the project. It is responsible for decoding the emanated signal -- from obtaining the data from the hardware to processing it. However it can't run as a stand-alone application. It needs a host program to control it via an API (defined in \textit{TSDRLibrary.h}) and to receive the decoded video frames. The host program could be written in any programming language that can use native libraries.
 
 However, the package also comes with a pre-built Java based host program. The provided implementation allows for full manual control over the library via a graphical user interface (GUI). It is very useful for real-time monitoring and interacting asynchronously with the library while the processing is taking place. In practice it is a single executable that has TSDRLibrary built in. This is what the report has been referring to as ``the system'' so far -- the Java GUI combined with TSDRLibrary. An end user would never notice that there is another layer underneath the GUI. All of the examples and screen-shots given here have been obtained via the provided Java based GUI while it is controlling TSDRLibrary.
+
+The whole system was designed and developed from scratch entirely by me. It does not rely on or include any third party libraries \footnote{Some IQ source plug-ins may depend on a driver library for the particular device they serve. However, the file input plug-in has no external dependencies, so the system can in fact decode pre-recorded signals without needing any additional software.}. Having no dependencies makes it extremely lightweight, portable and easy to compile. 
 
 \subsection{The Library}
 
@@ -719,7 +726,7 @@ The host program's job is extremely simplified. In a nutshell, it sets up the li
 	\item Call \textit{tsdr\_stop} to stop the processing and unblock the thread that originally called \textit{tsdr\_readasync}. Soon after calling \textit{tsdr\_stop}, the callbacks will stop receiving data.
 \end{enumerate}
 
-If the plug-in supports it, \textit{tsdr\_setbasefreq} can be used to set the base frequency of the hardware device. A few other API commands allow the host program to do manual position adjustment of the video frame, control the amount of low pass applied and set the gain of the hardware device (if supported). There are some advanced features that could be turned on using the \textit{tsdr\_setparameter} API call which include the automatic frame borders detection, automatic frame rate synchronisation and a few other tweaks to the digital signal processing pipeline. It is up to the host program to use the autocorrelation to determine resolution and frame rate which gives enough room for flexibility.
+If the plug-in supports it, \textit{tsdr\_setbasefreq} can be used to set the base frequency of the hardware device. A few other API commands allow the host program to do manual position adjustment of the video frame, control the amount of low-pass applied and set the gain of the hardware device (if supported). There are some advanced features that could be turned on using the \textit{tsdr\_setparameter} API call which include the automatic frame borders detection, automatic frame rate synchronisation and a few other tweaks to the digital signal processing pipeline. It is up to the host program to use the autocorrelation to determine resolution and frame rate which gives enough room for flexibility.
 
 Each API call can return an error code in case it fails. The host application can also read a verbose version of the error message using the \textit{tsdr\_getlasterrortext} API call. This allows for intuitive and simple error handling.
 
@@ -740,13 +747,13 @@ Figure \ref{fig:architecture} outlines the data flow and data processing paths w
 	\item A TSDRPlugin either continuously polls the driver or receives a callback from it as soon as a block of data is available. It obtains the block of data and sends it to the TSDRLibrary via a callback.
 	\item The IQ data is inside TSDRLibrary. AM demodulation is done on the data. This runs in a separate thread so that the TSDRPlugin will have the chance to receive new data from the device as quickly as possible. The demodulated data is provided to the Autocorrelation thread that will calculate the autocorrelation of the incoming signal and notify the host program. If TSDRPlugin reports any dropped samples between calls, the autocorrelation is reset (we only want continuous data accumulated for autocorrelation).
 	\item The re-sampling logic runs in a separate thread. It matches the rate of the data from the sampling rate of the device $f_\text{s}$ to the expected rate of $x_\text{t} \cdot y_\text{t} \cdot f_\text{v}$.
-	\item Here some digital signal processing is done in a separate thread to enhance the signal. The order with which the operations are applied depends on the settings that a user will supply. By default the synchronisation pulses of a video frame are detected first. If the user has selected auto tracking, the current position of the horizontal blanking interval is compared with the last one. This gives a rough estimate on whether $f_{fps}$ is off by a couple of parts per million from the real value. The process allows for keeping the picture steady on the screen. Then low pass in the time domain is done (a.k.a. motion blur) to de-noise a weaker signal using averaging. Finally, an auto gain algorithm makes sure that the full dynamic range of the signal is equally utilised for the final image.
+	\item Here some digital signal processing is done in a separate thread to enhance the signal. The order with which the operations are applied depends on the settings that a user will supply. By default the synchronisation pulses of a video frame are detected first. If the user has selected auto tracking, the current position of the horizontal blanking interval is compared with the last one. This gives a rough estimate on whether $f_{fps}$ is off by a couple of parts per million from the real value. The process allows for keeping the picture steady on the screen. Then low-pass in the time domain is done (a.k.a. motion blur) to de-noise a weaker signal using averaging. Finally, an auto gain algorithm makes sure that the full dynamic range of the signal is equally utilised for the final image.
 	\item Here the host application receives a video frame via a callback. It is up to the host application to determine what to do with it. It can take as much time as it wants since this runs in a separate thread.
 	\item The signal leaves the library and goes into the host application. In this example this is our Java GUI. A Java Native Interface (JNI) code marshals the incoming data to a Java friendly format which is then passed to the Java Virtual Machine and the particular class instance that has invoked the whole processing.
 	\item Once the data arrives at the TSDRLibrary class instance, the main GUI will receive a notification via a callback and will dispatch the bitmap to be drawn on the screen.
 \end{enumerate}
 
-The biggest problem faced was synchronising dropped samples. To illustrate the issue, imagine we are receiving samples at a rate of $50$ mega samples per second. If each sample contains two floating point values (the I and the Q component), each of which being $4$ bytes of data, then the total data rate coming from the hardware would be $8 \times 50 = 400$ megabytes per second! This is a huge amount of data. Since the configuration is running on a non-real-time operating system, the CPU might not be able to cope with such a fast stream. Furthermore there could be some hardware limits enforced as well, for example maximum throughput of the bus that is being used to transmit the data from the device to the PC.
+The biggest problem faced was synchronising dropped samples. To illustrate the issue, imagine we are receiving samples at a rate of $50$ mega samples per second. If each sample contains two floating point values (the I and the Q component), each of which being $4$ bytes of data, then the total data rate coming from the hardware would be $8 \times 50 = 400$ megabytes per second! This is a huge amount of data. Since the configuration is running on a non-real-time operating system, the CPU might not be able to cope with such a fast stream. Furthermore there could be some hardware limits enforced as well, for example maximum throughput of the data bus that is being used to transmit the data from the device to the PC.
 
 This means that we will have a lot of dropped samples coming from the device. At the same time, even if we don't have any dropped samples, the CPU can still fail to process all of the desired data in real-time. This means that, in order to have the system run interactively, some samples that can't be processed in real-time should be dropped. This would allow for fresh data to be collected for processing. However having even a couple of dropped samples is a problem. This is because video is continuous. Dropping a few pixels means that the whole frame synchronization could be broken.
 
@@ -760,25 +767,25 @@ Digital re-sampling is used as the processing step that synchronises the incomin
 
 The re-sampler sees a stream of samples coming at a rate $f_\text{s}$, interpolating their rate with $f_\text{p}$ and then decimating the resulting stream (that now has sampling rate $f_\text{s} \cdot f_\text{p} $) by a factor of $f_\text{s}$. This results in an output stream of rate $f_\text{p} = t_\text{p}^{-1}$. Each sample then will relate to a pixel value at that time. In mathematical terms,
 $$ v[n] = x\left[f_\text{s} \cdot \frac{n}{f_\text{p}} \right],$$
-where $(n \in \mathbb{Z})$ and  $v[n]$ are the output pixel intensities \footnote{Note that the notation $v[n]$ is equivalent to previously used $v_{n}$.} and 
+where $(n \in \mathbb{Z})$ and  $v[n]$ are the output pixel intensities \footnote{Note that the notation $v[n]$ is equivalent to the previously used $v_{n}$.} and 
 $$x[n] = \sqrt{I_{n} \cdot I_{n} + Q_{n} \cdot Q_{n}}$$
-are the incoming sample intensities. If this algorithm is implemented straight away, it would be called \textbf{nearest neighbour} re-sampling. Unless $x[n]$ is band limited to $\min (f_\text{p}, f_\text{s})$, $v[n]$ will contain aliasing artefacts. Therefore, as a pre-processing step, we can apply a low pass filter to $x[n]$ with a cut-off frequency $\min (f_\text{p}, f_\text{s})$ as an anti-aliasing filter.
+are the incoming sample intensities. If this algorithm is implemented straight away, it would be called \textbf{nearest neighbour} re-sampling. Unless $x[n]$ is band limited to $\min (f_\text{p}, f_\text{s})$, $v[n]$ will contain aliasing artefacts. Therefore, as a pre-processing step, we can apply a low-pass filter to $x[n]$ with a cut-off frequency $\min (f_\text{p}, f_\text{s})$ as an anti-aliasing filter.
 
-A perfect low pass filter uses $\operatorname{sinc}$ interpolation. However, in practice, it is not achievable since $\operatorname{sinc}$ is an infinite function in the time domain. There are some good approximations using windowed $\operatorname{sinc}$ functions. However, applying these is expensive since the related algorithms are based on convolution. Luckily, there is a computationally cheap approximation of a low pass filter that could be done during re-sampling. It uses linear interpolation between two consecutive samples to reduce the aliasing artefacts. The actual implemented re-sampling algorithm in the project utilises the Brasenham's line algorithm\cite{bresenham1965algorithm} to achieve non-integer re-sampling.
+A perfect low-pass filter uses $\operatorname{sinc}$ interpolation. However, in practice, it is not achievable since $\operatorname{sinc}$ is an infinite function in the time domain. There are some good approximations using windowed $\operatorname{sinc}$ functions. However, applying these is expensive since the related algorithms are based on convolution. Luckily, there is a computationally cheap approximation of a low-pass filter that could be done during re-sampling. It uses linear interpolation between two consecutive samples to reduce the aliasing artefacts. The actual implemented re-sampling algorithm in the project utilises the Brasenham's line algorithm\cite{bresenham1965algorithm} to achieve non-integer re-sampling.
 
-There is another trick that is done to improve the anti-aliasing quality and possibly performance. Since the $x_\text{t}$ of an image is only used to maintain the aspect ratio, the library assumes that $x_{t} = \lceil \frac{f_\text{s}}{f_\text{v} \cdot y_\text{t}} \rceil$. This allows the host program to use whatever algorithm they desire to re-sample the output image to any resolution. Since the host program can use GUI acceleration for the re-sampling process, it can afford more expensive algorithms that result in less aliasing artefacts. Furthermore, when $f_\text{p} > f_\text{s}$ as in most real-world eavesdropping scenarios, the CPU will have to handle less data resulting in improved performance.
+There is another trick that is done to improve the anti-aliasing quality and possibly performance. Since the $x_\text{t}$ of an image is only used to maintain the aspect ratio, the library assumes that $x_\text{t} = \hat{x}_\text{t} = \lceil \frac{f_\text{s}}{f_\text{v} \cdot y_\text{t}} \rceil$. This allows the host program to use whatever algorithm they desire to re-sample the output image to any resolution. Since the host program can use GUI acceleration for the re-sampling process, it can afford more expensive algorithms that result in less aliasing artefacts. Furthermore, when $f_\text{p} > f_\text{s}$ as in most real-world eavesdropping scenarios, the CPU will have to handle less data resulting in improved performance.
 
 \subsubsection{Auto Gain}
 
 The auto gain step ensures that the image uses the full dynamic output range. For example, if demodulated pixels $v[n]$ have the property $v_\text{min} \leq v[n] \leq v_\text{max}$ then we can construct a new stream of pixels $v^{\prime}[n]$ such that
 $$v^{\prime}[n] = \frac{v[n] - v_\text{min}}{v_\text{max} - v_\text{min}}$$
-which now means that $0 \leq v^{\prime}[n] \leq 1$.
+which now means that $0 \leq v^{\prime}[n] \leq 1$. This is then handed over to the host program which can show interactively the relationship between $v^{\prime}[n]$ and $v[n]$. This is used by the Java GUI to show the relationship between the displayed gray-scale values and the incoming samples strength.
 
 \subsubsection{Frame Averaging}
 
-The time averaging applies an infinite impulse response (IIR) low pass filter to given a stream of input pixels $v[n]$ to produce a stream of output pixels $v^{\prime}[n]$ such that
+The time averaging applies an infinite impulse response (IIR) low-pass filter to a stream of input pixels $v[n]$ to produce a stream of output pixels $v^{\prime}[n]$ such that
 $$v^{\prime}[n] =  \alpha \cdot v[n] + (1 - \alpha) \cdot v^{\prime}[n].$$
-This does inter-frame averaging sometimes known as motion blur. It removes random noise between consecutive frames, allowing only constant signal to come through. The weight of the filter could be adjusted by changing $\alpha$ from $0$ to $1$.
+This does inter-frame averaging sometimes known as motion blur. It attenuates random noise between consecutive frames and amplifies the constant signal, thus increasing the signal-to-noise ratio. The weight of the filter could be adjusted by changing $\alpha$ from $0$ to $1$.
 
 \subsection{Synchronization Detection}
 
@@ -792,29 +799,29 @@ In order to detect the blanking intervals in a frame, a few assumptions need to 
 \begin{subfigure}[b]{0.6\textwidth}
   \includegraphics[width=\textwidth]{sync_gray}
 \end{subfigure}
-\caption{Compare the blanking interval of the same digital signal, obtained at two different frequencies of the spectrum. One of hem looks dark while the other is lighter and has some bands. The similarity is that they are very smooth and do not contain high frequency intensity changes.}
+\caption{Compare the blanking interval of the same digital signal, centred at two different frequencies of the spectrum. One of them looks dark, while the other one is lighter and has some bands. The similarity is that they are very smooth and do not contain high frequency intensity changes.}
 \label{fig:syncing}
 \end{figure}
 
-In order to detect the intervals, for performance reasons, we can decouple them into two 1 dimensional strips. We produce two strips -- a vertical one, containing the average of all of the lines and a horizontal one, containing the average of all of the columns in an image. Then we can do a circular low pass filter in order to get rid of any high frequency noise (such as text lines). Figure \ref{fig:syncing} shows how the averaged vertical and horizontal bands are derived and how they look after the low pass filter.
+In order to detect the intervals, for performance reasons, we can decouple them into two 1 dimensional strips. We produce two strips -- a vertical one, containing the average of all of the lines and a horizontal one, containing the average of all of the columns in an image. Then we can do a circular low-pass filter in order to get rid of any high frequency noise (such as text lines). Figure \ref{fig:syncing} shows how the averaged vertical and horizontal bands are derived and how they look after the low-pass filter.
 
 \begin{figure}[h]
 \centering
 \includegraphics[width=0.95\textwidth]{framedetection}
-\caption{In order to detect blanking regions, first an average of the vertical and the horizontal pixels is taken. Then this average is blurred using a low pass filter with a Gaussian kernel.}
+\caption{In order to detect blanking regions, first an average of the vertical and the horizontal pixels is taken. Then this average is blurred using a low-pass filter with a Gaussian kernel.}
 \label{fig:syncingavg}
 \end{figure}
 
-Now we can use the assumed property that the synch bands have the most different average energy compared to video regions. Let's say a band has $n$ elements $b[n]$. We now need to partition the two bands into two regions with width $2w$ and $n-2w$, centred at $c$ and $n-c$. Then the value of the average per pixel difference would be
+Now we can use the assumed property that the blanking regions have the most different average intensity compared to video regions. Let's say a band has $n$ elements $b[n]$. We now need to partition the two bands into two regions with width $2w$ and $n-2w$, centred at $c$ and $n-c$. Then the value of the average per pixel difference would be
 $$ \beta (w, c) =  \left[
 \sum_{k=c-w}^{c+w} \frac{b[k \mod n]}{2w} -
 \sum_{k=2w-c}^{2(n-w)-c} \frac{b[k \mod n]}{2n-4w}
 \right] ^ 2 .$$
 We need to choose $2w$ and $c$ so to maximise $\beta$. Since the constraint is $0 \leq 2w < n$ and $0 \leq c < n$, we can in fact calculate $\beta$ for each possible input and find the parameters that maximise it. This is an algorithm complexity of $O(n^2)$ which explains why we decided to do that on two 1D arrays rather than on the whole 2D image.
 
-However that algorithm won't always do the job. Imagine the video signal has a strong component with a very short size. This can easily be a value that maximises $\beta$. But we know that synchronisation regions are not that small, therefore we need some lower bound constraints for the size of a blanking region. By observing various video signals, I came up with some arbitrary numbers of $5\% \times x_\text{t}$ for horizontal blanking and $1\% y_\text{t}$ for vertical blanking. These number can be adjusted (in the source code) depending on the judgement of the eavesdropper, but so far they have shown to perform well.
+However that algorithm won't always do the job. Imagine the video signal has a strong component with a very short size. This can easily be a value that maximises $\beta$. But we know that synchronisation regions are not that small, therefore we need some lower bound constraints for the size of a blanking region. By observing various video signals, I came up with some arbitrary numbers of $5\% \times x_\text{t}$ for horizontal blanking and $1\% \times y_\text{t}$ for vertical blanking. These number can be adjusted (in the source code) depending on the judgement of the eavesdropper, but so far they have shown to perform well.
 
-We can't easily change the asymptotical growth of the algorithm. However, we can reduce its execution time by putting some additional constraints. Let's assume that the blanking region is always smaller than the video region and we use $2w$ to denote the width of the blanking region. This will put an upper bound for the value of $2w < \frac{n}{2}$. Having a lower and upper bound for $2w$ means that now the algorithm can run in real time for both strips. Figure \ref{fig:syncexplained} shows how the value of $c$, the position of the synchronisation region in a frame, looks like in practice for a given set of data. This value is used to center the frame in the GUI video window in the vertical and horizontal position (Figure \ref{fig:syncalligned}).
+We can't easily change the asymptotical growth of the algorithm. However, we can reduce its execution time by putting some additional constraints. Let's assume that the blanking region is always smaller than the video region and we use $2w$ to denote the width of the blanking region. This will put an upper bound for the value of $2w < \frac{n}{2}$. Having a lower and upper bound for $2w$ means that now the algorithm can run faster, in real time, for both strips. Figure \ref{fig:syncexplained} shows how the value of $c$, the position of the synchronisation region in a frame, looks like in practice for a given set of data. This value is used to center the frame in the GUI video window in the vertical and horizontal position (Figure \ref{fig:syncalligned}).
 
 \begin{figure}[h]
 \centering
@@ -835,7 +842,7 @@ We can't easily change the asymptotical growth of the algorithm. However, we can
 The drift between the local oscillator and the pixel clock of the target will cause the image to accelerate slowly over time. This could be automatically compensated. It only works once we have a stable video image and we can reliably estimate $c$. If we say that the value of $c$ for frame number $n$ is $c[n]$, then we can take the speed with which the synchronisation frame is moving across the screen which is simply
 $$\frac{\text{d} c[n]}{\text{d} n} = v_\text{c}[n] = c[n] - c[n-1] .$$
 
-If $v_\text{c}[n] > 0$ then we know that our estimate  $\hat{f}_\text{v}$for $f_\text{v}$ is $\hat{f}_\text{v} > f_\text{v}$ and if $v_\text{c}[n] > 0$, then $\hat{f}_\text{v} < f_\text{v}$. Since we don't know the true value $f_\text{v}$, we can try to approximate it by adjusting our estimate $\hat{f}_\text{v}$ with a function $a[v_\text{c}]$. Therefore at each frame we can change our estimate to be
+If $v_\text{c}[n] > 0$ then we know that our estimate  $\hat{f}_\text{v}$ for $f_\text{v}$ is $\hat{f}_\text{v} > f_\text{v}$ and if $v_\text{c}[n] > 0$, then $\hat{f}_\text{v} < f_\text{v}$. Since we don't know the true value $f_\text{v}$, we can try to approximate it by adjusting our estimate $\hat{f}_\text{v}$ with a function $a[v_\text{c}]$. Therefore at each frame we can change our estimate to be
 $$\hat{f}_\text{v} = \hat{f}_\text{v} - \operatorname{sgn}(v_\text{c}) \cdot a[v_\text{c}] $$
 where $\operatorname{sgn}(x)$ is the sign function, that returns $+1$ if $x \geq 0$ and $-1$ if $x < 0$. We should note that $a[v_\text{c}]$ will depend on the particular heuristics used. My implementation uses two-speed modes, having a low speed for slow moving drift for accuracy and a high speed for fast moving frames. The output of my implementation of $a[v_\text{c}]$ is also proportional to the magnitude of the speed itself.
 
@@ -859,14 +866,14 @@ where $\bar{V_{k}}$ is the complex conjugate of $V_{k}$ and $\mathcal{F} \left\{
 $$V_{k}=\mathcal{F} \left\{ v_{i} \right\} (k) = \sum_{i = 0}^{n-1} v_{i} \cdot e^{- j 2 \pi k \frac{i}{n}} $$
 and $\mathcal{F}^{-1} \left\{ S_{k} \right\}$ is the inverse discrete Fourier transform defined as
 $$R_{vv}(\tau)=\mathcal{F}^{-1} \left\{ S_{k} \right\} (\tau) = \frac{1}{n} \sum_{k = 0}^{n-1} S_{k} \cdot e^{j 2 \pi \tau \frac{k}{n}}. $$
-Since there the discrete Fourier transform could be computed in $O(n \log(n))$ using an algorithm called Fast Fourier Transform, then we have a way of computing the autocorrelation with complexity $O(n \log(n))$.
+Since the discrete Fourier transform could be computed in $O(n \log(n))$ using an algorithm called Fast Fourier Transform, then we have a way of computing the autocorrelation with complexity $O(n \log(n))$.
 
 When we compute the autocorrelation, we will have a large number of data to visualise. It is safe to assume that refresh rates and line rates of modern displays fall within a bounded range of frequencies. We can use that to limit the amount of data shown interactively on the screen. This not only improves performance, but also simplifies the user's task of understanding the autocorrelation plot since now, rather than showing the plot in terms of milliseconds or frequency, we can display it in ``frames per second'' and ``pixels''. Refer to Figure \ref{fig:autocorr_gui} to how the actual value of $R_{vv}(\tau)$ is displayed in a user friendly way onto the GUI.
 
 \begin{figure}[h]
 \centering
 \includegraphics[width=1\textwidth]{autocorr_compare}
-\caption{We can see how the autocorrelation is displayed on the screen. The green part is used to determine the frame rate $f_\text{v}$ and is displayed to the user in units of frames per second. The red part is a zoomed-in version around $\tau = 0$ and it describes the repeating nature of the lines so it can be used for displaying the line rate $y_\text{t}$ or the height of the image which is displayed in pixels.}
+\caption{We can see how the autocorrelation is plotted on the screen. The green part is used to determine the frame rate $f_\text{v}$ and is displayed to the user in units of frames per second. The red part is a zoomed-in version around $\tau = 0$ and it describes the repeating nature of the lines so it can be used for showing the line rate $y_\text{t}$ or the height of the image in units of pixels.}
 \label{fig:autocorr_gui}
 \end{figure}
 
@@ -890,17 +897,19 @@ When the thread finishes processing the data it received, it needs to pass the o
 
 There are a few other performance tweaks. The circular buffer can grow if it sees that such drops occur. There is a limit that the buffer can grow to in order to ensure that only near real-time data is being processed. The size of the circular buffer correlates to the latency in the system -- the longer the buffer is, the more latency the system will see. However if the system is fast enough, this mechanism ensures as little latency as possible (and as little memory being used). If the system is slower and can't handle real-time, the latency is increased to allow for additional stages to have more time to process the data. This will result in dropped frames but ensure an interactive system. This is basically a method to relieve the ``back pressure'' on the system. 
 
-\section{Observations}
+\section{Experimental Results}
 
-However, there were some interesting observations that were obtained about the various video emanations that could be picked up during some of my experiments that I think are worth sharing. The results are not representative since they are related to the equipment I used, but since no screen-shots of some of the signals are available in the open literature, they can serve as a reference for further research.
+For performance benchmark, the system was tested on an Intel Core i5 laptop running in real-time, with more than 40 fps with a sampling rate of 25 MHz and RAM usage of less than 256 MB (including the Java runtime). A frame-rate of more than 20 fps can be achieved on a standard desktop Intel Core 2 CPU. This ensures it the performance on any modern hardware provides sufficient interactivity.
+
+During my experiments with real life devices, I made some interesting observations I think are worth sharing. The results are not representative since they are related to the particular equipment I used, but since no screen-shots of some of the signals are available in the open literature, they can serve as a reference for further research.
 
 VGA signals can be eavesdropped as we saw in Figure \ref{fig:demobest}. However, the smooth nature of the analogue signal does not radiate enough power in low contrast regions, leaving only rapid colour transitions visible. This means that the signal carries less energy and is more difficult to detect and eavesdrop. We can see the contrast changing in the horizontal direction but no change could be observed in the vertical. This is due to the fact that pixels are transmitted from left to right.
 
-Digital signals are a bigger thread since individual bits contain more sharp edges. Even solid colours will show up because they contain a bit pattern. This could be seen in Figure \ref{fig:samplerates} and Figure \ref{fig:antialiseonoff}  where the eavesdropped signal is very likely the HDMI cable of the HDMI to VGA converter that is being eavesdropped. Here the relationship between transmitted pixel colour and observed pixel intensity is highly non-linear but there are some colours that maximise the contrast.
+Digital signals are a bigger thread since individual bits contain sharper edges. Even solid colours will show up because they contain a bit pattern. This could be seen in Figure \ref{fig:samplerates} and Figure \ref{fig:antialiseonoff}  where the signal is very likely the HDMI cable of the HDMI to VGA converter that is being eavesdropped. Here the relationship between transmitted pixel colour and observed pixel intensity is highly non-linear. However, there are some colours that maximise the contrast.
 
-While experimenting, it turned out the LCD monitor I was using emitted its own signal in addition to the VGA signal it is receiving. It is very likely an LVDS signal. This could be seen in Figure \ref{fig:screenlvds}. This phenomenon was described by Markus Kuhn \cite{kuhn2011compromising}. He noted that the vertical blanking interval is not an integer multiple of the line rate, causing a horizontal ``jump'' after each frame. The emissions, however are only receivable at very close distances to the monitor (within about a meter). However, Kuhn has also shown that LVDS emissions from some laptops could be much stronger and are receivable up to tens of meters away \cite{kuhn2003compromising}. 
+While experimenting, it turned out the LCD monitor I was using emitted its own signal in addition to the VGA it was receiving. It is very likely an LVDS signal. This could be seen in Figure \ref{fig:screenlvds}. The phenomenon was described by Markus Kuhn \cite{kuhn2011compromising}. He noted that the vertical blanking interval may not be an integer multiple of the line rate, causing a horizontal ``jump'' after each frame. The emissions, however are only receivable at very close distances to the monitor (within about a meter). Kuhn has also shown that LVDS emissions from some laptops could be much stronger and are receivable up to tens of meters away \cite{kuhn2003compromising}. 
 
-Font aliasing plays an important role in the sharpness of the eavesdropped signal. Markus Kuhn discussed that in detail and even proposed font smoothing as a way to protect from eavesdropping attacks \cite{kuhn2003compromising}. In Figure \ref{fig:antialiseonoff} we can see a comparison of the HDMI signal from \ref{fig:samplerates} with font anti-aliasing turned on and off. We can see that it is considerably more difficult to read the text if the font is anti-aliased.
+Font aliasing plays an important role in the sharpness of the eavesdropped signal. Kuhn has discussed the issue in detail and even proposed font smoothing as a way to protect from eavesdropping attacks \cite{kuhn2003compromising}. In Figure \ref{fig:antialiseonoff} we can see a comparison of the HDMI signal from \ref{fig:samplerates} with font anti-aliasing turned on and off. We can see that it is considerably more difficult to read the text if the font is anti-aliased.
 
 \begin{figure}[h!]
 \centering
@@ -913,21 +922,22 @@ Font aliasing plays an important role in the sharpness of the eavesdropped signa
   \vspace{1cm}
   \begin{subfigure}[b]{0.45\textwidth}
   \includegraphics[width=\textwidth]{antialise_on}
-  \caption{Font anti-aliasing disabled.}
+  \caption{Font anti-aliasing enabled.}
 \end{subfigure} ~
 \begin{subfigure}[b]{0.45\textwidth}
   \includegraphics[width=\textwidth]{antialise_off}
-  \caption{Font anti-aliasing enabled.}
+  \caption{Font anti-aliasing disabled.}
 \end{subfigure}
   \caption{}
   \label{fig:antialiseonoff}
 \end{figure}
 
 \chapter{Summary and Conclusions} 
+\label{chap:summary}
 
 \section{Further Research}
 
-An idea that proved promising was to try to ``extend'' the available bandwidth of the software-defined radio front-end. My best attempts in Figure \ref{fig:superresolution} show that there is slight improvement. The idea is that we can take $n$ Fourier transforms of the signal, containing at least one frame in several consecutive bands of width $f_\text{s}$ and ``stick'' the recordings together, creating in a new signal that has a bandwidth of $n \cdot f_\text{s}$. The requirement is, however that the signals need to be taken at the exact same time. This is impossible with a single receiver of bandwidth $f_\text{s}$. If we, however, assume that the $n$ recordings we have, contain the same exact frames, we can align them using cross correlation. However, my experiments show that the aligning is very difficult. Since this was out of the scope of the project, I did abandon the idea. However, further research in the area can mean that eavesdropping could be done even with ultra-cheap SDR devices like the RTL2832U based TV dongles that usually only provide only about $2$ MHz of bandwidth which is highly insufficient for eavesdropping.
+An idea that proved promising was to try to ``extend'' the available bandwidth of the software-defined radio front-end. My best attempts in Figure \ref{fig:superresolution} show that there is slight improvement. We can take $n$ Fourier transforms of the signal, containing at least one frame in several consecutive bands of width $f_\text{s}$ and ``merge'' the recordings together, creating a new signal that has a bandwidth of $n \cdot f_\text{s}$. The requirement is, however that the signals need to be taken at the exact same time. This is impossible with a single receiver of bandwidth $f_\text{s}$. If we, however, assume that the $n$ recordings we have contain the same exact frames, we can align them using cross correlation. However, my experiments show that the aligning is very difficult. Since this was out of the scope of the project, I did abandon the idea. Further research in the area can mean that eavesdropping could be done even with ultra-cheap SDR devices like the RTL2832U based TV dongles that usually only provide up to $3$ MHz of bandwidth. This is highly insufficient for real-time eavesdropping.
 
 \begin{figure}[h!]
 \centering
@@ -947,19 +957,19 @@ An idea that proved promising was to try to ``extend'' the available bandwidth o
   \label{fig:superresolution}
 \end{figure}
 
-There were no attempts to compare the quality of the obtained results with existing implementations such as the FPGA based implementation of Markus Kuhn. The reason was the existence of range of different hardware front-ends available for software-defined radio. It is difficult to get hold of some more expensive models that provide a better noise figure and higher signal-to-noise ratio than the USRP B200. Some research into how to use the system to characterise emanations and possibly measure the exact strengths would be very useful. This could be even extended with actually characterizing the different sorts of emissions.
+There were no attempts to compare the quality of the obtained results with existing implementations such as the FPGA based implementation of Markus Kuhn. The reason was the existence of range of different hardware front-ends available for software-defined radio. It is difficult to get hold of some more expensive models that provide a better noise figure and higher signal-to-noise ratio than the USRP B200. The obtained results could be entirely different with one of these receivers. Some research into how to use the system to characterise emanations and possibly measure the exact strengths would be very useful.
 
-Additionally, some research into the GUI design suitable for such a system could be undertaken. This can potentially improve the user friendliness and make the interface more intuitive. There could be, for example, two modes -- an advanced mode for professionals, and a simplified mode for end users. A use case for the simplified mode would be users that want to estimate the amount of information their own devices leak into the air.
+Additionally, research into the GUI design suitable for such a system, could be undertaken. This can potentially improve the user friendliness and make the interface more intuitive. There could be, for example, two modes -- an advanced mode for professionals, and a simplified mode for end users. A use case for the simplified mode would be users that want to estimate the amount of information their own devices leak into the air.
 
-However, the main aim of the project is to raise the awareness of the issue and demonstrate that it is practically possible. It also serves a tool for quick prototyping and significantly lowers the costs and efforts related to further research in the area. This would hopefully allow more efforts to be put in discovering methods for reducing the amount of useful information that is emanated from video screens. A nice research topic would be to extend the font smoothing methods that Markus Kuhn proposes \cite{kuhn2003compromising} as a measure against eavesdropping.
+However, the main aim of the project is to raise the awareness of the issue and demonstrate that it is practically possible. It also serves as a tool for quick prototyping and significantly lowers the costs and efforts related to further research in the area. This would hopefully allow more efforts to be put in discovering methods for reducing the amount of useful information that is emanated from video screens. A nice research topic would be to extend the font smoothing methods that Markus Kuhn proposes \cite{kuhn2003compromising} as a measure against eavesdropping.
 
 \section{Conclusion}
 
-The current project has demonstrated that it is practically possible to interactively eavesdrop contemporary video monitors from a considerable distance in real-time. The method outlined in this project improves on previous implementations by allowing the attacker to use low cost, off-the shelf mobile equipment. It also allows for automatic detection of video parameters from a distance and does not require specialised skills to operate. The addition of time averaging and automatic gain control is used to improve the image that could be obtained.
+It is surprising that very little research has been done on the topic of compromising emanations from video displays. This is a real thread that has been around ever since video monitors were first used. Almost every video system has been continuously broadcasting data over the air in clear text. A sophisticated attacker could have already used the vulnerability to steal information without being detected, circumventing traditional cryptographic and physical security. Such an attack could have serious consequences: imagine an adversary eavesdropping a monitor of a bank employee or a voter that is using an electronic voting machine.
 
-The system was tested on an Intel Core i5 laptop and can run real-time with more than 40 fps with a sampling rate of 25 MHz and RAM usage of less than 256 MB (including the Java runtime). A frame-rate of more than 20 fps can be achieved on a standard desktop Intel Core 2 CPU. This ensures it can run on any modern hardware with sufficient interactivity. Therefore the performance provides sufficient interactivity.
+The current project has demonstrated that a practical attack is viable from a considerable distance, without the adversary having any prior knowledge about the target. The discussion on how to limit the amount of data leaked started quite late and is currently in its infancy. No official commercially available products exist to safeguard the privacy of users. Military research on the topic remains classified. It is clear that video eavesdropping threads, and threads, related to compromising emanations in general, require more research attention.
 
-A sophisticated attacker could have already used the vulnerability to steal valuable information without being detected, circumventing traditional cryptographic and physical security. Such an attack can have serious consequences: imagine an adversary eavesdropping a monitor of a bank employee or a voter that is using an electronic voting machine. This report has demonstrated that such an attack is feasible from another room in the same building.
+The presented project allows research to be done without access to a specialised laboratory. Experiments now only require an affordable, off-the-shelf equipment. The software is open source, allowing anyone to tailor it to their needs. It could be therefore safely concluded, that the project has successfully reached its goal to provide a starting point, much needed for further research on the topic.
 
 \appendix
 \singlespacing
