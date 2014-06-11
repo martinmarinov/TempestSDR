@@ -50,7 +50,7 @@
 \vspace{24pt} 
 
 
-I would like to thank my supervisor, Dr Markus Kuhn, for providing me with the inspiration for the project. He also lent me his USRP 2 software-defined radio device to start my research with before I acquired my own USRP B200. His help with shaping my understanding of the emanated signals and their nature allowed me to come up with the algorithms and implementations that are described in this project. He also tested the early iterations of the system giving me feedback about its performance and user friendliness. He was also able to come up with an analogue preconditioning procedure to improve the signal-to-noise ratio of the USRP B200 hardware.
+I would like to thank my supervisor, Dr Markus Kuhn, for providing me with the inspiration for the project. He also lent me his USRP 2 software-defined radio device to start my research with, before I acquired my own USRP B200. His help with shaping my understanding of the emanated signals and their nature allowed me to come up with the algorithms and implementations that are described in this project. He also tested the early iterations of the system giving me feedback about its performance and user friendliness. He was also able to come up with an analogue preconditioning procedure to improve the signal-to-noise ratio of the USRP B200 hardware.
 
 
 \newpage
@@ -87,7 +87,7 @@ However, the undesired effects of this phenomenon received almost no attention f
 
 The US National Security Agency conducted classified research with codename TEMPEST in 1972 \cite{friedman2007tempest}. The document was later partially declassified in 2007. It describes unwanted emanations coming from a Bell-telephone mixing device that was used for encryption. The signal allowed an attacker to reconstruct the original plain text. Researchers at Bell Lab demonstrated a practical attack from about 80 feet away that allowed reconstructing about 75\% of the plain text being processed by the machine.
 
-\section{Related Work}
+\section{Related work}
 \label{sec:RelatedWork}
 
 Computer monitors started to become widespread in the end of the 20th century. Wim van Eck published the first unclassified technical analysis of the security risks of emanations from computer monitors in 1985 \cite{van1985electromagnetic}. The next important publication regarding video emanations came from Markus Kuhn nearly 20 years later in 2003 \cite{kuhn2003compromising}. Later in 2013, Elibol, Sarac and Erer demonstrated that emanations could be picked up from considerable distance with a mobile and lower cost equipment \cite{elibol2012realistic}.
@@ -145,7 +145,7 @@ However:
 
 A research that followed by Ghani et al.\ \cite{ghani2013radiated} later focused on emissions from LCD touch screen displays of hand-held devices.
 
-\section{Achieved Goals and Motivation}
+\section{Achieved goals and motivation}
 
 The project aims to raise awareness of the potential security implications of the compromising emanations from video monitors. It implements the principles outlined in the related work section \ref{sec:RelatedWork} using a completely new approach: utilising a software-defined radio receiver. It also combines them into a single portable software library. In its basic form, it allows tuning to a video signal by manually controlling the video parameters, similar to the implementation that van Eck, Kuhn and Elibol et al.\ have used in their practical demonstrations.
 
@@ -197,7 +197,7 @@ There are also some inherent notes about the system:
 
 A reader should have knowledge of undergraduate level mathematics including calculus. Some equations and theorems are simply stated and then used. If the reader wants to learn more about their derivations, they need to look at a relevant textbook. Furthermore, it is assumed that the reader has a computer science background and understands the basic concepts behind object oriented programming and procedural programming. Familiarity with the C programming language and some basic knowledge of Java would be helpful as well. Understanding the basics of signal processing and Fourier theory is also desirable but not strictly required.
 
-\section{Signal Processing} 
+\section{Signal processing} 
 
 The fact that changing currents in a wire induce currents in another nearby wire comes straight from Maxwell's equations \cite{maxwell1881treatise}. A signal is just changing current and/or voltage in the time domain. Let's imagine we have a wire that we call wire A. We want to transmit a signal over it. We connect it to a signal generator that modulates some data $I(t)$, so that current across the wire at time $t$ could be written as $x(t) = I(t) \sin(2\pi f_\text{c} t)$, where $f_\text{c}$ is the carrier \textbf{frequency}. The argument of the $\sin$, namely $2\pi f_\text{c} t$, is called the \textbf{phase} of the wave. Because of Maxwell's equations, the changing current in wire A will also generate a circular changing magnetic field around itself.
 
@@ -230,7 +230,7 @@ where we used the fact that the Dirac delta function has an even symmetry $\delt
 
 The term \textbf{low-pass} means a low-pass filter. This is a filter that acts on a signal, and that allows components of the signal with frequencies $f \leq f_\text{max}$ to pass through, attenuating the rest to 0. A \textbf{high-pass} filter allows frequencies $f \geq f_\text{min}$ to pass through intact, attenuating the rest to 0. A \textbf{band-pass} filter is a combination of a low-pass and a high-pass filter, allowing only frequencies $f_\text{min} \leq f \leq f_\text{max}$, attenuating the rest to 0. A \textbf{band-limited} signal is a signal which doesn't have any frequency components $f > f_\text{max}$ or $f < f_\text{min}$. Such a signal would remain unchanged after applying a band-pass filter to it with limits $f_\text{min}$ and $f_\text{max}$. This is used for filtering out useful signals from other interferences that are not part of the band-limited signal.
 
-\section{IQ Sampling} 
+\section{IQ sampling} 
 \label{sec:IQSampling}
 
 A simple analogue to digital converter will measure the voltage in a wire by producing $f_\text{s}$ samples per second (called \textbf{sampling rate}). This means that it will produce a new sample every $t_\text{s} = \frac{1}{f_\text{s}}$ seconds. It converts an analogue signal a.k.a. continuous function $x(t)$ into a series of samples. This could be written mathematically as a multiplication with a Dirac comb
@@ -289,7 +289,7 @@ Refer to Figure \ref{fig:IQ} for geometrical representation of the outlined prop
 \chapter{Methodology} 
 \label{chap:methodology}
 
-\section{Analogue Video Signals}
+\section{Analogue video signals}
 
 Almost all contemporary video monitors are raster based. The image is transferred from the video controller to the display in scan lines that occur at a specific rate. Each of these scan lines contains a number of pixels which are continuously encoded as a time varying signal. This signal is generated internally in the video controller by an oscillator which runs at the pixel clock rate. The analogue signal is thereafter multiplied by the pixel intensities at the specific time.
 
@@ -315,9 +315,9 @@ In practice $x_\text{t}$ and $y_\text{t}$ are determined by the screen resolutio
 
 In order to decode an individual pixel, the receiving monitor has its own internal oscillator. It locks it to the pixel rate of the incoming signal either via an external clock source or using the blanking intervals. Once it receives the signal for an individual pixel, its amplitude (or binary content in case of digital signal) will correspond to the intensity. This allows the monitor to display the video in real time. If multiple colours are desired, they can be transmitted separately on different wires in the same fashion.
 
-\section{Generated Radio Wave}
+\section{Generated radio wave}
 
-\subsection{Analogue Video Signal Equation}
+\subsection{Analogue video signal equation}
 
 Let's assume the discrete pixels in an analogue video signal have intensities $v_{i}\ (i \in \mathbb{Z})$ and are being transmitted for duration $t_\text{p}=\frac{1}{x_\text{t} \cdot y_\text{t} \cdot f_\text{v}}$ from (\ref{eq:tdelta_definition}). Let's also assume that the shape of the pixel is $p(t)$ where $p(t)=0$ for $|t| \gg \frac{t_\text{p}}{2}$. We know that pixel $i$ starts transmitting at time $t_{i}=i t_\text{p}$ (if we assume that that pixel $0$ was transmitted at $t=0$). Also the amplitude of the signal of the transmitted pixel is linearly dependant on its intensity $v_{i}$. Then the resulting video signal in the time domain will have the form 
 \begin{equation}
@@ -347,7 +347,7 @@ v(t) = \sum\limits_{k=-\infty}^{\infty} v_{k} \cdot \operatorname{sinc} \left( \
 \end{equation}
 where we use the definition $ \operatorname{sinc}(x) = \frac{\sin(\pi x)}{\pi x}$ .We can verify that when $t=i t_\text{p}$, then $\operatorname{sinc}(i-k)$ will always yield $0$ except for when $i = k$ in which case it will be $1$. Therefore we have proved that $v(i t_\text{p}) = v_{i}$.
 
-\subsection{Spectrum Repetitions}
+\subsection{Spectrum repetitions}
 Now let's revise some mathematical identities. According to the convolution theorem \cite{arfkenconvolution}
 \begin{equation}
 \mathcal{F} \left\{ g \cdot h \right\} = \mathcal{F} \left\{ g \right\} \ast  \mathcal{F} \left\{ h \right\}
@@ -379,7 +379,7 @@ In order to obtain the full video signal, we need to know what is the minimum ra
 
 These findings agree with the results that Markus Kuhn obtained in his analysis of the emanated signal who used a slightly different approach to derive them \cite{kuhn2003compromising}.
 
-\subsection{Digital Video Signal Equation}
+\subsection{Digital video signal equation}
 
 The analysis above was aimed at analogue signals such as the ones transmitted via VGA. However the majority of contemporary laptops and similar devices don't simply modulate the pixel intensities as analogue voltage amplitudes. Instead, they send each pixel as digital bits using FPD-Link (Flat Panel Display Link) to transmit LVDS (Low-voltage differential signalling). For each pixel, 7 bits are transmitted over each of the three wires that determine the resulting RGB colour.
 
@@ -450,13 +450,13 @@ whereas before, $f_\text{s}$ is the receiver sampling rate. If $\kappa \geq 1$, 
 
 Another possible source of distortions is the usage of multiple wires to transmit colour information. These signals interfere with each other and the resulting pixel intensity becomes a complicated mix of the signals generated in these wires. Therefore colour information would be very difficult to obtain. Nevertheless the outlined strategy allows an eavesdropper to detect changes in colour since this would result in different signal amplitudes arriving at the receiver for each pixel.
 
-\section{Resolution and Frame Rate Detection}
+\section{Resolution and frame rate detection}
 
 The outlined method for decoding the video stream relies on us having the exact values for $x_\text{t}$, $y_\text{t}$ and $f_\text{v}$. This is not very practical for a real world attack. We would require the adversary not to have any knowledge of the target system whatsoever. Therefore we would need to infer all these parameters remotely by exploiting some typical characteristics of a video signal. Namely the fact that the signal is periodic.
 
 As we have already seen, a video signal consists of video frames with width $x_\text{t}$ and height $y_\text{t}$. The speed at which such frames are transmitted is $f_\text{v}$. However most of the time any two consecutive frames would be identical. This would be the case if the victim is looking at static text on the screen. Therefore we can regard the transmitted signal as a repeating periodic signal of a single frame. Which means if we analyse the signal for repeating patterns we should be able to spot the repeating video frames in it and use that to estimate $f_\text{v}$.
 
-\subsection{Introduction to Autocorrelation}
+\subsection{Introduction to autocorrelation}
 A good way of estimating $f_\text{v}$, would be by calculating the discrete autocorrelation \cite{bracewell1965autocorrelation} of the incoming signal which is defined as 
 \begin{equation}
 \label{eq:autocorrelationdef}
@@ -497,7 +497,7 @@ N \geq 3 \frac{f_\text{s}}{f_\text{low}} .
 \end{equation}
 To paraphrase this result, we will need to do the autocorrelation on at least 3 frames worth of samples for the lowest frequency in our range $f_\text{low}$ to avoid second order aliasing interfering with our plot.
 
-\subsection{Number of Lines in a Frame}
+\subsection{Number of lines in a frame}
 
 We were able to estimate $f_\text{v}$ using an autocorrelation and eliminate aliased signals in the frequency window that we are looking to detect repetitions. However, we still have not estimated neither $x_\text{t}$, nor $y_\text{t}$. As a matter of fact we might not be able to measure $x_\text{t}$ at all. The reason is that $x_\text{t}$ might be a continuous signal and could potentially contain any number of pixels. However, each line of $x_\text{t}$ pixels repeat $y_\text{t}$ times in a frame which includes the blanking intervals. Therefore we can use the repeating nature of the blanking intervals to estimate $y_\text{t}$ from the autocorrelation plot.
 
@@ -543,7 +543,7 @@ Before explaining how the software works internally, let's present a demonstrati
 
 The demonstration is undertaken in controlled conditions. However, in order to make it as similar to a real-world attack as possible, we will assume the adversary has no knowledge of the victim's system. We will estimate the frequency at which the emission strength peaks. We will then analyse the signal to detect the resolution and refresh rate of the screen. We will afterwards lock onto the signal and try to recover the original video.
 
-\section{The Set-up}
+\section{Set-up}
 
 The choice for a front-end for this demonstration is a USRP B200\footnote{Refer to \ref{sec:hw} Hardware for discussion on currently available devices.}. Depending on the particular requirements, an attacker might prefer mobility over accuracy and choose the smaller Mirics FlexiTV\texttrademark MSi3101 USB Dongle. However, for this demonstration we will attempt to obtain the highest possible resolution. Therefore we need a radio that is capable of obtaining a wide bandwidth. This makes the 32 MHz of bandwidth that the USRP provides a much better choice than the 8 MHz available from the Mirics dongle.
 
@@ -579,7 +579,7 @@ For an antenna, we will choose the portable MaxView active TV antenna. It is des
 
 You can view the equipment used by the adversary, the target and their mutual position on Figure \ref{fig:practicalattack}. We now take the place of the adversary that has set up their system, connected the UHD to the laptop and the antenna to the UHD and has launched the \textit{JTempest.jar} executable.
 
-\section{The Attack}
+\section{Attack}
 
 \begin{figure}[h]
 \centering
@@ -701,7 +701,7 @@ Cons:
 
 The plug-in supports variety of devices. It is a standard plug-in that is used in a number of software-defined radio solutions. However, it does not take into account for dropped samples. This means that if sample loss did occur, this would be very visible on the screen rendering eavesdropping practically difficult. It also only runs on Windows.
 
-\subsection{Antennas and Preconditioning}
+\subsection{Antennas and preconditioning}
 
 For the experiments in this report, I have either used a small, dual-pole antenna by AverMedia, or an active antenna by MaxView, both designed for digital TV reception. This showed to be enough for eavesdropping from an adjacent room to the one containing the target device. However, for impressive demos that could potentially operate from several tens of meters, some additional analogue preconditioning and professional antennas need to be used.
 
@@ -715,7 +715,7 @@ However, the package also comes with a pre-built Java based host program. The pr
 
 The whole system was designed and developed from scratch entirely by me. It does not rely on or include any third party libraries \footnote{Some IQ source plug-ins may depend on a driver library for the particular device they serve. However, the file input plug-in has no external dependencies, so the system can in fact decode pre-recorded signals without needing any additional software.}. Having no dependencies makes it extremely lightweight, portable and easy to compile. 
 
-\subsection{The Library}
+\subsection{The library}
 
 The library relies on plug-ins (called \textbf{TSDRPlugin}) to provide a stream of IQ samples and means to control the hardware in real time. The data sources are shared libraries that are dynamically loaded at runtime by the TSDRLirbary.
 
@@ -735,7 +735,7 @@ If the plug-in supports it, \textit{tsdr\_setbasefreq} can be used to set the ba
 
 Each API call can return an error code in case it fails. The host application can also read a verbose version of the error message using the \textit{tsdr\_getlasterrortext} API call. This allows for intuitive and simple error handling.
 
-\subsection{Data Flow}
+\subsection{Data flow}
 
 \begin{figure}[h]
   \centering
@@ -764,7 +764,7 @@ This means that we will have a lot of dropped samples coming from the device. At
 
 Therefore the library employs an algorithm that allows it to drop samples only an integer multiple of $x_\text{t} \times h$ at a time. This means that even if a single sample was dropped before processing, the algorithm will enforce a whole batch of $x_\text{t} \times h$ samples to be dropped instead. This means that when the next frame arrives, it will start processing from where the previous frame had dropped samples. Therefore the picture will look seamless to the end user since the dropped samples will actually result in a lower frame-rate in the host application. This approach allows the system to run even on not so powerful configurations and still produce some output. Such synchronization points are denoted as white arrows on Figure \ref{fig:architecture}.
 
-\section{Digital Signal Processing}
+\section{Digital signal processing}
 
 \subsubsection{Re-sampling}
 
@@ -780,19 +780,19 @@ A perfect low-pass filter uses $\operatorname{sinc}$ interpolation. However, in 
 
 There is another trick that is done to improve the anti-aliasing quality and possibly performance. Since the $x_\text{t}$ of an image is only used to maintain the aspect ratio, the library assumes that $x_\text{t} = \hat{x}_\text{t} = \lceil \frac{f_\text{s}}{f_\text{v} \cdot y_\text{t}} \rceil$. This allows the host program to use whatever algorithm they desire to re-sample the output image to any resolution. Since the host program can use GUI acceleration for the re-sampling process, it can afford more expensive algorithms that result in less aliasing artefacts. Furthermore, when $f_\text{p} > f_\text{s}$ as in most real-world eavesdropping scenarios, the CPU will have to handle less data resulting in improved performance.
 
-\subsubsection{Auto Gain}
+\subsubsection{Auto gain}
 
 The auto gain step ensures that the image uses the full dynamic output range. For example, if demodulated pixels $v[n]$ have the property $v_\text{min} \leq v[n] \leq v_\text{max}$ then we can construct a new stream of pixels $v^{\prime}[n]$ such that
 $$v^{\prime}[n] = \frac{v[n] - v_\text{min}}{v_\text{max} - v_\text{min}}$$
 which now means that $0 \leq v^{\prime}[n] \leq 1$. This is then handed over to the host program which can show interactively the relationship between $v^{\prime}[n]$ and $v[n]$. This is used by the Java GUI to show the relationship between the displayed gray-scale values and the incoming samples intensity.
 
-\subsubsection{Frame Averaging}
+\subsubsection{Frame averaging}
 
 The time averaging applies an infinite impulse response (IIR) low-pass filter to a stream of input pixels $v[n]$ to produce a stream of output pixels $v^{\prime}[n]$ such that
 $$v^{\prime}[n] =  \alpha \cdot v[n] + (1 - \alpha) \cdot v^{\prime}[n].$$
 This does inter-frame averaging sometimes known as motion blur. It attenuates random noise between consecutive frames and amplifies the constant signal, thus increasing the signal-to-noise ratio. The weight of the filter could be adjusted by changing $\alpha$ from $0$ to $1$.
 
-\subsection{Synchronization Detection}
+\subsection{Synchronization detection}
 
 In order to detect the blanking intervals in a frame, a few assumptions need to be done. What is characteristic about the intervals is that they do not contain any activity compared to the video region. This means that usually they are seen as a band of solid colour (see Figure \ref{fig:syncing}). They either contain more energy than the video region or contain less energy. Therefore we can assume that the average intensity of the blanking interval is very different from the intensity energy in the video region.
 
@@ -842,7 +842,7 @@ We can't easily change the asymptotical growth of the algorithm. However, we can
 \label{fig:syncalligned}
 \end{figure}
 
-\subsection{Tracking the Frame Rate}
+\subsection{Tracking the frame rate}
 
 The drift between the local oscillator and the pixel clock of the target will cause the image to accelerate slowly over time. This could be automatically compensated. It only works once we have a stable video image and we can reliably estimate $c$. If we say that the value of $c$ for frame number $n$ is $c[n]$, then we can take the speed with which the synchronisation frame is moving across the screen which is simply
 $$\frac{\text{d} c[n]}{\text{d} n} = v_\text{c}[n] = c[n] - c[n-1] .$$
@@ -902,7 +902,7 @@ When the thread finishes processing the data it received, it needs to pass the o
 
 There are a few other performance tweaks. The circular buffer can grow if it sees that such drops occur. There is a limit that the buffer can grow to in order to ensure that only near real-time data is being processed. The size of the circular buffer correlates to the latency in the system -- the longer the buffer is, the more latency the system will see. However if the system is fast enough, this mechanism ensures as little latency as possible (and as little memory being used). If the system is slower and can't handle real-time, the latency is increased to allow for additional stages to have more time to process the data. This will result in dropped frames but ensure an interactive system. This is basically a method to relieve the ``back pressure'' on the system. 
 
-\section{Experimental Results}
+\section{Experimental results}
 
 For performance benchmark, the system was tested on an Intel Core i5 laptop running in real-time, with more than 40 fps with a sampling rate of 25 MHz and RAM usage of less than 256 MB (including the Java runtime). A frame-rate of more than 20 fps can be achieved on a standard desktop Intel Core 2 CPU. This ensures the performance on any modern hardware provides sufficient interactivity.
 
@@ -937,10 +937,10 @@ Font aliasing plays an important role in the sharpness of the eavesdropped signa
   \label{fig:antialiseonoff}
 \end{figure}
 
-\chapter{Outlook and Conclusions} 
+\chapter{Outlook and conclusions} 
 \label{chap:summary}
 
-\section{Further Research}
+\section{Further research}
 
 An idea that proved promising was to try to ``extend'' the available bandwidth of the software-defined radio front-end. My best attempts in Figure \ref{fig:superresolution} show that there is slight improvement. We can take $n$ Fourier transforms of the signal, containing at least one frame in several consecutive bands of width $f_\text{s}$ and ``merge'' the recordings together, creating a new signal that has a bandwidth of $n \cdot f_\text{s}$. The requirement is that the signals need to be taken at the exact same time. This is impossible with a single receiver of bandwidth $f_\text{s}$. If we, however, assume that the $n$ recordings we have contain the same exact frames, we can align them using cross correlation. However, my experiments show that the aligning is very difficult. Since this was out of the scope of the project, I did abandon the idea. Further research in the area can mean that eavesdropping could be done even with ultra-cheap SDR devices like the RTL2832U based TV dongles that usually only provide up to $3$ MHz of bandwidth. This is highly insufficient for real-time eavesdropping.
 
