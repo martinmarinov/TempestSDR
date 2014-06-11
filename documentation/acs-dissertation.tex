@@ -90,7 +90,7 @@ The US National Security Agency conducted classified research with codename TEMP
 \section{Related Work}
 \label{sec:RelatedWork}
 
-Computer monitors started to become widespread in the end of the 20th century. Wim van Eck published the first unclassified technical analysis of the security risks of emanations from computer monitors in 1985 \cite{van1985electromagnetic}. The next important publication regarding video emanations came from Markus Kuhn nearly 20 years later in 2003 \cite{kuhn2003compromising}. Later in 2013, Elibol, Sarac and Erer demonstrated that emanations could be picked up from considerable distance with a mobile and lower cost equipment.
+Computer monitors started to become widespread in the end of the 20th century. Wim van Eck published the first unclassified technical analysis of the security risks of emanations from computer monitors in 1985 \cite{van1985electromagnetic}. The next important publication regarding video emanations came from Markus Kuhn nearly 20 years later in 2003 \cite{kuhn2003compromising}. Later in 2013, Elibol, Sarac and Erer demonstrated that emanations could be picked up from considerable distance with a mobile and lower cost equipment \cite{elibol2012realistic}.
 
 \subsection{Work of Wim van Eck}
 
@@ -126,7 +126,7 @@ However, there are some limitations of Kuhn's real-time monitoring system:
 
 \end{itemize}
 
-The report also mentions possible ways of modulating hidden messages into the signal. Kuhn discusses ways of defending against such attacks using hardware and software solutions. He demonstrates automatic character recognitions. The report includes experiments with optical eavesdropping of CRT displays.
+The report also mentions possible ways of modulating hidden messages into the signal. Kuhn discusses ways of defending against such attacks using hardware and software solutions. He demonstrates automatic character recognition. The report includes experiments with optical eavesdropping of CRT displays.
 
 Overall his real-time monitoring system improves on van Eck one by supporting a variety of modern video modes. Kuhn was able to prove that the threads outlined almost two centuries ago are still valid. This sparked fresh interest in the topic, resulting in a couple of additional related works to be published afterwards. In a later paper \cite{kuhn2005electromagnetic}, Kuhn focuses on digital displays and explains that the same attack vector could also be used in that context. In \cite{kuhn2011compromising} he analyses high frequency emissions from flat-panel LCD TV displays.
 
@@ -147,13 +147,13 @@ A research that followed by Ghani et al.\ \cite{ghani2013radiated} later focused
 
 \section{Achieved Goals and Motivation}
 
-The project aims to raise awareness of the potential security implications of the compromising emanations from video monitors. It implements the principles outlined in the related work section \ref{sec:RelatedWork} using a completely new approach: utilising a software-defined radio receiver. It also combines them into a single portable software library. In its basic form it allows tuning to a video signal by manually controlling the video parameters, similar to the implementation that van Eck, Kuhn and Elibol et al.\ have used in their practical demonstrations.
+The project aims to raise awareness of the potential security implications of the compromising emanations from video monitors. It implements the principles outlined in the related work section \ref{sec:RelatedWork} using a completely new approach: utilising a software-defined radio receiver. It also combines them into a single portable software library. In its basic form, it allows tuning to a video signal by manually controlling the video parameters, similar to the implementation that van Eck, Kuhn and Elibol et al.\ have used in their practical demonstrations.
 
 The system builds on top of the existing research by having achieved the following additional goals that were never done before:
 
 \begin{itemize}
 
-  \item Uses an affordable \footnote{Costing only several hundred pounds \cite{ettusb200}.}, unmodified off-the-shelf equipment portable enough to simplify practical attacks.
+  \item Uses an affordable \footnote{Costing only several hundred pounds \cite{ettusb200}.}, unmodified, off-the-shelf equipment portable enough to simplify practical attacks.
   \item Almost no specialised experience is necessary to operate the system.
   \item No prior knowledge of the target machine video parameters is required. The system can automatically estimate them remotely in real time.
   \item Reception of weaker signals is possible due to additional digital signal processing.
@@ -162,8 +162,7 @@ The system builds on top of the existing research by having achieved the followi
 
 \end{itemize}
 
-The source code and the latest pre-compiled binaries could be obtained from \href{https://github.com/martinmarinov/TempestSDR}{github.com/martinmarinov/TempestSDR}. If user's computer is running OS X, Windows or Linux, a multi-platform statically pre-compiled Java jar file is available for starting up the system in a couple of clicks.
-\footnote{Some device drivers might not be available on all operating systems. At time of writing the OS X binaries need to be compiled manually. Refer to the README for more information.}
+The source code and the latest pre-compiled binaries could be obtained from \href{https://github.com/martinmarinov/TempestSDR}{github.com/martinmarinov/TempestSDR}. If user's computer is running OS X, Windows or Linux, a multi-platform statically pre-compiled Java jar file is available for starting up the system in a couple of clicks \footnote{Some device drivers might not be available on all operating systems. At time of writing the OS X binaries need to be compiled manually. Refer to the README for more information.}.
 
 The system supports a plug-in architecture that allows simplified development of device drivers for any software-defined radio front-end. Currently supported plug-ins:
 
@@ -176,7 +175,7 @@ The system supports a plug-in architecture that allows simplified development of
 
 \end{itemize}
 
-The system comes with a Java GUI but the underlying library could be used independently by any other system as a shared or statically linked library. Furthermore the core is written in C and has no additional dependencies making it portable and easy to compile.
+The system comes with a Java GUI but the underlying library could be used independently by any other system as a shared or a statically linked library. Furthermore the core is written in C and has no additional dependencies making it portable and easy to compile.
 
 Chapter \ref{chap:background} provides some background information on the physics behind the radio wave generation process. It describes the basics of an SDR radio receiver. Chapter \ref{chap:methodology} explains the properties of the emanated signal and how to reconstruct it. It goes on describing the automatic remote estimation of video parameters. Chapter \ref{chap:practical} demonstrates a practical attack, showing that an attacker, with no prior knowledge of the target video display, can use the system to receive the compromising emanations from a distance. Chapter \ref{chap:implementation} outlines the architecture of the library and the implementation details. Finally, in chapter \ref{chap:summary}, a conclusion is done with some suggestions on further research.
 
@@ -237,7 +236,7 @@ The term \textbf{low-pass} means a low-pass filter. This is a filter that acts o
 A simple analogue to digital converter will measure the voltage in a wire by producing $f_\text{s}$ samples per second (called \textbf{sampling rate}). This means that it will produce a new sample every $t_\text{s} = \frac{1}{f_\text{s}}$ seconds. It converts an analogue signal a.k.a. continuous function $x(t)$ into a series of samples. This could be written mathematically as a multiplication with a Dirac comb
 \begin{equation}
 \label{eq:sampling}
-\hat{x}(t) = \sum_{k=-\infty}^{\infty} x(t) \delta(t - kT) .
+\hat{x}(t) = \sum_{k=-\infty}^{\infty} x(t) \delta(t - kT) = x(t) \cdot  \Sha_{T}(t).
 \end{equation}
 
 If we want to detect a signal containing frequency components from $0$ up to $f_\text{max}$, then according to the Nyquist sampling theorem, we need to sample with a sample rate $f_\text{s} > 2 f_\text{max}$. This usually gets impractical when $f_\text{max}$ gets large.
@@ -359,12 +358,12 @@ which reads: the Fourier transform of a multiplication of two functions is equiv
 \end{equation}
 the convolution of the Fourier transform of two functions is equivalent to the individual Fourier transforms of the two functions multiplied together.
 It could be also shown that
-\begin{equation}
+\begin{multline}
 \mathcal{F} \left\{ \Sha_{k} (t) \right\} = 
-\mathcal{F} \left\{ \sum\limits_{n=-\infty}^{\infty}  \delta(t-n k) \right\} =
+\mathcal{F} \left\{ \sum\limits_{n=-\infty}^{\infty}  \delta(t-n k) \right\} = \\
 k^{-1} \sum\limits_{n=-\infty}^{\infty}  \delta \left( t-k^{-1} n \right) =
 k^{-1} \Sha_{k^{-1}}(t)
-\end{equation}
+\end{multline}
 using the last three identities, we can write the Fourier transform of (\ref{eq:vasconv}) as
 \begin{multline} 
 \label{eq:vspectrum}
@@ -400,7 +399,7 @@ Now assuming $c(t)$ is the continuous version of $c_{k}$ as in the previous sect
 
 This means that we will also get repeating signal throughout the spectrum, this time repeating with a frequency of $\frac{1}{t_\text{b}} = x_\text{t} \cdot y_\text{t} \cdot f_\text{v} \cdot n_\text{b}$. This is $n_\text{b}$ times higher than the calculated repetition frequency for analogue signals. For example, Markus Kuhn's laptop was running LVDS with $n_\text{b}=7$ at a video mode of $800 \times 600 $ @ $ 75$ with $x_\text{t} = 1056$ px, $y_\text{t} = 628$ lines and $f_\text{v} = 75$ Hz. He reports receiving a harmonic emanation at about $350$ MHz\footnote{His actual hardware is transmitting two pixels at a time, resulting in a factor of $\frac{1}{2}$ being applied to the end result. Therefore the first harmonic he could actually pick up lies at $175$ MHz.} \cite{kuhn2005electromagnetic}. We can see that this agrees with the theoretical predictions since for his case $\frac{1}{t_\text{b}} = 1056 \cdot 628 \cdot 75 \cdot 7 \simeq 348.2$ MHz.
 
-However, the signal is now wider. We would need a receiver that can pick up $|f| \geq \frac{1}{2 t_\text{b}} \equiv \frac{n_\text{b}}{2 t_\text{p}}$ in order to reconstruct individual bits. In practice, we can still use the same approach that we used for analogue video. We can have a receiver that can pick up $|f| \geq \frac{1}{2 t_\text{b}}$. This is essentially equivalent to applying a low-pass filter -- we will no longer be able to distinguish individual bits. Instead we will obtain an averaged out value for each pixel that depends on the underlying binary data that is used to represent its intensity. The variety of colours available with significantly different bit patterns means that we can still extract a lot of visual information from the reconstructed image.
+However, the signal is now wider. We would need a receiver that can pick up $|f| \geq \frac{1}{2 t_\text{b}} \equiv \frac{n_\text{b}}{2 t_\text{p}}$ in order to reconstruct individual bits. In practice, we can still use the same approach that we used for analogue video. We can have a receiver that can pick up $|f| \geq \frac{1}{2 t_\text{p}}$. This is essentially equivalent to applying a low-pass filter -- we will no longer be able to distinguish individual bits. Instead we will obtain an averaged out value for each pixel that depends on the underlying binary data that is used to represent its intensity. The variety of colours available with significantly different bit patterns means that we can still extract a lot of visual information from the reconstructed image.
 
 \section{Reception}
 
@@ -412,7 +411,7 @@ However some software-defined radio receivers can provide the required bandwidth
 \subsection{Practice}
 The VESA standard specifies an allowed frequency tolerance for $f_\text{v}$ of 0.5\%. Therefore due to hardware limitations, we might not be able to accurately tune the receiver sampling rate with enough accuracy to match the transmitted pixel rate. This means that some re-sampling needs to be done in software in order to create a new digital signal that matches as close as possible the transmitted pixel rate in which each sample corresponds to a pixel.
 
-It is also true that we might be able to recover a lot of information from a signal even if our receiver is not capable of sampling the full width of the video spectrum. This means we will only receive $v(f)$ with a band-pass filter applied to it. In this case the digital re-sampling could interpolate the received samples to fit into multiple pixels. Therefore it is useful to introduce a measurement $\kappa$ of how accurate we can reconstruct pixels of $v(t)$. This measurement can be the number of input samples that have gone into constructing a single output pixels. Therefore
+It is also true that we might be able to recover a lot of information from a signal even if our receiver is not capable of sampling the full width of the video spectrum. This means we will only receive $v(f)$ with a band-pass filter applied to it. In this case digital re-sampling could interpolate the received samples to fit into multiple pixels. Therefore it is useful to introduce a measurement $\kappa$ of how accurate we can reconstruct pixels of $v(t)$. This measurement can be the number of input samples that have gone into constructing a single output pixels. Therefore
 \begin{equation}
 \label{eq:kappa}
 \kappa = f_\text{s} \cdot t_\text{p} = \frac{f_\text{s}}{x_\text{t} \cdot y_\text{t} \cdot f_\text{v}}
@@ -517,18 +516,24 @@ We should not worry about aliasing since the number of samples in the autocorrel
 
 \subsection{Errors}
 
-There is a limit on how accurately one can determine $f_\text{v}$ and $y_\text{t}$ using the outlined autocorrelation method. This depends on the sampling rate of the device. The resolution of the autocorrelation is $\delta f = \frac{1}{f_\text{s}}$. Therefore we can only say that if there is a peak at $t_{x}$ in the autocorrelation, then we have a repeating component in the signal with a frequency $f_{x} \pm \delta f$.
+There is a limit on how accurately one can determine $f_\text{v}$ and $y_\text{t}$ using the outlined autocorrelation method. This depends on the sampling rate of the device. The uncertainty in $t$ as determined by the autocorrelation is $\delta t = t_\text{s}$. We know that $f = t^{-1}$. So the uncertainty in $f$ is 
+$$\delta f = \sqrt{\left( \frac{\partial f}{\partial t} \delta t \right)^2} =  f^2 \delta t = f^2 t_\text{s}.$$
+Therefore we can only say that if there is a peak at $t_{x}$ in the autocorrelation, then we have a repeating component in the signal with a frequency $f_{x} \pm \delta f$.
 
 The accuracy at which we can determine $y_\text{t}$ depends both on the accuracy of $f_\text{v}$ and $t_\text{peak}$ and can vary. Furthermore $y_\text{t}$ should be rounded to an integer (we can only display an integer number of lines on a PC screen) which introduces further errors. Our definition for $y_\text{t}$ is
 $$y_\text{t} = \left\| \frac{1}{t_\text{peak} \cdot f_\text{v}} \right\| \pm (\delta y_\text{t} + 0.5)$$
 where $0.5$ comes from the rounding. Also the uncertainties in $t_\text{peak}$ and $f_\text{v}$ are $\delta f$ since both are being read from the same autocorrelation plot in milliseconds. In order to do error propagation, we need to take the partial derivatives with respect to $f_\text{v}$ and $t_\text{peak}$
-$$\frac{\partial h}{\partial f_\text{v}} = - \frac{1}{t_\text{peak} \cdot f_\text{v}^2}
+$$\frac{\partial y_\text{t}}{\partial f_\text{v}} = - \frac{1}{t_\text{peak} \cdot f_\text{v}^2}
  \,\,\,\,\ \text{and} \,\,\,\,\ \
-\frac{\partial h}{\partial t_\text{peak}} = - \frac{1}{f_\text{v} \cdot t_\text{peak}^2} .$$
+\frac{\partial y_\text{t}}{\partial t_\text{peak}} = - \frac{1}{f_\text{v} \cdot t_\text{peak}^2} .$$
 So for the uncertainty in $y_\text{t}$, we have
-$$\delta y_\text{t} =
-\sqrt{\left( \frac{\partial h}{\partial f_\text{v}} \delta f_\text{v} \right)^2 + \left( \frac{\partial h}{\partial t_\text{peak}} \delta t_\text{peak} \right)^2} = 
-\sqrt{\frac{1}{f_\text{v}^2} + \frac{1}{t_\text{peak}^2}} \times \frac{\delta f}{f_\text{v} \cdot t_\text{peak}} .$$
+\begin{multline}
+\delta y_\text{t} =
+\sqrt{\left( \frac{\partial y_\text{t}}{\partial f_\text{v}} \delta f_\text{v} \right)^2 + \left( \frac{\partial y_\text{t}}{\partial t_\text{peak}} \delta t_\text{peak} \right)^2} = \\
+\sqrt{\left( \frac{\partial y_\text{t}}{\partial f_\text{v}} \cdot f^2_\text{v} \delta t \right)^2 + \left( \frac{\partial y_\text{t}}{\partial t_\text{peak}} \delta t \right)^2} = 
+\sqrt{1+\frac{1}{f_\text{v}^2}} \times \frac{t_\text{s}}{t^2_\text{peak}} .
+\end{multline}
+
 We can also observe that the larger the sample rate gets, the smaller $\delta f$ and $\delta t$ get.
 
 \chapter{Practical attack} 
@@ -779,7 +784,7 @@ There is another trick that is done to improve the anti-aliasing quality and pos
 
 The auto gain step ensures that the image uses the full dynamic output range. For example, if demodulated pixels $v[n]$ have the property $v_\text{min} \leq v[n] \leq v_\text{max}$ then we can construct a new stream of pixels $v^{\prime}[n]$ such that
 $$v^{\prime}[n] = \frac{v[n] - v_\text{min}}{v_\text{max} - v_\text{min}}$$
-which now means that $0 \leq v^{\prime}[n] \leq 1$. This is then handed over to the host program which can show interactively the relationship between $v^{\prime}[n]$ and $v[n]$. This is used by the Java GUI to show the relationship between the displayed gray-scale values and the incoming samples strength.
+which now means that $0 \leq v^{\prime}[n] \leq 1$. This is then handed over to the host program which can show interactively the relationship between $v^{\prime}[n]$ and $v[n]$. This is used by the Java GUI to show the relationship between the displayed gray-scale values and the incoming samples intensity.
 
 \subsubsection{Frame Averaging}
 
@@ -803,7 +808,7 @@ In order to detect the blanking intervals in a frame, a few assumptions need to 
 \label{fig:syncing}
 \end{figure}
 
-In order to detect the intervals, for performance reasons, we can decouple them into two 1 dimensional strips. We produce two strips -- a vertical one, containing the average of all the lines and a horizontal one, containing the average of all the columns in an image. Then we can do a circular low-pass filter in order to get rid of any high frequency noise (such as text lines). Figure \ref{fig:syncing} shows how the averaged vertical and horizontal bands are derived and how they look after the low-pass filter.
+In order to detect the intervals, for performance reasons, we can decouple them into two 1 dimensional strips. We produce two strips -- a vertical one, containing the average of all the lines and a horizontal one, containing the average of all the columns in an image. Then we can do a circular low-pass filter in order to get rid of any high frequency noise (such as text lines). Figure \ref{fig:syncingavg} shows how the averaged vertical and horizontal bands are derived and how they look after the low-pass filter.
 
 \begin{figure}[h]
 \centering
@@ -863,9 +868,9 @@ The Wiener-Khintchine theorem \cite{wiener1964} allows for another definition of
 	\end{aligned}
 \end{equation}
 where $\bar{V_{k}}$ is the complex conjugate of $V_{k}$ and $\mathcal{F} \left\{ v_{i} \right\}$ is the discrete Fourier transform that is equal to
-$$V_{k}=\mathcal{F} \left\{ v_{i} \right\} (k) = \sum_{i = 0}^{n-1} v_{i} \cdot e^{- j 2 \pi k \frac{i}{n}} $$
+$$\mathcal{F} \left\{ v_{i} \right\} (k) = \sum_{i = 0}^{n-1} v_{i} \cdot e^{- j 2 \pi k \frac{i}{n}} $$
 and $\mathcal{F}^{-1} \left\{ S_{k} \right\}$ is the inverse discrete Fourier transform defined as
-$$R_{vv}(\tau)=\mathcal{F}^{-1} \left\{ S_{k} \right\} (\tau) = \frac{1}{n} \sum_{k = 0}^{n-1} S_{k} \cdot e^{j 2 \pi \tau \frac{k}{n}}. $$
+$$\mathcal{F}^{-1} \left\{ S_{k} \right\} (\tau) = \frac{1}{n} \sum_{k = 0}^{n-1} S_{k} \cdot e^{j 2 \pi \tau \frac{k}{n}}. $$
 Since the discrete Fourier transform could be computed in $O(n \log(n))$ using an algorithm called Fast Fourier Transform, then we have a way of computing the autocorrelation with complexity $O(n \log(n))$.
 
 When we compute the autocorrelation, we will have a lot of data to visualise. It is safe to assume that refresh rates and line rates of modern displays fall within a bounded range of frequencies. We can use that to limit the amount of data shown interactively on the screen. This not only improves performance, but also simplifies the user's task of understanding the autocorrelation plot since now, rather than showing the plot in terms of milliseconds or frequency, we can display it in ``frames per second'' and ``pixels''. Refer to Figure \ref{fig:autocorr_gui} to how the actual value of $R_{vv}(\tau)$ is displayed in a user friendly way onto the GUI.
@@ -899,7 +904,7 @@ There are a few other performance tweaks. The circular buffer can grow if it see
 
 \section{Experimental Results}
 
-For performance benchmark, the system was tested on an Intel Core i5 laptop running in real-time, with more than 40 fps with a sampling rate of 25 MHz and RAM usage of less than 256 MB (including the Java runtime). A frame-rate of more than 20 fps can be achieved on a standard desktop Intel Core 2 CPU. This ensures it the performance on any modern hardware provides sufficient interactivity.
+For performance benchmark, the system was tested on an Intel Core i5 laptop running in real-time, with more than 40 fps with a sampling rate of 25 MHz and RAM usage of less than 256 MB (including the Java runtime). A frame-rate of more than 20 fps can be achieved on a standard desktop Intel Core 2 CPU. This ensures the performance on any modern hardware provides sufficient interactivity.
 
 During my experiments with real life devices, I made some interesting observations I think are worth sharing. The results are not representative since they are related to the particular equipment I used, but since no screen-shots of some signals are available in the open literature, they can serve as a reference for further research.
 
@@ -932,12 +937,12 @@ Font aliasing plays an important role in the sharpness of the eavesdropped signa
   \label{fig:antialiseonoff}
 \end{figure}
 
-\chapter{Summary and Conclusions} 
+\chapter{Outlook and Conclusions} 
 \label{chap:summary}
 
 \section{Further Research}
 
-An idea that proved promising was to try to ``extend'' the available bandwidth of the software-defined radio front-end. My best attempts in Figure \ref{fig:superresolution} show that there is slight improvement. We can take $n$ Fourier transforms of the signal, containing at least one frame in several consecutive bands of width $f_\text{s}$ and ``merge'' the recordings together, creating a new signal that has a bandwidth of $n \cdot f_\text{s}$. The requirement is, however that the signals need to be taken at the exact same time. This is impossible with a single receiver of bandwidth $f_\text{s}$. If we, however, assume that the $n$ recordings we have contain the same exact frames, we can align them using cross correlation. However, my experiments show that the aligning is very difficult. Since this was out of the scope of the project, I did abandon the idea. Further research in the area can mean that eavesdropping could be done even with ultra-cheap SDR devices like the RTL2832U based TV dongles that usually only provide up to $3$ MHz of bandwidth. This is highly insufficient for real-time eavesdropping.
+An idea that proved promising was to try to ``extend'' the available bandwidth of the software-defined radio front-end. My best attempts in Figure \ref{fig:superresolution} show that there is slight improvement. We can take $n$ Fourier transforms of the signal, containing at least one frame in several consecutive bands of width $f_\text{s}$ and ``merge'' the recordings together, creating a new signal that has a bandwidth of $n \cdot f_\text{s}$. The requirement is that the signals need to be taken at the exact same time. This is impossible with a single receiver of bandwidth $f_\text{s}$. If we, however, assume that the $n$ recordings we have contain the same exact frames, we can align them using cross correlation. However, my experiments show that the aligning is very difficult. Since this was out of the scope of the project, I did abandon the idea. Further research in the area can mean that eavesdropping could be done even with ultra-cheap SDR devices like the RTL2832U based TV dongles that usually only provide up to $3$ MHz of bandwidth. This is highly insufficient for real-time eavesdropping.
 
 \begin{figure}[h!]
 \centering
