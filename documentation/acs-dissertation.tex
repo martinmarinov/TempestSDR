@@ -182,14 +182,14 @@ Chapter \ref{chap:background} provides some background information on the physic
 
 However, the report does not discuss ways of limiting the amount of information leaked via such compromising emanations. This is beyond the scope of the project. The system could assist further research on the topic serving as a rapid prototyping tool.
 
-The report also does not claim that the experimental results presented are exhaustive. This is due to the fact that there is a wide range of software-defined radio front-ends that are supported, each of them having different characteristics. Therefore no attempt was done to characterise the hardware used for the experiments. The presented measurements are not provided as absolute value (i.e.\  voltages) but rather as relative (i.e decibels). The results will very much depend on the target video display as well. Some displays will emit strong signals that could be picked up tens of meters away, while others emit no detectable video emanations. Characterising receivers and target video displays could be also left as a further research topic.
+The report also does not claim that the experimental results presented are exhaustive. This is due to the fact that there is a wide range of software-defined radio front-ends that are supported, each of them having different characteristics. Therefore, the particular receiver used throughout the project will not give a representative indication on the quality of the reconstructed signal. This is why measurements are not provided as absolute value (i.e.\  voltages) but rather as relative (i.e decibels). The results will very much depend on the target video display as well.
 
 There are also some inherent notes about the system:
 \begin{itemize}
 
-  \item The performance of the system depends on the speed of the CPU of the attacker. No GPU acceleration was implemented\footnote{Some GPU acceleration may happen internally in the Java VM while resizing frames onto the screen.} since it wasn't really necessary. Performance never dropped below 40 fps on an Intel Core i5 laptop without GPU acceleration.
-  \item Difficult to compare its core performance to existing implementations due to the fundamental differences of the underlying architectures.
-  \item Software-defined radio receivers have a lower sensitivity and higher noise figure due to lack of high quality analogue filters compared to specialised wideband receivers. There is also interference caused by their internal IC circuits or the USB/Ethernet/Power cables that connect them to the PC. However, Kuhn showed that in practice this could be greatly improved using suitable analogue preconditioning.
+  \item The performance of the system depends on the particular computer hardware running the software. 
+  \item Difficult to compare to existing implementations due to the fundamental differences of the underlying architectures.
+  \item Software-defined radio receivers have a higher noise figure due to lack of high quality analogue filters compared to specialised wideband receivers. There is also interference caused by their internal IC circuits or the USB/Ethernet/Power cables that connect them to the PC. However, Kuhn showed that in practice this could be greatly improved using suitable analogue preconditioning.
   
 \end{itemize}
 
