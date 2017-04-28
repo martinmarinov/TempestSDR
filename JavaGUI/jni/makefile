@@ -27,7 +27,7 @@ else
 endif
 
 # Headers
-INC += "$(JAVA_HOME)/include" "$(JAVA_HOME)/include/win32"
+INC += "$(JAVA_HOME)/include" "$(JAVA_HOME)/include/win32" "$(JAVA_HOME)/include/linux"
 
 # Discover the library extension for each OS
 ifeq ($(OS),Windows_NT)
