@@ -67,14 +67,14 @@ else
 
 	ifndef $(ARCHNAME)
 
-		UNAME_P := $(shell uname -p)
-		ifeq ($(UNAME_P),x86_64)
+		UNAME_M := $(shell uname -m)
+		ifeq ($(UNAME_M),x86_64)
 			ARCHNAME = X64
 		endif
-		ifneq ($(filter %86,$(UNAME_P)),)
+		ifneq ($(filter %86,$(UNAME_M)),)
 			ARCHNAME = X86
 		endif
-		ifneq ($(filter arm%,$(UNAME_P)),)
+		ifneq ($(filter arm%,$(UNAME_M)),)
 			ARCHNAME = ARM
 		endif
 
