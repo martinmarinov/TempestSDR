@@ -126,6 +126,22 @@ void frameratedetector_runontodata(frameratedetector_t * frameratedetector, floa
 }
 
 void frameratedetector_thread(void * ctx) {
+	/*
+	* Detect the frame rate of the incoming samples v_i
+	*
+	* We do this by finding the lag j with the highest autocorrelation
+	* R(j) = sum_i (v_i * conj(v_(i - j)))
+	*
+	* Naively, finding all the autocorrelations takes O(n^2)
+	*
+	* But defining V_k = F {v_i}, and S_k = V_k * conj(V_k),
+	* where F the Fourier transform,
+	* gives R(j) = F^-1 {S_k}.
+	*
+	* So by using the Fast Fourier Transform (FFT),
+	* we can find the autocorrelations in O(n log(n)).
+	*/
+
 	frameratedetector_t * frameratedetector = (frameratedetector_t *) ctx;
 
 	extbuffer_t extbuff;

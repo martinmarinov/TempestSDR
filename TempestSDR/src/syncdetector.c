@@ -169,6 +169,11 @@ void syncdetector_init(syncdetector_t * sy) {
 }
 
 float * syncdetector_run(syncdetector_t * sy, tsdr_lib_t * tsdr, float * data, float * outputdata, int width, int height, float * widthbuffer, float * heightbuffer, int greenlines, int modify_data_allowed) {
+	/*
+	* Detect image synchronisation
+	*
+	* Use image blanking regions to detect where in the stream the image starts.
+	*/
 
 	findthesweetspot(&sy->db_x, widthbuffer, width, width * 0.05f, FRAMERATE_DX_LOWPASS_COEFF_WIDTH);
 	findthesweetspot(&sy->db_y, heightbuffer, height, height * 0.01f, FRAMERATE_DX_LOWPASS_COEFF_HEIGHT );
