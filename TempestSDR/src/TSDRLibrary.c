@@ -242,6 +242,14 @@ void shiftfreq(tsdr_lib_t * tsdr, int32_t diff) {
 
 
 static inline void am_demod(float * buffer, int size) {
+	/*
+	* Demodulate video signal from carrier wave
+	*
+	* Uses IQ sampling to extract signal.
+	* Takes a buffer of size 2 * size, containing alternating I's and Q's
+	* and writes output to the first half of that buffer.
+	*/
+
 	int id;
 	float * bref = buffer;
 	float * brefout = buffer;
@@ -272,6 +280,7 @@ void process(float *buf, uint64_t items_count, void *ctx, int64_t samples_droppe
 	} else {
 		superb_stop(&context->this->super, context->this);
 
+		// When samples have been dropped, throw away the next two screens worth of samples
 		const int block = round(((context->this->width * context->this->height) << 1) * context->this->pixeltimeoversampletime);
 		dsp_dropped_compensation_shift_with(&context->dsp_device_dropped, block, samples_dropped);
 
@@ -289,6 +298,21 @@ void process(float *buf, uint64_t items_count, void *ctx, int64_t samples_droppe
 }
 
 void decimatingthread(void * ctx) {
+	/*
+	* Interpolate samples to pixels
+	*
+	* Samples taken by radio receiver do not necessarily occur at the same time as pixels are transmitted,
+	*
+	* eg.     Time ->
+	* Pixels  | . . . . | . . . . | . . .
+	* Samples | . | . | . | . | . | . | .
+	*
+	* so re-sample the incoming stream to take our best guess at the actual pixel values.
+	*
+	* If any samples are dropped, then drop a whole image worth of pixels.
+	* For more details on the dropping, see the dsp.c `dsp_dropped_*` functions.
+	*/
+
 	tsdr_context_t * context = (tsdr_context_t *) ctx;
 	semaphore_enter(&context->this->threadsync);
 
@@ -331,6 +355,12 @@ void decimatingthread(void * ctx) {
 }
 
 void postprocessingthread(void * ctx) {
+	/*
+	* Thread wrapping post-processing stages
+	*
+	* For details, see `dsp_post_process` in dsp.c
+	*/
+
 	tsdr_context_t * context = (tsdr_context_t *) ctx;
 	semaphore_enter(&context->this->threadsync);
 
