@@ -135,13 +135,11 @@ $(OBJFOLDER)/%.o : %.c $(DEPS)
 	$(CC) -Wall $(foreach d, $(INC), -I$d) $(CFLAGS) $(DEBUGFLAGS) $(COMPILATION_TYPE) -c $< -o $@
 
 # Generate the java header based on the class
-TSDRLibraryNDK.h : ../bin/martin/tempest/core/TSDRLibrary.class 
-	javah -classpath ../bin -o TSDRLibraryNDK.h -jni martin.tempest.core.TSDRLibrary
-
-# If the class is not compiled, do it
-../bin/martin/tempest/core/TSDRLibrary.class  : ../src/martin/tempest/core/TSDRLibrary.java
+TSDRLibraryNDK.h : ../src/martin/tempest/core/TSDRLibrary.java
 	mkdir -p include ../bin/martin/tempest/core/
-	javac $< -d ../bin/ -cp ../src/
+	javac $< -h ./ -d ../bin/ -cp ../src/
+	# dirty fix to match the previous name
+	mv martin_tempest_core_TSDRLibrary.h TSDRLibraryNDK.h
 
 
 # Remove any compiled artifacts
