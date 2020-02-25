@@ -14,7 +14,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include <uhd/utils/thread_priority.hpp>
+#include <uhd/utils/thread.hpp>
 #include <uhd/utils/safe_main.hpp>
 #include <uhd/usrp/multi_usrp.hpp>
 #include <uhd/transport/udp_simple.hpp>
@@ -331,8 +331,7 @@ EXTERNC TSDRPLUGIN_API int __stdcall tsdrplugin_readasync(tsdrplugin_readasync_f
 
 		// flush usrpbuffer
 	    while(rx_stream->recv(
-	        buff, samples_per_api_read, md,
-	        uhd::device::RECV_MODE_ONE_PACKET
+	        buff, samples_per_api_read, md
 	    )){
 	        /* NOP */
 	    };
