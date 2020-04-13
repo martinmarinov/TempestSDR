@@ -36,10 +36,19 @@ int tsdrplug_load(pluginsource_t * plugin, const char *dlname)
 
     #if WINHEAD // Microsoft compiler
         plugin->fd = (void*)LoadLibrary(dlname);
+
+       if (plugin->fd == NULL) {
+        char err_str[512];
+        FormatMessage(FORMAT_MESSAGE_FROM_SYSTEM,
+            NULL, GetLastError(), 
+            MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
+            err_str, 512, NULL);
+        fprintf(stderr,"Library %s load exception: %s\n", dlname, err_str);
+        }
     #else
         plugin->fd = dlopen(dlname,RTLD_NOW);
         if (plugin->fd == NULL)
-        	fprintf(stderr,"Library load exception: %s\n",dlerror());
+        	fprintf(stderr,"Library %s load exception: %s\n", dlname, dlerror());
     #endif
 
     if (plugin->fd == NULL)

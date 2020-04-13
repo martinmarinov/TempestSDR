@@ -10,3 +10,5 @@ On Windows 8 x64 this could look like
 
 This plugin is only for Windows. Make sure the mir_sdr_api.dll is in the library path (or in the same directory as the executable).
 You can find the dll in C:/Program Files/MiricsSDR/API/x86 or C:/Program Files/MiricsSDR/API/x64 depending on your architecture.
+
+NOTE: This plugin is deprecated as Mirics no longer exist and devices can no longer be bought. The successor to Mirics is SDRPlay which is also supported by TempestSDR. This plugin is kept here for legacy reasons.

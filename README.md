@@ -51,22 +51,21 @@ Note: This will also compile the plugins. Some of them require additional librar
 
 You need to have MinGW installed.
 
-On Windows, this will also build the Mirics SDR plugin for the FlexiTV™ MSi3101 SDR USB Dongle. You first need to install the SDR driver from http://www.mirics.com/
+On Windows, this will also build the SDRplay RSP plugin. You first need to install the SDR driver from http://www.sdrplay.com/
 
-In order to compile the plugin go to the plugin folder and type in
+Example of how to compile for x64 Windows
 
-    make all MIRICS_HOME=path_to_mirics_installation
-	
-On Windows 8 x64 this could look like
+    export PATH=$PATH:"/cygdrive/C/Program Files/Java/jdk<put_your_version_here>/bin"
+    make all JAVA_HOME=C:/PROGRA~1/Java/jdk<put_your_version_here> CC=x86_64-w64-mingw32-gcc ARCHNAME=X64
 
-    make all MIRICS_HOME=C:/PROGRA~1/MiricsSDR
-	
-If running Mirics Plugin, make sure the mir_sdr_api.dll is in the library path (or in the same directory as the executable).
-You can find the dll in C:/Program Files/MiricsSDR/API/x86 or C:/Program Files/MiricsSDR/API/x64 depending on your architecture. 
+And replace `<put_your_version_here>` with your JDK version.
 
-If you don't intend to use the Mirics dongle, you can skip this step by editing the Makefile in the JavaGUI directory. Remove TSDRPlugin\_Mirics from line 89, changing it from
+If running SDRplay Plugin, make sure the mir_sdr_api.dll and sdrplay_api.dll are in the library path (or in the same directory as the executable).
+You can find the dll in C:/Program Files/SDRplay/API/x86 or C:/Program Files/SDRplay/API/x64 depending on your architecture. 
 
-    PLUGINS += TSDRPlugin_Mirics TSDRPlugin_ExtIO
+If you don't intend to use the RSP dongle, you can skip this step by editing the Makefile in the JavaGUI directory. Remove TSDRPlugin\_SDRPlay from line 89, changing it from
+
+    PLUGINS += TSDRPlugin_SDRPlay TSDRPlugin_ExtIO
 
 to
 
@@ -74,9 +73,7 @@ to
 
 ### Linux and OS X
 
-On Linux and OS X, compiling the GUI will also compile the UHD driver, so you will need to have UHD and the corresponding boost libraries installed (UHD will install them automatically). If you don't want the UHD drivers, then you can skip their compilation by removing the line 91 for Linux and line 93 for OS X from the Makefile in the JavaGUI directory. This is how those lines look like by default:
-
-    PLUGINS += TSDRPlugin_UHD
+On Linux and OS X, compiling the GUI will also compile the UHD driver, so you will need to have UHD and the corresponding boost libraries installed (UHD will install them automatically). If you don't want the UHD drivers, then you can skip their compilation by removing the line 91 for Linux and line 93 for OS X from the Makefile in the JavaGUI directory.
 
 
 Building the libraries

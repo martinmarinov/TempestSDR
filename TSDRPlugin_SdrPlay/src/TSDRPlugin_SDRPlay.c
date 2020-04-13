@@ -3,7 +3,7 @@
 # All rights reserved. This program and the accompanying materials
 # are made available under the terms of the GNU Public License v3.0
 # which accompanies this distribution, and is available at
-# http://www.gnu.org/licenses/gpl.html
+# http://wworg/licenses/gpl.html
 # 
 # Contributors:
 #     Martin Marinov - initial API and implementation
@@ -14,7 +14,12 @@
 #include "TSDRPlugin.h"
 #include "TSDRCodes.h"
 
-#include <mirsdrapi-rsp.h>
+#if defined(WIN32) || defined(_WIN32) || defined(__WIN32__) || defined(__NT__) || defined(__CYGWIN__)
+	#include <windows.h>
+	#include "mir_sdr.h"
+#else
+	#include <mirsdrapi-rsp.h>
+#endif
 
 #include <stdint.h>
 #include <stdlib.h>
@@ -99,8 +104,6 @@ int TSDRPLUGIN_API __stdcall tsdrplugin_readasync(tsdrplugin_readasync_function 
 
 	double freq = desiredfreq;
 	double gainred = desiredgainred;
-
-	float ver = 0;
 
 	mir_sdr_DeviceT devices[1];
 	unsigned int num_devices = 0;

@@ -103,6 +103,7 @@ ifeq ($(OSNAME),LINUX)
 	CFLAGS+=-fPIC
 else ifeq ($(OSNAME),WINDOWS)
 	LDFLAGS+=-Wl,--add-stdcall-alias
+	CFLAGS+=-fPIC
 endif
 
 # The obj files reside in the bin/obj directory

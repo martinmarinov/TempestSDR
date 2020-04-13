@@ -21,7 +21,7 @@ import java.awt.Container;
 public class TSDRSDRPlaySource extends TSDRSource {
 	
 	public TSDRSDRPlaySource() {
-		super("SDRplay RSP", "TSDRPlugin_SdrPlay", false);
+		super("SDRplay RSP", "TSDRPlugin_SDRPlay", false);
 	}
 	
 	@Override

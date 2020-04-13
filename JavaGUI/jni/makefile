@@ -101,6 +101,7 @@ endif
 ifeq ($(OSNAME),LINUX)
 	CFLAGS+=-fPIC
 else ifeq ($(OSNAME),WINDOWS)
+	CFLAGS+=-D__int64="long long" -D_JNI_IMPLEMENTATION_ -Wl,--kill-at
 	LDFLAGS+=-Wl,--add-stdcall-alias
 endif
 

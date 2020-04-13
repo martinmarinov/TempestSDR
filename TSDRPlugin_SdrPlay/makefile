@@ -79,24 +79,29 @@ else
 	endif
 endif
 
-ifeq ($(OSNAME),WINDOWS)
-	LDFLAGS+=-Wl,--add-stdcall-alias
-	EXT=.dll
-	LIBPREFIX=
-else ifeq ($(OSNAME),MAC)
-	EXT ?= .so
-	CXXFLAGS+=-fPIC
-else ifeq ($(OSNAME),LINUX)
-	EXT=.so
-	LIBPREFIX=lib
-endif
-
 ifeq ($(ARCHNAME),X86)
 	COMPILATION_TYPE=-m32
 	ARCHNAME_LOWER=x86
 else ifeq ($(ARCHNAME),X64)
 	COMPILATION_TYPE=-m64
 	ARCHNAME_LOWER=x64
+endif
+
+ifeq ($(OSNAME),WINDOWS)
+	LDFLAGS+=-Wl,--add-stdcall-alias
+	EXT=.dll
+	LIBPREFIX=
+	SDRPLAY_HOME?=C:/PROGRA~1/SDRplay
+	INC += "$(SDRPLAY_HOME)/API/inc"
+	LIBRARIES=-L"$(SDRPLAY_HOME)/API/$(ARCHNAME_LOWER)/" -lmir_sdr_api
+else ifeq ($(OSNAME),MAC)
+	EXT ?= .so
+	CXXFLAGS+=-fPIC
+	LIBRARIES=-lmirsdrapi-rsp
+else ifeq ($(OSNAME),LINUX)
+	EXT=.so
+	LIBPREFIX=lib
+	LIBRARIES=-lmirsdrapi-rsp
 endif
 
 
@@ -119,7 +124,7 @@ copyoverheaderfile:
 
 # Link
 $(OUTPUTFOLDER)/$(PLUGNAME)$(EXT): copyoverheaderfile $(_OBJS)
-	$(CC) -Wall -L"$(MIRICS_HOME)/API/$(ARCHNAME_LOWER)/" -lmirsdrapi-rsp $(LDFLAGS) $(DEBUGFLAGS) -shared $(COMPILATION_TYPE) -o $@ $(_OBJS)
+	$(CC) -Wall $(LDFLAGS) $(DEBUGFLAGS) -shared $(COMPILATION_TYPE) -o $@ $(_OBJS) $(LIBRARIES)
 
 # Make dirs and compile
 $(OBJFOLDER)/%.o : $(SOURCEFOLDER)/%.c $(_DEPS)
