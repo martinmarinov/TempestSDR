@@ -41,6 +41,10 @@ On Ubuntu with openjdk it could look like
 
     make all JAVA_HOME=/usr/lib/jvm/java-6-openjdk-amd64
 
+On Mac OSX commmand might look like
+
+    make all JAVA_HOME=/Library/Java/JavaVirtualMachines/jdk1.8.0_111.jdk/Contents/Home
+
 Note: This will also compile the plugins. Some of them require additional libraries! You can disable the plugin compilation by editing the Makefile in JavaSDR.
 
 ### Windows
