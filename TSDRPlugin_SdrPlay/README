@@ -1,0 +1,3 @@
+This is a driver for SDRplay for Mac. You first need to install the SDR driver from https://www.sdrplay.com/
+
+This driver can probably be adopted to work on Linux and Windows. I'm happy to accept pull requests.

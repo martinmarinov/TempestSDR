@@ -36,5 +36,6 @@ clean :
 	@$(MAKE) -C TSDRPlugin_RawFile/ clean
 	@$(MAKE) -C TSDRPlugin_Mirics/ clean
 	@$(MAKE) -C TSDRPlugin_ExtIO/ clean
+	@$(MAKE) -C TSDRPlugin_SDRPlay/ clean
 	@$(MAKE) -C TempestSDR/ clean
 	@$(MAKE) -C JavaGUI/ clean
