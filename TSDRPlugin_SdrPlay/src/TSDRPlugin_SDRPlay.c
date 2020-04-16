@@ -84,9 +84,9 @@ int TSDRPLUGIN_API __stdcall tsdrplugin_stop(void) {
 }
 
 int TSDRPLUGIN_API __stdcall tsdrplugin_setgain(float gain) {
-	desiredgainred = 102 - (int) (gain * 102);
-	if (desiredgainred < 0) desiredgainred = 0;
-	else if (desiredgainred > 102) desiredgainred = 102;
+	desiredgainred = 20 + (int) ((1.0f - gain) * (59-20));
+	if (desiredgainred < 20) desiredgainred = 20;
+	else if (desiredgainred > 59) desiredgainred = 59;
 	RETURN_OK();
 }
 
@@ -113,6 +113,7 @@ int TSDRPLUGIN_API __stdcall tsdrplugin_readasync(tsdrplugin_readasync_function 
 		RETURN_EXCEPTION("No devices found", TSDR_CANNOT_OPEN_DEVICE);
 	}
 
+	mir_sdr_RSPII_AntennaControl(mir_sdr_RSPII_ANTENNA_A);
 	mir_sdr_AgcControl(1, -30, 0, 0, 0, 0, 1);
 	err = mir_sdr_Init(gainred, 8, freq / 1000000.0, mir_sdr_BW_8_000, mir_sdr_IF_Zero, &sps);
 	if (err != mir_sdr_Success) {
@@ -173,7 +174,7 @@ int TSDRPLUGIN_API __stdcall tsdrplugin_readasync(tsdrplugin_readasync_function 
 
 		if (err == 0 && gainred != desiredgainred) {
 			gainred = desiredgainred;
-			mir_sdr_SetGr(gainred, 1, 0);
+			mir_sdr_RSP_SetGr(gainred, 3, 1, 0);
 		}
 
 		if (err == 0)
