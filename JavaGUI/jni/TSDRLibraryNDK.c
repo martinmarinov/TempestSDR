@@ -221,30 +221,58 @@ void read_async(float *buf, int width, int height, void *ctx) {
 
 	jint * data = context->pixels;
 
-	int i;
-	for (i = 0; i < context->pixelsize; i++) {
-		const float val = *(buf++);
-		if (val > 0.0f && val <= 1.0f) {
-			const int col = (inverted) ? (255 - (int) (val * 255.0f)) : ((int) (val * 255.0f));
-			*(data++) = col | (col << 8) | (col << 16);
-		} else if (val <= 0.0f) {
-			*(data++) = (inverted) ? (255 | (255 << 8) | (255 << 16)) : 0;
-		}
-#if PIXEL_SPECIAL_COLOURS_ENABLED
-		else if (val == PIXEL_SPECIAL_VALUE_R) {
-			*(data++) = 255 << 16;
-		} else if (val == PIXEL_SPECIAL_VALUE_G) {
-			*(data++) = 255 << 8;
-		} else if (val == PIXEL_SPECIAL_VALUE_B) {
-			*(data++) = 255;
-		} else if (val == PIXEL_SPECIAL_VALUE_TRANSPARENT) {
-			data++;
-		}
-#endif
-		else {
-			*(data++) = (inverted) ? 0 : (255 | (255 << 8) | (255 << 16));
-		}
+	if (inverted) {
+		int i;
+		for (i = 0; i < context->pixelsize; i++) {
+			const float val = *(buf++);
+			if (val > 0.0f && val <= 1.0f) {
+				const int col = (255 - (int) (val * 255.0f));
+				*(data++) = col | (col << 8) | (col << 16);
+			} else if (val <= 0.0f) {
+				*(data++) = (255 | (255 << 8) | (255 << 16));
+			}
+	#if PIXEL_SPECIAL_COLOURS_ENABLED
+			else if (val == PIXEL_SPECIAL_VALUE_R) {
+				*(data++) = 255 << 16;
+			} else if (val == PIXEL_SPECIAL_VALUE_G) {
+				*(data++) = 255 << 8;
+			} else if (val == PIXEL_SPECIAL_VALUE_B) {
+				*(data++) = 255;
+			} else if (val == PIXEL_SPECIAL_VALUE_TRANSPARENT) {
+				data++;
+			}
+	#endif
+			else {
+				*(data++) = 0;
+			}
 
+		}
+	} else {
+		int i;
+		for (i = 0; i < context->pixelsize; i++) {
+			const float val = *(buf++);
+			if (val > 0.0f && val <= 1.0f) {
+				const int col = ((int) (val * 255.0f));
+				*(data++) = col | (col << 8) | (col << 16);
+			} else if (val <= 0.0f) {
+				*(data++) = 0;
+			}
+	#if PIXEL_SPECIAL_COLOURS_ENABLED
+			else if (val == PIXEL_SPECIAL_VALUE_R) {
+				*(data++) = 255 << 16;
+			} else if (val == PIXEL_SPECIAL_VALUE_G) {
+				*(data++) = 255 << 8;
+			} else if (val == PIXEL_SPECIAL_VALUE_B) {
+				*(data++) = 255;
+			} else if (val == PIXEL_SPECIAL_VALUE_TRANSPARENT) {
+				data++;
+			}
+	#endif
+			else {
+				*(data++) = (255 | (255 << 8) | (255 << 16));
+			}
+
+		}
 	}
 
 	assert(data == context->pixels + context->pixelsize);
