@@ -113,6 +113,6 @@ You need to have MinGW installed and gcc and make commands need to be in your pa
 
 ### Linux
 
-To be announced soon.
+`libuhd-dev`
 
 
