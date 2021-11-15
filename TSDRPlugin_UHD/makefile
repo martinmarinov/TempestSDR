@@ -51,7 +51,8 @@ ifeq ($(OS),Windows_NT)
 else ifeq ($(shell uname -s),Darwin)
 	OSNAME ?= MAC
 	EXT ?= .so
-	INC += /opt/local/include
+	HOMEBREW_HOME ?= /opt/local
+	INC += ${HOMEBREW_HOME}/include
 	ifeq ($(shell uname -m),x86)
 		ARCHNAME = X86
 	endif
