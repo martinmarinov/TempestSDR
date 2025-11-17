@@ -1,0 +1,13 @@
+{
+    "editor.quickSuggestions": {
+        "other": "on",
+        "comments": true,
+        "strings": "off"
+    },
+    "files.associations": {
+        "sdrplay_api.h": "c",
+        "stdio.h": "c",
+        "stdlib.h": "c",
+        "stdint.h": "c"
+    }
+}

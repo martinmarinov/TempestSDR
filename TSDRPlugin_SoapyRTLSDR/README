@@ -1,0 +1,27 @@
+TSDR Plugin for RTL-SDR using Soapy SDR API
+
+This plugin provides support for RTL-SDR devices through the Soapy SDR abstraction layer.
+
+Requirements:
+- SoapySDR library (https://github.com/pothosware/SoapySDR)
+- SoapyRTLSDR module (https://github.com/pothosware/SoapyRTLSDR)
+
+Installation:
+1. Install SoapySDR and the RTL-SDR module
+2. Build this plugin by running 'make' in this directory
+3. Copy the built library to the appropriate plugin directory
+
+Parameters:
+The plugin accepts parameters in the format "key1=value1,key2=value2"
+
+Supported parameters:
+- serial: RTL-SDR serial number (optional, uses first available if not specified)
+- device: Specific device identifier (optional)
+
+Example usage:
+driver=rtlsdr,serial=12345678
+
+Default settings:
+- Sample rate: 3.2 MHz
+- Frequency: 400 MHz
+- Gain: Auto (normalized 0.0-1.0)

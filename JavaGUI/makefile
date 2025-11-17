@@ -90,7 +90,7 @@ PLUGINS += TSDRPlugin_SDRPlay TSDRPlugin_ExtIO
 else ifeq ($(OSNAME), LINUX)
 PLUGINS += TSDRPlugin_UHD
 else ifeq ($(OSNAME), MAC)
-PLUGINS += TSDRPlugin_UHD TSDRPlugin_SDRPlay
+PLUGINS += TSDRPlugin_UHD TSDRPlugin_SDRPlay TSDRPlugin_SoapyRTLSDR
 endif
 
 # USER CONFIGURATION ENDS HERE

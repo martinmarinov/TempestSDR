@@ -45,7 +45,7 @@ ifeq ($(OS),Windows_NT)
 	endif
 else ifeq ($(shell uname -s),Darwin)
 	OSNAME ?= MAC
-	HOMEBREW_HOME ?= /opt/local
+	HOMEBREW_HOME ?= /opt/homebrew
 	INC += ${HOMEBREW_HOME}/include
 	ifeq ($(shell uname -m),x86)
 		ARCHNAME = X86
@@ -98,7 +98,7 @@ ifeq ($(OSNAME),WINDOWS)
 else ifeq ($(OSNAME),MAC)
 	EXT ?= .so
 	CXXFLAGS+=-fPIC
-	LIBRARIES=-lmirsdrapi-rsp
+	LIBRARIES=-lsdrplay_api
 else ifeq ($(OSNAME),LINUX)
 	EXT=.so
 	LIBPREFIX=lib

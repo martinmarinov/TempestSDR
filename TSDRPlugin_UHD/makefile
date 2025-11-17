@@ -28,7 +28,7 @@ endif
 # END OF CONFIGURATION IF STANDARD DIR STRUCTURE IS USED
 
 # Compile with g++
-GPP?=g++
+GPP?=g++ -std=c++11
 
 # Where the TSDRPlugin.h of the TempestSDR library resides (so it will be copied over)
 HEADLOCATION=../TempestSDR/src/include/
@@ -51,7 +51,7 @@ ifeq ($(OS),Windows_NT)
 else ifeq ($(shell uname -s),Darwin)
 	OSNAME ?= MAC
 	EXT ?= .so
-	HOMEBREW_HOME ?= /opt/local
+	HOMEBREW_HOME ?= /opt/homebrew
 	INC += ${HOMEBREW_HOME}/include
 	ifeq ($(shell uname -m),x86)
 		ARCHNAME = X86
@@ -113,7 +113,7 @@ ifeq ($(OSNAME),LINUX)
 	LIBRARIES+=-lboost_thread -lboost_program_options -luhd
 else ifeq ($(OSNAME),MAC)
 	CXXFLAGS+=-fPIC
-	LIBRARIES+=-L/opt/local/lib -lboost_thread-mt -lboost_program_options-mt -lboost_system-mt -luhd
+	LIBRARIES+=-L/opt/homebrew/lib -L/opt/homebrew/opt/boost@1.85/lib -lboost_thread -lboost_program_options -lboost_system -luhd
 else ifeq ($(OSNAME),WINDOWS)
 	LDFLAGS+=-Wl,--add-stdcall-alias
 	LIBRARIES+= -lboost_thread-mt -lboost_program_options-mt -lboost_system-mt -luhd 
