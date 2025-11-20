@@ -33,6 +33,9 @@ else ifeq ($(shell uname -s),Darwin)
 	ifeq ($(shell uname -m),x86_64)
 		ARCHNAME = X64
 	endif
+	ifeq ($(shell uname -m),arm64)
+		ARCHNAME = ARM64
+	endif
 else
 
 	ifndef $(OSNAME)
@@ -82,7 +85,7 @@ endif
 # in the parent directory with the exact same name as the plugin names. The library files
 # produced need to have the name of the plugin folder and need to be in the bin directory.
 # The default plugin file will make sure this is compatible.
-PLUGINS=TSDRPlugin_RawFile 
+PLUGINS=TSDRPlugin_RawFile
 
 ifeq ($(OSNAME),WINDOWS)
 # Windows only plugins
@@ -90,7 +93,10 @@ PLUGINS += TSDRPlugin_SDRPlay TSDRPlugin_ExtIO
 else ifeq ($(OSNAME), LINUX)
 PLUGINS += TSDRPlugin_UHD
 else ifeq ($(OSNAME), MAC)
+ifeq ($(ARCHNAME), ARM64)
+else
 PLUGINS += TSDRPlugin_UHD TSDRPlugin_SDRPlay
+endif
 endif
 
 # USER CONFIGURATION ENDS HERE
