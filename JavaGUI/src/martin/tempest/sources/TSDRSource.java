@@ -41,6 +41,7 @@ public class TSDRSource {
 		new TSDRUHDSource(),
 		new TSDRExtIOSource(),
 		new TSDRSDRPlaySource(),
+		new TSDRRTLSource(),
 	};
 	
 	/** The native name of the dynamic library. It should not contain prefixes or extensions.

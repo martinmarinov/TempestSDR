@@ -49,6 +49,9 @@ else ifeq ($(shell uname -s),Darwin)
 	ifeq ($(shell uname -m),x86_64)
 		ARCHNAME = X64
 	endif
+	ifeq ($(shell uname -m),arm64)
+		ARCHNAME = ARM64
+	endif
 else
 
 	ifndef $(OSNAME)
@@ -68,6 +71,9 @@ else
 		endif
 		ifneq ($(filter %86,$(UNAME_M)),)
 			ARCHNAME = X86
+		endif
+		ifeq ($(UNAME_M),aarch64)
+			ARCHNAME = ARM64
 		endif
 		ifneq ($(filter arm%,$(UNAME_M)),)
 			ARCHNAME = ARM

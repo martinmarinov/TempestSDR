@@ -1,0 +1,12 @@
+This plugin enables straightforward use of RTL-SDR USB dongles (RTL2832U) as a live signal source. It uses generic librtlsdr library version, can also be compiled using tweaked RTLSDR version, but by default should work with all RTL2832U devices that are supported by librtlsdr.
+
+#### macOS via Homebrew
+```bash
+brew install librtlsdr
+```
+
+#### Linux (Debian/Ubuntu based, including e.g. Raspberry Pi OS)
+```bash
+sudo apt-get install librtlsdr-dev
+```
+
